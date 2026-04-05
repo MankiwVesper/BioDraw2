@@ -19,6 +19,10 @@ export function CanvasPanel() {
   const selectObject = useEditorStore(state => state.selectObject);
   const removeSceneObject = useEditorStore(state => state.removeSceneObject);
   const updateSceneObject = useEditorStore(state => state.updateSceneObject);
+  const undo = useEditorStore(state => state.undo);
+  const redo = useEditorStore(state => state.redo);
+  const past = useEditorStore(state => state.past);
+  const future = useEditorStore(state => state.future);
 
   // 响应式 Resize Observer
   useEffect(() => {
@@ -40,6 +44,17 @@ export function CanvasPanel() {
       // 避免在输入框中触发快捷键
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) {
+        return;
+      }
+
+      if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
+        e.preventDefault();
+        redo();
         return;
       }
 
@@ -68,7 +83,7 @@ export function CanvasPanel() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, objects, removeSceneObject, updateSceneObject]);
+  }, [selectedIds, objects, removeSceneObject, updateSceneObject, undo, redo]);
 
   // 空格键控制平移模式
   useEffect(() => {
@@ -226,7 +241,50 @@ export function CanvasPanel() {
           <div className="canvas-placeholder">画布初始化中...</div>
         )}
 
-        {/* 左下角悬浮缩放控制条 */}
+        {/* 右上角悬浮撤销/重做控制条 */}
+        <div style={{
+          position: 'absolute', top: '12px', right: '12px',
+          display: 'flex', alignItems: 'center', gap: '2px',
+          backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)',
+          borderRadius: '8px', padding: '4px 6px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          zIndex: 100, userSelect: 'none',
+        }}>
+          <button
+            onClick={undo}
+            disabled={past.length === 0}
+            title="撤销 (Ctrl+Z)"
+            style={{
+              background: 'none', border: 'none', cursor: past.length === 0 ? 'not-allowed' : 'pointer',
+              color: 'var(--text-muted)', fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
+              opacity: past.length === 0 ? 0.3 : 1, display: 'flex', alignItems: 'center', gap: '4px',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => { if (past.length > 0) { e.currentTarget.style.backgroundColor = 'var(--bg-color)'; e.currentTarget.style.color = 'var(--text-main)'; } }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          >
+            <span style={{ fontSize: '14px', lineHeight: 1 }}>↶</span>
+            <span>撤销</span>
+          </button>
+          <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)' }} />
+          <button
+            onClick={redo}
+            disabled={future.length === 0}
+            title="重做 (Ctrl+Y)"
+            style={{
+              background: 'none', border: 'none', cursor: future.length === 0 ? 'not-allowed' : 'pointer',
+              color: 'var(--text-muted)', fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
+              opacity: future.length === 0 ? 0.3 : 1, display: 'flex', alignItems: 'center', gap: '4px',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+            onMouseEnter={e => { if (future.length > 0) { e.currentTarget.style.backgroundColor = 'var(--bg-color)'; e.currentTarget.style.color = 'var(--text-main)'; } }}
+            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+          >
+            <span style={{ fontSize: '14px', lineHeight: 1 }}>↷</span>
+            <span>重做</span>
+          </button>
+        </div>
+
+        {/* 右下角悬浮缩放控制条 */}
         <div style={{
           position: 'absolute', bottom: '12px', right: '12px',
           display: 'flex', alignItems: 'center', gap: '4px',

@@ -67,3 +67,49 @@ button:hover {
   font-size: 0.85rem;
   color: var(--text-muted);
 }
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-color);
+  margin: 0 4px;
+}
+
+.history-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.history-btn:hover:not(:disabled) {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+}
+
+.history-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.history-label {
+  font-size: 0.8rem;
+}
+
+.history-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.history-btn:disabled:hover {
+  background-color: transparent;
+  color: var(--text-muted);
+}
