@@ -8,6 +8,11 @@ export function InspectorPanel() {
   const selectedIds = useEditorStore(state => state.selectedIds);
   const objects = useEditorStore(state => state.objects);
   const updateSceneObject = useEditorStore(state => state.updateSceneObject);
+  
+  const moveObjectForward = useEditorStore(state => state.moveObjectForward);
+  const moveObjectBackward = useEditorStore(state => state.moveObjectBackward);
+  const moveObjectToFront = useEditorStore(state => state.moveObjectToFront);
+  const moveObjectToBack = useEditorStore(state => state.moveObjectToBack);
 
   const selectedObj = selectedIds.length > 0 
     ? objects.find(o => o.id === selectedIds[0]) 
@@ -137,6 +142,54 @@ export function InspectorPanel() {
                 onMouseLeave={e => e.currentTarget.style.opacity = '0.8'}
               >
                 🔄
+              </button>
+            </div>
+          </div>
+          
+          <div className="property-field" style={{ marginBottom: '16px', flexDirection: 'row', alignItems: 'center' }}>
+            <label style={{ width: '100px', flexShrink: 0, marginBottom: 0 }}>图层顺序：</label>
+            <div style={{ display: 'flex', gap: '8px', flex: 1, justifyContent: 'space-between' }}>
+              <button 
+                onClick={() => moveObjectToBack(selectedObj.id)} 
+                title="置底" 
+                style={{ flex: 1, padding: '4px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="3" x2="12" y2="17" />
+                  <polyline points="19 10 12 17 5 10" />
+                  <line x1="4" y1="21" x2="20" y2="21" />
+                </svg>
+              </button>
+              <button 
+                onClick={() => moveObjectBackward(selectedObj.id)} 
+                title="下移一层" 
+                style={{ flex: 1, padding: '4px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <polyline points="19 12 12 19 5 12" />
+                </svg>
+              </button>
+              <button 
+                onClick={() => moveObjectForward(selectedObj.id)} 
+                title="上移一层" 
+                style={{ flex: 1, padding: '4px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="19" x2="12" y2="5" />
+                  <polyline points="5 12 12 5 19 12" />
+                </svg>
+              </button>
+              <button 
+                onClick={() => moveObjectToFront(selectedObj.id)} 
+                title="置顶" 
+                style={{ flex: 1, padding: '4px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-main)', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '28px' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="21" x2="12" y2="7" />
+                  <polyline points="5 14 12 7 19 14" />
+                  <line x1="4" y1="3" x2="20" y2="3" />
+                </svg>
               </button>
             </div>
           </div>

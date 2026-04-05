@@ -18,6 +18,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative; /* 为内部绝对定位的悬浮控制条提供锚点 */
 }
 
 .canvas-placeholder {

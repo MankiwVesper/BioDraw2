@@ -72,14 +72,6 @@ export function SvgMaterialRenderer({ sceneObject, isSelected, onSelect }: Props
         scaleX={sceneObject.scaleX}
         scaleY={sceneObject.scaleY}
         draggable
-        dragBoundFunc={(pos) => {
-          const stage = imageRef.current?.getStage();
-          if (!stage) return pos;
-          return {
-            x: Math.max(0, Math.min(pos.x, stage.width())),
-            y: Math.max(0, Math.min(pos.y, stage.height()))
-          };
-        }}
         onDragEnd={handleDragEnd}
         onTransformEnd={handleTransformEnd}
         onClick={onSelect}
