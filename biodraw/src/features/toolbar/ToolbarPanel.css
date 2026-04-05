@@ -1,0 +1,69 @@
+.toolbar-panel {
+  height: 56px;
+  background-color: var(--panel-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  z-index: 10;
+  position: relative;
+}
+
+.toolbar-left, .toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--primary-color);
+  margin-right: 16px;
+}
+
+.menu-items, .play-controls {
+  display: flex;
+  gap: 8px;
+}
+
+button {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  transition: all 0.2s;
+}
+
+button:hover {
+  background-color: var(--bg-color);
+}
+
+.control-btn.play {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.control-btn.play:hover {
+  background-color: var(--primary-hover);
+}
+
+.status-text {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

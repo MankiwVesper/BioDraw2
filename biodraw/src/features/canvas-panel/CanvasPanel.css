@@ -1,0 +1,27 @@
+.canvas-panel {
+  flex: 1;
+  display: flex;
+  background-color: #e5e5f7;
+  background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+  background-size: 20px 20px;
+  position: relative;
+  overflow: hidden;
+  padding: 24px; /* 添加四周空隙 */
+}
+
+.canvas-wrapper {
+  flex: 1;
+  background-color: white; /* 纯白画布 */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border-radius: 4px;
+  overflow: hidden; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.canvas-placeholder {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  user-select: none;
+}
