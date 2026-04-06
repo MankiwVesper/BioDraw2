@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState } from 'react';
-import { Rect, Circle, Line, Arrow, Text, Image as KonvaImage, Transformer, Group, RegularPolygon } from 'react-konva';
+import { Rect, Circle, Line, Text, Image as KonvaImage, Transformer, Group, RegularPolygon } from 'react-konva';
 import useImage from 'use-image';
 import type { SceneObject } from '../../types';
 import { useEditorStore } from '../../state/editorStore';
@@ -9,12 +9,14 @@ interface Props {
   sceneObject: SceneObject;
   isSelected: boolean;
   onSelect: () => void;
+  onEditStart?: (id: string, rect: { x: number, y: number, width: number, height: number }) => void;
+  isEditing?: boolean;
 }
 
 const DEFAULT_CURVE_POINTS = [0, 50, 50, 0, 100, 50];
 const DEFAULT_LINE_POINTS = [0, 0, 100, 100];
 
-export function SceneObjectRenderer({ sceneObject, isSelected, onSelect }: Props) {
+export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditStart, isEditing }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
   const [curveDraftPoints, setCurveDraftPoints] = useState<number[] | null>(null);
@@ -174,6 +176,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect }: Props
           <Text
             {...commonProps}
             ref={shapeRef as React.RefObject<Konva.Text>}
+            visible={!isEditing}
             text={(sceneObject.data?.text as string) || '点击输入内容'}
             fontSize={sceneObject.style?.fontSize || 18}
             fontFamily={sceneObject.style?.fontFamily || 'sans-serif'}
@@ -182,8 +185,42 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect }: Props
             height={sceneObject.height}
             offsetX={sceneObject.width / 2}
             offsetY={sceneObject.height / 2}
-            align="center"
+            align={sceneObject.style?.textAlign || 'center'}
             verticalAlign="middle"
+            onDblClick={(e) => {
+              if (onEditStart) {
+                const node = e.currentTarget;
+                const pos = node.getAbsolutePosition();
+                const scale = node.getAbsoluteScale();
+                onEditStart(sceneObject.id, {
+                  x: pos.x,
+                  y: pos.y,
+                  width: sceneObject.width * scale.x,
+                  height: sceneObject.height * scale.y,
+                });
+              }
+            }}
+            onDblTap={(e) => {
+              if (onEditStart) {
+                const node = e.currentTarget;
+                const pos = node.getAbsolutePosition();
+                const scale = node.getAbsoluteScale();
+                onEditStart(sceneObject.id, {
+                  x: pos.x,
+                  y: pos.y,
+                  width: sceneObject.width * scale.x,
+                  height: sceneObject.height * scale.y,
+                });
+              }
+            }}
+            onMouseEnter={(e) => {
+              const stage = e.target.getStage();
+              if (stage) stage.container().style.cursor = 'text';
+            }}
+            onMouseLeave={(e) => {
+              const stage = e.target.getStage();
+              if (stage) stage.container().style.cursor = 'default';
+            }}
           />
         );
       case 'curve': {
@@ -472,7 +509,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect }: Props
   return (
     <Group>
       {renderContent()}
-      {isSelected && (
+      {isSelected && !isEditing && (
         <Transformer 
           ref={trRef}
           keepRatio={isRatioLocked}

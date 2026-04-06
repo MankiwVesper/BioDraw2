@@ -524,327 +524,203 @@ export function InspectorPanel() {
         <div className="property-group">
           <h4 className="group-title">样式设置</h4>
 
-          {selectedObj.type === "text" && (
-            <div className="property-field">
-              <label>文本内容：</label>
-              <textarea
-                value={(selectedObj.data?.text as string) || ""}
-                onChange={(e) => handleDataChange("text", e.target.value)}
-                rows={2}
-                style={{
-                  width: "100%",
-                  padding: "8px",
-                  borderRadius: "4px",
-                  border: "1px solid var(--border-color)",
-                  fontSize: "0.9rem",
-                  resize: "vertical",
-                }}
-              />
-            </div>
-          )}
-
-          {/* 情况 1: 基础形状 (Rect, Circle, Triangle, Trapezoid) - 填充与描边并排 */}
-          {["rect", "circle", "triangle", "trapezoid"].includes(selectedObj.type) && (
-            <div className="property-field" style={{ flexDirection: "row", gap: "12px", marginBottom: "12px" }}>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "8px" }}>
-                <label style={{ 
-                  marginBottom: 0, 
-                  fontSize: "0.85rem", 
-                  whiteSpace: "nowrap",
-                  width: "65px",
-                  flexShrink: 0
-                }}>描边颜色：</label>
-                <div className="input-group" style={{ width: "38px" }}>
-                  <input
-                    type="color"
-                    value={selectedObj.style?.stroke || "#000000"}
-                    onChange={(e) => handleStyleChange("stroke", e.target.value)}
-                    style={{
-                      width: "100%",
-                      height: "24px",
-                      padding: 0,
-                      cursor: "pointer",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "var(--radius)",
-                      backgroundColor: "white"
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <label style={{ 
-                  marginBottom: 0, 
-                  fontSize: "0.85rem", 
-                  whiteSpace: "nowrap",
-                  width: "65px",
-                  flexShrink: 0
-                }}>填充颜色：</label>
-                <div className="input-group" style={{ width: "38px" }}>
-                  <input
-                    type="color"
-                    value={selectedObj.style?.fill || "#000000"}
-                    onChange={(e) => handleStyleChange("fill", e.target.value)}
-                    style={{
-                      width: "100%",
-                      height: "24px",
-                      padding: 0,
-                      cursor: "pointer",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "var(--radius)",
-                      backgroundColor: "white"
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 情况 2: 文本 (Text) - 仅填充颜色 */}
-          {selectedObj.type === "text" && (
-            <div
-              className="property-field"
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                gap: "12px",
-                marginBottom: "12px"
-              }}
-            >
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "8px" }}>
-                <label style={{ 
-                  marginBottom: 0, 
-                  fontSize: "0.85rem", 
-                  whiteSpace: "nowrap",
-                  width: "65px",
-                  flexShrink: 0
-                }}>填充颜色：</label>
-                <div className="input-group" style={{ width: "38px" }}>
-                  <input
-                    type="color"
-                    value={selectedObj.style?.fill || "#000000"}
-                    onChange={(e) => handleStyleChange("fill", e.target.value)}
-                    style={{
-                      width: "100%",
-                      height: "24px",
-                      padding: 0,
-                      cursor: "pointer",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "var(--radius)",
-                      backgroundColor: "white"
-                    }}
-                  />
-                </div>
-              </div>
-              <div style={{ flex: 1 }} />
-            </div>
-          )}
-
-          {/* 情况 3: 路径类 (Line, Arrow, Curve) - 仅描边颜色 */}
-          {["line", "arrow", "curve"].includes(selectedObj.type) && (
-            <div
-              className="property-field"
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                gap: "12px",
-                marginBottom: "12px"
-              }}
-            >
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "8px" }}>
-                <label style={{ 
-                  marginBottom: 0, 
-                  fontSize: "0.85rem", 
-                  whiteSpace: "nowrap",
-                  width: "65px",
-                  flexShrink: 0
-                }}>描边颜色：</label>
-                <div className="input-group" style={{ width: "38px" }}>
-                  <input
-                    type="color"
-                    value={selectedObj.style?.stroke || "#000000"}
-                    onChange={(e) => handleStyleChange("stroke", e.target.value)}
-                    style={{
-                      width: "100%",
-                      height: "24px",
-                      padding: 0,
-                      cursor: "pointer",
-                      border: "1px solid var(--border-color)",
-                      borderRadius: "var(--radius)",
-                      backgroundColor: "white"
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* 针对路径类 (Line, Arrow, Curve)：显示线型 */}
-              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <label style={{ 
-                  marginBottom: 0, 
-                  fontSize: "0.85rem", 
-                  whiteSpace: "nowrap", 
-                  width: "65px",
-                  flexShrink: 0 
-                }}>
-                  <span style={{ letterSpacing: "2em" }}>线</span>型：
-                </label>
-                <CustomSelect
-                  value={selectedObj.data?.dashStyle as string || "solid"}
-                  onChange={(val) => handleDataChange("dashStyle", val)}
-                  options={dashOptions}
-                  width="70px"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* 描边粗细与圆角并排 (针对矩形) 或 单独显示描边粗细 */}
-          {[
-            "rect",
-            "circle",
-            "triangle",
-            "trapezoid",
-            "line",
-            "arrow",
-            "curve",
-          ].includes(selectedObj.type) && (
-            <div
-              className="property-field"
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "flex-start",
-                gap: "12px",
-                marginBottom: "12px"
-              }}
-            >
-              {/* 描边粗细部分 - 占据左侧一半空间，与描边颜色对齐 */}
-              <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
-                <label style={{ 
-                  marginBottom: 0, 
-                  fontSize: "0.85rem", 
-                  whiteSpace: "nowrap",
-                  width: "65px",
-                  flexShrink: 0
-                }}>
-                  描边粗细：
-                </label>
-                <div className="input-group" style={{ width: "38px" }}>
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={selectedObj.style?.strokeWidth || 1}
-                    onChange={(e) => {
-                      let val = parseInt(e.target.value);
-                      if (isNaN(val)) val = 1;
-                      if (val < 1) val = 1;
-                      if (val > 20) val = 20;
-                      handleStyleChange("strokeWidth", val);
-                    }}
-                    title="描边粗细 (1-20px)"
-                    style={{
-                      textAlign: "center",
-                      padding: "3px 4px",
-                      height: "24px"
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* 矩形、三角形、圆形或箭头的扩展设置 */}
-              {["rect", "triangle", "circle", "arrow"].includes(selectedObj.type) ? (
-                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <label style={{ 
-                    marginBottom: 0, 
-                    fontSize: "0.85rem", 
-                    whiteSpace: "nowrap",
-                    width: "65px",
-                    flexShrink: 0
-                  }}>
-                    {selectedObj.type === "rect" ? (
-                      <span style={{ letterSpacing: "2em" }}>圆</span>
-                    ) : selectedObj.type === "arrow" ? (
-                      <span style={{ letterSpacing: "2em" }}>样</span>
-                    ) : (
-                      <span style={{ letterSpacing: "2em" }}>半</span>
-                    )}
-                    {selectedObj.type === "rect" ? "角：" : selectedObj.type === "arrow" ? "式：" : "径："}
-                  </label>
-                  {selectedObj.type === "arrow" ? (
-                    <CustomSelect
-                      value={selectedObj.data?.arrowStyle as string || "single"}
-                      onChange={(val) => handleDataChange("arrowStyle", val)}
-                      options={arrowOptions}
-                      width="70px"
+          {/* 第 1 行：核心颜色与基础属性 (描边颜色/文字颜色 | 填充颜色/线型/字号) */}
+          <div className="property-field" style={{ flexDirection: "row", gap: "28px", marginBottom: "12px" }}>
+            {/* 左侧：描边颜色 (形状/路径) 或 文字颜色 (文本) */}
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "8px" }}>
+              {(["rect", "circle", "triangle", "trapezoid", "line", "arrow", "curve"].includes(selectedObj.type)) && (
+                <>
+                  <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>描边颜色：</label>
+                  <div className="input-group" style={{ width: "38px" }}>
+                    <input
+                      type="color"
+                      value={selectedObj.style?.stroke || "#000000"}
+                      onChange={(e) => handleStyleChange("stroke", e.target.value)}
+                      style={{
+                        width: "100%",
+                        height: "24px",
+                        padding: 0,
+                        cursor: "pointer",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "var(--radius)",
+                        backgroundColor: "white"
+                      }}
                     />
-                  ) : (
+                  </div>
+                </>
+              )}
+              {selectedObj.type === "text" && (
+                <>
+                  <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>文字颜色：</label>
+                  <div className="input-group" style={{ width: "38px" }}>
+                    <input
+                      type="color"
+                      value={selectedObj.style?.fill || "#000000"}
+                      onChange={(e) => handleStyleChange("fill", e.target.value)}
+                      style={{
+                        width: "100%",
+                        height: "24px",
+                        padding: 0,
+                        cursor: "pointer",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "var(--radius)",
+                        backgroundColor: "white"
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* 右侧：填充颜色 (形状) 或 线型 (路径) 或 字号 (文本) */}
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              {["rect", "circle", "triangle", "trapezoid"].includes(selectedObj.type) && (
+                <>
+                  <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "40px", flexShrink: 0 }}>填充颜色：</label>
+                  <div className="input-group" style={{ width: "38px" }}>
+                    <input
+                      type="color"
+                      value={selectedObj.style?.fill || "#000000"}
+                      onChange={(e) => handleStyleChange("fill", e.target.value)}
+                      style={{
+                        width: "100%",
+                        height: "24px",
+                        padding: 0,
+                        cursor: "pointer",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "var(--radius)",
+                        backgroundColor: "white"
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+              {["line", "arrow", "curve"].includes(selectedObj.type) && (
+                <>
+                  <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "40px", flexShrink: 0 }}>线型：</label>
+                  <CustomSelect
+                    value={selectedObj.data?.dashStyle as string || "solid"}
+                    onChange={(val) => handleDataChange("dashStyle", val)}
+                    options={dashOptions}
+                    width="65px"
+                  />
+                </>
+              )}
+              {selectedObj.type === "text" && (
+                <>
+                  <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>字体大小：</label>
+                  <div className="input-group" style={{ width: "44px" }}>
+                    <input
+                      type="number"
+                      min="5"
+                      max="120"
+                      value={selectedObj.style?.fontSize || 18}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) val = 5;
+                        if (val < 5) val = 5;
+                        if (val > 120) val = 120;
+                        handleStyleChange("fontSize", val);
+                      }}
+                      title="字号 (5-120px)"
+                      style={{
+                        textAlign: "center",
+                        padding: "3px 4px",
+                        height: "24px"
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* 第 2 行：数值与高级样式 (描边粗细/对齐方式 | 圆角/样式) */}
+          <div className="property-field" style={{ flexDirection: "row", gap: "28px", marginBottom: "12px" }}>
+            {/* 左侧：描边粗细 (形状/路径) 或 对齐方式 (文本-独占) */}
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "flex-start", gap: "8px" }}>
+              {(["rect", "circle", "triangle", "trapezoid", "line", "arrow", "curve"].includes(selectedObj.type)) && (
+                <>
+                  <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>描边粗细：</label>
+                  <div className="input-group" style={{ width: "38px" }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={selectedObj.style?.strokeWidth || 1}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) val = 1;
+                        if (val < 1) val = 1;
+                        if (val > 20) val = 20;
+                        handleStyleChange("strokeWidth", val);
+                      }}
+                      style={{
+                        textAlign: "center",
+                        padding: "3px 4px",
+                        height: "24px"
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+              {selectedObj.type === "text" && (
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                  <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>对齐方式：</label>
+                  <div style={{ display: "flex", flex: 1, gap: "1px", backgroundColor: "rgba(0,0,0,0.05)", padding: "2px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+                    {[
+                      { id: 'left', icon: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="15" y2="12" /><line x1="3" y1="18" x2="18" y2="18" /></svg>) },
+                      { id: 'center', icon: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="6" y1="12" x2="18" y2="12" /><line x1="5" y1="18" x2="19" y2="18" /></svg>) },
+                      { id: 'right', icon: (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="9" y1="12" x2="21" y2="12" /><line x1="6" y1="18" x2="21" y2="18" /></svg>) }
+                    ].map((btn) => (
+                      <button key={btn.id} onClick={() => handleStyleChange("textAlign", btn.id)} style={{
+                        flex: 1, height: "22px", display: "flex", alignItems: "center", justifyContent: "center", border: "none",
+                        backgroundColor: (selectedObj.style?.textAlign || 'center') === btn.id ? "white" : "transparent",
+                        color: (selectedObj.style?.textAlign || 'center') === btn.id ? "var(--primary-color)" : "var(--text-muted)",
+                        borderRadius: "4px", cursor: "pointer", transition: "all 0.2s"
+                      }}>{btn.icon}</button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* 右侧：圆角/半径/样式 (形状/路径) - 文字类不显示此列 */}
+            {selectedObj.type !== "text" && (
+              <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                {["rect", "triangle", "circle"].includes(selectedObj.type) && (
+                  <>
+                    <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>
+                      {selectedObj.type === "rect" ? <span style={{ letterSpacing: "2em" }}>圆</span> : <span style={{ letterSpacing: "2em" }}>半</span>}
+                      {selectedObj.type === "rect" ? "角：" : "径："}
+                    </label>
                     <div className="input-group" style={{ width: "38px" }}>
                       <input
                         type="number"
                         min={selectedObj.type === "rect" ? 0 : 1}
                         max={selectedObj.type === "rect" ? 99 : 500}
-                        value={
-                          selectedObj.type === "rect" 
-                            ? (selectedObj.style?.cornerRadius || 0)
-                            : Math.round(selectedObj.width / 2)
-                        }
+                        value={selectedObj.type === "rect" ? (selectedObj.style?.cornerRadius || 0) : Math.round(selectedObj.width / 2)}
                         onChange={(e) => {
                           const val = parseInt(e.target.value) || 0;
-                          if (selectedObj.type === "rect") {
-                            let finalVal = val;
-                            if (finalVal < 0) finalVal = 0;
-                            if (finalVal > 99) finalVal = 99;
-                            handleStyleChange("cornerRadius", finalVal);
-                          } else {
-                            // 三角形或圆形：更新宽高为 2 * 半径
-                            const r = val < 1 ? 1 : val;
-                            updateSceneObject(selectedObj.id, {
-                              width: r * 2,
-                              height: r * 2,
-                            });
-                          }
+                          if (selectedObj.type === "rect") { handleStyleChange("cornerRadius", Math.max(0, Math.min(99, val))); }
+                          else { updateSceneObject(selectedObj.id, { width: Math.max(1, val) * 2, height: Math.max(1, val) * 2 }); }
                         }}
-                        title={
-                          selectedObj.type === "rect" 
-                            ? "圆角半径" 
-                            : selectedObj.type === "circle" 
-                              ? "圆形半径" 
-                              : "外接圆半径"
-                        }
-                        style={{
-                          textAlign: "center",
-                          padding: "3px 4px",
-                          height: "24px"
-                        }}
+                        style={{ textAlign: "center", padding: "3px 4px", height: "24px" }}
                       />
                     </div>
-                  )}
-                </div>
-              ) : (
-                /* 占位 div，确保“描边粗细”仅占一半 */
-                <div style={{ flex: 1 }} />
-              )}
-            </div>
-          )}
-
-
-
-
-
-          {selectedObj.type === "text" && (
-            <div className="property-field">
-              <label>字号：</label>
-              <input
-                type="number"
-                value={selectedObj.style?.fontSize || 18}
-                onChange={(e) =>
-                  handleStyleChange("fontSize", parseInt(e.target.value))
-                }
-              />
-            </div>
-          )}
+                  </>
+                )}
+                {selectedObj.type === "arrow" && (
+                  <>
+                    <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "40px", flexShrink: 0 }}>样式：</label>
+                    <CustomSelect value={selectedObj.data?.arrowStyle as string || "single"} onChange={(val) => handleDataChange("arrowStyle", val)} options={arrowOptions} width="65px" />
+                  </>
+                )}
+                {/* 占位符避免空列导致的抖动 */}
+                {!["rect", "triangle", "circle", "arrow"].includes(selectedObj.type) && <div style={{ flex: 1 }} />}
+              </div>
+            )}
+          </div>
 
           {selectedObj.type === "material" && (
             <div

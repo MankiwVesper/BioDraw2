@@ -13,6 +13,18 @@ export function CanvasPanel() {
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [isPanMode, setIsPanMode] = useState(false); // 空格键按下时进入平移模式
+  const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [editingRect, setEditingRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [editingValue, setEditingValue] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 聚焦编辑器
+  useEffect(() => {
+    if (editingTextId && textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.select(); // 自动全选，方便修改
+    }
+  }, [editingTextId]);
   
   const objects = useEditorStore(state => state.objects);
   const selectedIds = useEditorStore(state => state.selectedIds);
@@ -194,10 +206,47 @@ export function CanvasPanel() {
   };
 
   const checkDeselect = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
+    // 若正在编辑文字，点击其他地方应结束编辑
+    if (editingTextId) {
+      commitTextChange();
+      return;
+    }
     // 若点击的不是具体图形而是舞台背景层，取消所有选中状态
     const clickedOnEmpty = e.target === e.target.getStage();
     if (clickedOnEmpty) {
       selectObject(null);
+    }
+  };
+
+  const handleEditStart = (id: string, rect: { x: number, y: number, width: number, height: number }) => {
+    const obj = objects.find(o => o.id === id);
+    if (!obj) return;
+    
+    setEditingTextId(id);
+    setEditingRect({
+      x: rect.x * stageScale + stagePos.x,
+      y: rect.y * stageScale + stagePos.y,
+      width: rect.width * stageScale,
+      height: rect.height * stageScale
+    });
+    setEditingValue((obj.data?.text as string) || '');
+  };
+
+  const commitTextChange = () => {
+    if (editingTextId && textareaRef.current) {
+      // 计算文本的实际高度 (还原到画布空间)
+      const scrollHeight = textareaRef.current.scrollHeight;
+      const newHeight = scrollHeight / stageScale;
+
+      updateSceneObject(editingTextId, {
+        height: newHeight, // 同步高度，防止提交后被遮挡
+        data: {
+          ...(objects.find(o => o.id === editingTextId)?.data || {}),
+          text: editingValue,
+        }
+      });
+      setEditingTextId(null);
+      setEditingRect(null);
     }
   };
 
@@ -235,12 +284,91 @@ export function CanvasPanel() {
                   sceneObject={obj}
                   isSelected={selectedIds.includes(obj.id)}
                   onSelect={() => selectObject(obj.id)}
+                  onEditStart={handleEditStart}
+                  isEditing={editingTextId === obj.id}
                 />
               ))}
             </Layer>
           </Stage>
         ) : (
           <div className="canvas-placeholder">画布初始化中...</div>
+        )}
+
+        {/* 文字编辑遮罩层 */}
+        {editingTextId && editingRect && (
+          <div 
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              pointerEvents: 'none',
+              zIndex: 1000,
+            }}
+          >
+            {/* 容器层：负责定位和垂直居中 */}
+            <div
+              style={{
+                position: 'absolute',
+                top: `${editingRect.y}px`,
+                left: `${editingRect.x}px`,
+                width: `${editingRect.width}px`,
+                height: `${editingRect.height}px`,
+                transform: 'translate(-50%, -50%)',
+                display: 'flex',
+                alignItems: 'center', // 垂直居中
+                justifyContent: 'center', // 水平居中
+                pointerEvents: 'none',
+              }}
+            >
+              <textarea
+                ref={textareaRef}
+                value={editingValue}
+                onChange={(e) => {
+                  setEditingValue(e.target.value);
+                  // 动态调整高度以适配内容
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                onBlur={commitTextChange}
+                onFocus={(e) => {
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    commitTextChange();
+                  } else if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    commitTextChange();
+                  } else if (e.key === 'Escape') {
+                    setEditingTextId(null);
+                    setEditingRect(null);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  fontSize: `${(objects.find(o => o.id === editingTextId)?.style?.fontSize || 18) * stageScale}px`,
+                  fontFamily: objects.find(o => o.id === editingTextId)?.style?.fontFamily || 'sans-serif',
+                  color: objects.find(o => o.id === editingTextId)?.style?.fill || '#1e293b',
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  resize: 'none',
+                  textAlign: objects.find(o => o.id === editingTextId)?.style?.textAlign || 'center',
+                  padding: 0,
+                  margin: 0,
+                  overflow: 'hidden',
+                  pointerEvents: 'auto',
+                  lineHeight: 1.2,
+                  caretColor: objects.find(o => o.id === editingTextId)?.style?.fill || '#4f46e5',
+                }}
+              />
+            </div>
+          </div>
         )}
 
         {/* 右上角悬浮撤销/重做控制条 */}

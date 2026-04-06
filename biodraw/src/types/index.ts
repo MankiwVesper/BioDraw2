@@ -105,6 +105,7 @@ export type SceneObjectStyle = {
   cornerRadius?: number;
   fontFamily?: string;
   fontWeight?: string | number;
+  textAlign?: 'left' | 'center' | 'right';
   opacity?: number;
 };
 
