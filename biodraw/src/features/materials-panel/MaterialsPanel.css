@@ -148,3 +148,15 @@
   font-size: 0.85rem;
   text-align: center;
 }
+
+.shape-preview {
+  background-color: var(--bg-color);
+  color: var(--primary-color);
+}
+
+.shape-icon {
+  font-size: 24px;
+  font-weight: bold;
+  line-height: 1;
+  user-select: none;
+}

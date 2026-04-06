@@ -1,13 +1,14 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Stage, Layer } from 'react-konva';
 import { useEditorStore } from '../../state/editorStore';
-import { SvgMaterialRenderer } from '../../render/objects/SvgMaterialRenderer';
+import { SceneObjectRenderer } from '../../render/objects/SceneObjectRenderer';
 import type { SceneObject } from '../../types';
+import type Konva from 'konva';
 import './CanvasPanel.css';
 
 export function CanvasPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
@@ -28,7 +29,7 @@ export function CanvasPanel() {
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(entries => {
-      for (let entry of entries) {
+      for (const entry of entries) {
         setDimensions({
           width: entry.contentRect.width,
           height: entry.contentRect.height
@@ -105,7 +106,7 @@ export function CanvasPanel() {
   }, []);
 
   // 滚轮：Ctrl+滚轮 = 缩放，普通滚轮 = 平移
-  const handleWheel = (e: any) => {
+  const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
     if (!stage) return;
@@ -168,7 +169,7 @@ export function CanvasPanel() {
 
       const newObj: SceneObject = {
         id: crypto.randomUUID(),
-        type: 'material',
+        type: data.type || 'material',
         name: data.name,
         materialId: data.materialId,
         x: x,
@@ -182,7 +183,8 @@ export function CanvasPanel() {
         visible: true,
         zIndex: objects.length,
         animationIds: [],
-        data: { url: data.url } // 将真实SVG加载路径传递给渲染器
+        data: data.data || { url: data.url }, // 灵活处理自定义数据或SVG路径
+        style: data.style || {}
       };
 
       addSceneObject(newObj);
@@ -191,7 +193,7 @@ export function CanvasPanel() {
     }
   };
 
-  const checkDeselect = (e: any) => {
+  const checkDeselect = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     // 若点击的不是具体图形而是舞台背景层，取消所有选中状态
     const clickedOnEmpty = e.target === e.target.getStage();
     if (clickedOnEmpty) {
@@ -228,7 +230,7 @@ export function CanvasPanel() {
           >
             <Layer>
               {objects.map((obj) => (
-                <SvgMaterialRenderer 
+                <SceneObjectRenderer 
                   key={obj.id} 
                   sceneObject={obj}
                   isSelected={selectedIds.includes(obj.id)}

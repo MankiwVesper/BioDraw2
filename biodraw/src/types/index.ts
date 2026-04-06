@@ -94,7 +94,7 @@ export type MaterialItem = {
 // 场景层模型
 // =======================
 
-export type SceneObjectType = 'material' | 'label' | 'arrow' | 'path-helper';
+export type SceneObjectType = 'material' | 'rect' | 'circle' | 'line' | 'arrow' | 'text' | 'triangle' | 'trapezoid' | 'curve';
 
 export type SceneObjectStyle = {
   fill?: ColorValue;
@@ -102,6 +102,10 @@ export type SceneObjectStyle = {
   strokeWidth?: number;
   textColor?: ColorValue;
   fontSize?: number;
+  cornerRadius?: number;
+  fontFamily?: string;
+  fontWeight?: string | number;
+  opacity?: number;
 };
 
 export type SceneObjectMeta = {
