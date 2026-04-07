@@ -153,6 +153,82 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     };
   };
 
+  const getCurveNameLabelPosition = (
+    points: number[],
+    labelWidth: number,
+    labelHeight: number,
+  ) => {
+    const bounds = getPointsBounds(points);
+    if (points.length < 4) {
+      const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2;
+      return {
+        x: centerX - labelWidth / 2,
+        y: bounds.minY - labelHeight - CURVE_SIDE_NAME_GAP,
+      };
+    }
+
+    let totalLength = 0;
+    const segments: Array<{ x1: number; y1: number; x2: number; y2: number; len: number }> = [];
+    for (let i = 0; i <= points.length - 4; i += 2) {
+      const x1 = points[i];
+      const y1 = points[i + 1];
+      const x2 = points[i + 2];
+      const y2 = points[i + 3];
+      const len = Math.hypot(x2 - x1, y2 - y1);
+      if (len > 0.0001) {
+        segments.push({ x1, y1, x2, y2, len });
+        totalLength += len;
+      }
+    }
+
+    if (segments.length === 0 || totalLength <= 0.0001) {
+      const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2;
+      return {
+        x: centerX - labelWidth / 2,
+        y: bounds.minY - labelHeight - CURVE_SIDE_NAME_GAP,
+      };
+    }
+
+    const targetLength = totalLength / 2;
+    let traversed = 0;
+    let targetSegment = segments[segments.length - 1];
+    let ratioOnSegment = 0.5;
+    for (const seg of segments) {
+      if (traversed + seg.len >= targetLength) {
+        targetSegment = seg;
+        ratioOnSegment = (targetLength - traversed) / seg.len;
+        break;
+      }
+      traversed += seg.len;
+    }
+
+    const midX = targetSegment.x1 + (targetSegment.x2 - targetSegment.x1) * ratioOnSegment;
+    const midY = targetSegment.y1 + (targetSegment.y2 - targetSegment.y1) * ratioOnSegment;
+    const tangentX = targetSegment.x2 - targetSegment.x1;
+    const tangentY = targetSegment.y2 - targetSegment.y1;
+    const tangentLen = Math.hypot(tangentX, tangentY) || 1;
+    const unitTangentX = tangentX / tangentLen;
+    const unitTangentY = tangentY / tangentLen;
+
+    const normal1 = { x: -unitTangentY, y: unitTangentX };
+    const normal2 = { x: unitTangentY, y: -unitTangentX };
+    const centerOffset = labelHeight / 2 + CURVE_SIDE_NAME_GAP;
+    const candidate1 = {
+      x: midX + normal1.x * centerOffset,
+      y: midY + normal1.y * centerOffset,
+    };
+    const candidate2 = {
+      x: midX + normal2.x * centerOffset,
+      y: midY + normal2.y * centerOffset,
+    };
+    const labelCenter = candidate1.y <= candidate2.y ? candidate1 : candidate2;
+
+    return {
+      x: labelCenter.x - labelWidth / 2,
+      y: labelCenter.y - labelHeight / 2,
+    };
+  };
+
   const startNameEdit = (
     nameNode: Konva.Text | null,
     fallbackRect: { x: number; y: number; width: number; height: number },
@@ -426,11 +502,12 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       }
       case 'curve': {
         const points = getCurvePoints();
-        const bounds = getPointsBounds(points);
-        const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2;
         const sideLabelWidth = SIDE_NAME_LABEL_MIN_WIDTH;
-        const sideLabelX = centerX - sideLabelWidth / 2;
-        const sideLabelY = bounds.minY - nameLabelHeight - CURVE_SIDE_NAME_GAP;
+        const { x: sideLabelX, y: sideLabelY } = getCurveNameLabelPosition(
+          points,
+          sideLabelWidth,
+          nameLabelHeight,
+        );
         const startSideNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
