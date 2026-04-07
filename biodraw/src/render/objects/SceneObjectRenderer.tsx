@@ -123,10 +123,24 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
         const nameColor = sceneObject.style?.fill || '#334155';
         const nameAlign = sceneObject.style?.textAlign || 'center';
         const nameYOffset = sceneObject.height / 2 + 8;
+        const startMaterialNameEdit = () => {
+          if (!onEditStart) return;
+          const scaleX = sceneObject.scaleX || 1;
+          const scaleY = sceneObject.scaleY || 1;
+          const labelHeight = Math.max(nameFontSize * 1.2, MATERIAL_NAME_LABEL_MIN_HEIGHT);
+          onEditStart(sceneObject.id, {
+            x: sceneObject.x,
+            y: sceneObject.y + (nameYOffset + labelHeight / 2) * scaleY,
+            width: sceneObject.width * scaleX,
+            height: labelHeight * scaleY,
+          }, 'name');
+        };
         return (
           <Group
             {...commonProps}
             ref={shapeRef as React.RefObject<Konva.Group>}
+            onDblClick={startMaterialNameEdit}
+            onDblTap={startMaterialNameEdit}
           >
             <KonvaImage
               image={image}
@@ -147,38 +161,6 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               fill={nameColor}
               lineHeight={1.2}
               wrap="char"
-              onDblClick={(e) => {
-                if (onEditStart) {
-                  const node = e.currentTarget;
-                  const pos = node.getAbsolutePosition();
-                  const scale = node.getAbsoluteScale();
-                  const editHeight = Math.max(node.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
-                  const centerX = pos.x + (sceneObject.width * scale.x) / 2;
-                  const centerY = pos.y + (editHeight * scale.y) / 2;
-                  onEditStart(sceneObject.id, {
-                    x: centerX,
-                    y: centerY,
-                    width: node.width() * scale.x,
-                    height: editHeight * scale.y,
-                  }, 'name');
-                }
-              }}
-              onDblTap={(e) => {
-                if (onEditStart) {
-                  const node = e.currentTarget;
-                  const pos = node.getAbsolutePosition();
-                  const scale = node.getAbsoluteScale();
-                  const editHeight = Math.max(node.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
-                  const centerX = pos.x + (sceneObject.width * scale.x) / 2;
-                  const centerY = pos.y + (editHeight * scale.y) / 2;
-                  onEditStart(sceneObject.id, {
-                    x: centerX,
-                    y: centerY,
-                    width: node.width() * scale.x,
-                    height: editHeight * scale.y,
-                  }, 'name');
-                }
-              }}
               onMouseEnter={(e) => {
                 const stage = e.target.getStage();
                 if (stage) stage.container().style.cursor = 'text';
