@@ -721,15 +721,6 @@ export function InspectorPanel() {
               </div>
             )}
           </div>
-
-          {selectedObj.type === "material" && (
-            <div
-              className="empty-state"
-              style={{ padding: "0", fontSize: "0.8rem" }}
-            >
-              当前选择的是 SVG 素材，由于其复杂性，暂不支持直接改色。
-            </div>
-          )}
         </div>
 
         <div className="property-group">
