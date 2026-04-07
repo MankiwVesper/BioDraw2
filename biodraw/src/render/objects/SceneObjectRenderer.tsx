@@ -21,6 +21,7 @@ const MATERIAL_NAME_LABEL_MIN_HEIGHT = 22;
 export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditStart, isEditing }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
+  const materialNameRef = useRef<Konva.Text>(null);
   const [curveDraftPoints, setCurveDraftPoints] = useState<number[] | null>(null);
   
   // 当物体 ID 或数据点变化时，通过渲染过程中同步更新状态来重置草稿点（避免 useEffect 的性能报警）
@@ -125,6 +126,20 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
         const nameYOffset = sceneObject.height / 2 + 8;
         const startMaterialNameEdit = () => {
           if (!onEditStart) return;
+          const nameNode = materialNameRef.current;
+          if (nameNode) {
+            const pos = nameNode.getAbsolutePosition();
+            const scale = nameNode.getAbsoluteScale();
+            const editHeight = Math.max(nameNode.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
+            onEditStart(sceneObject.id, {
+              x: pos.x + (nameNode.width() * scale.x) / 2,
+              y: pos.y + (editHeight * scale.y) / 2,
+              width: nameNode.width() * scale.x,
+              height: editHeight * scale.y,
+            }, 'name');
+            return;
+          }
+
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
           const labelHeight = Math.max(nameFontSize * 1.2, MATERIAL_NAME_LABEL_MIN_HEIGHT);
@@ -150,6 +165,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               offsetY={sceneObject.height / 2}
             />
             <Text
+              ref={materialNameRef}
               visible={!isEditing}
               text={displayName}
               width={sceneObject.width}
