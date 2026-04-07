@@ -686,7 +686,7 @@ export function InspectorPanel() {
             </div>
 
             {/* 右侧：圆角/半径/样式 (形状/路径) - 文字类不显示此列 */}
-            {selectedObj.type !== "text" && (
+            {selectedObj.type !== "text" && selectedObj.type !== "material" && (
               <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 {["rect", "triangle", "circle"].includes(selectedObj.type) && (
                   <>
