@@ -22,6 +22,8 @@ const SIDE_NAME_LABEL_MIN_WIDTH = 80;
 const LINE_SIDE_NAME_OFFSET_X = 8;
 const LINE_SIDE_NAME_OFFSET_Y = 4;
 const CURVE_SIDE_NAME_GAP = 2;
+const NAME_DRAG_BOUND_PADDING = 40;
+const NAME_OUTSIDE_GAP = 4;
 
 const toVerticalText = (value: string) =>
   value
@@ -134,6 +136,13 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
   const nameAlign = sceneObject.style?.textAlign || 'center';
   const nameLineHeight = 1.2;
   const nameLabelHeight = Math.max(nameFontSize * nameLineHeight, MATERIAL_NAME_LABEL_MIN_HEIGHT);
+  const getNameLabelWidth = (preferredMaxWidth: number) => {
+    const estimatedTextWidth = Math.max(
+      nameFontSize,
+      displayName.length * nameFontSize * 0.9 + 12,
+    );
+    return Math.max(36, Math.min(preferredMaxWidth, estimatedTextWidth));
+  };
 
   const getPointsBounds = (points: number[]) => {
     if (points.length < 2) {
@@ -229,6 +238,202 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     };
   };
 
+  const getNameOffset = () => {
+    const rawOffset = (sceneObject.data as { nameOffset?: unknown } | undefined)?.nameOffset;
+    if (typeof rawOffset === 'object' && rawOffset !== null) {
+      const offset = rawOffset as { x?: unknown; y?: unknown };
+      return {
+        x: typeof offset.x === 'number' ? offset.x : 0,
+        y: typeof offset.y === 'number' ? offset.y : 0,
+      };
+    }
+    return { x: 0, y: 0 };
+  };
+
+  const persistNameOffset = (x: number, y: number) => {
+    updateSceneObject(sceneObject.id, {
+      data: {
+        ...(sceneObject.data || {}),
+        nameOffset: { x, y },
+      },
+    });
+  };
+
+  const projectPointOutsideForbiddenRect = (
+    x: number,
+    y: number,
+    forbiddenMinX: number,
+    forbiddenMaxX: number,
+    forbiddenMinY: number,
+    forbiddenMaxY: number,
+  ) => {
+    const isInsideForbidden =
+      x > forbiddenMinX &&
+      x < forbiddenMaxX &&
+      y > forbiddenMinY &&
+      y < forbiddenMaxY;
+    if (!isInsideForbidden) {
+      return { x, y };
+    }
+
+    const centerX = (forbiddenMinX + forbiddenMaxX) / 2;
+    const centerY = (forbiddenMinY + forbiddenMaxY) / 2;
+    const halfW = Math.max((forbiddenMaxX - forbiddenMinX) / 2, 0.0001);
+    const halfH = Math.max((forbiddenMaxY - forbiddenMinY) / 2, 0.0001);
+
+    const dx = x - centerX;
+    let dy = y - centerY;
+    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) {
+      dy = 1;
+    }
+
+    const tx = Math.abs(dx) / halfW;
+    const ty = Math.abs(dy) / halfH;
+    const scale = Math.max(tx, ty, 0.0001);
+
+    return {
+      x: centerX + dx / scale,
+      y: centerY + dy / scale,
+    };
+  };
+
+  const clampNamePosition = (
+    baseX: number,
+    baseY: number,
+    labelWidth: number,
+    labelHeight: number,
+    bounds: { minX: number; maxX: number; minY: number; maxY: number },
+    offset: { x: number; y: number },
+    keepOutside: boolean,
+  ) => {
+    const desiredX = baseX + offset.x;
+    const desiredY = baseY + offset.y;
+
+    const horizontalPadding = keepOutside
+      ? Math.max(NAME_DRAG_BOUND_PADDING, labelWidth + NAME_OUTSIDE_GAP)
+      : NAME_DRAG_BOUND_PADDING;
+    const verticalPadding = keepOutside
+      ? Math.max(NAME_DRAG_BOUND_PADDING, labelHeight + NAME_OUTSIDE_GAP)
+      : NAME_DRAG_BOUND_PADDING;
+
+    let minX = bounds.minX - horizontalPadding;
+    let maxX = bounds.maxX + horizontalPadding - labelWidth;
+    let minY = bounds.minY - verticalPadding;
+    let maxY = bounds.maxY + verticalPadding - labelHeight;
+
+    if (maxX < minX) {
+      const centerX = (bounds.minX + bounds.maxX) / 2 - labelWidth / 2;
+      minX = centerX;
+      maxX = centerX;
+    }
+    if (maxY < minY) {
+      const centerY = (bounds.minY + bounds.maxY) / 2 - labelHeight / 2;
+      minY = centerY;
+      maxY = centerY;
+    }
+
+    let finalX = Math.max(minX, Math.min(desiredX, maxX));
+    let finalY = Math.max(minY, Math.min(desiredY, maxY));
+
+    if (keepOutside) {
+      const forbiddenMinX = bounds.minX - labelWidth - NAME_OUTSIDE_GAP;
+      const forbiddenMaxX = bounds.maxX + NAME_OUTSIDE_GAP;
+      const forbiddenMinY = bounds.minY - labelHeight - NAME_OUTSIDE_GAP;
+      const forbiddenMaxY = bounds.maxY + NAME_OUTSIDE_GAP;
+      const projected = projectPointOutsideForbiddenRect(
+        finalX,
+        finalY,
+        forbiddenMinX,
+        forbiddenMaxX,
+        forbiddenMinY,
+        forbiddenMaxY,
+      );
+      finalX = Math.max(minX, Math.min(projected.x, maxX));
+      finalY = Math.max(minY, Math.min(projected.y, maxY));
+    }
+
+    return {
+      x: finalX,
+      y: finalY,
+      offsetX: finalX - baseX,
+      offsetY: finalY - baseY,
+    };
+  };
+
+  const buildNameLabelLayout = (
+    baseX: number,
+    baseY: number,
+    labelWidth: number,
+    labelHeight: number,
+    bounds: { minX: number; maxX: number; minY: number; maxY: number },
+    keepOutside = false,
+  ) => {
+    const currentOffset = getNameOffset();
+    const clampedPosition = clampNamePosition(
+      baseX,
+      baseY,
+      labelWidth,
+      labelHeight,
+      bounds,
+      currentOffset,
+      keepOutside,
+    );
+
+    const handleNameDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
+      e.cancelBubble = true;
+      const nextPosition = clampNamePosition(
+        baseX,
+        baseY,
+        labelWidth,
+        labelHeight,
+        bounds,
+        {
+          x: e.target.x() - baseX,
+          y: e.target.y() - baseY,
+        },
+        keepOutside,
+      );
+      e.target.position({ x: nextPosition.x, y: nextPosition.y });
+      e.target.getLayer()?.batchDraw();
+    };
+
+    const handleNameDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
+      e.cancelBubble = true;
+      const nextPosition = clampNamePosition(
+        baseX,
+        baseY,
+        labelWidth,
+        labelHeight,
+        bounds,
+        {
+          x: e.target.x() - baseX,
+          y: e.target.y() - baseY,
+        },
+        keepOutside,
+      );
+      e.target.position({ x: nextPosition.x, y: nextPosition.y });
+      persistNameOffset(nextPosition.offsetX, nextPosition.offsetY);
+    };
+
+    return {
+      x: clampedPosition.x,
+      y: clampedPosition.y,
+      dragProps: {
+        draggable: !isEditing,
+        onMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => {
+          e.cancelBubble = true;
+          onSelect();
+        },
+        onDragStart: (e: Konva.KonvaEventObject<DragEvent>) => {
+          e.cancelBubble = true;
+          onSelect();
+        },
+        onDragMove: handleNameDragMove,
+        onDragEnd: handleNameDragEnd,
+      },
+    };
+  };
+
   const startNameEdit = (
     nameNode: Konva.Text | null,
     fallbackRect: { x: number; y: number; width: number; height: number },
@@ -253,13 +458,29 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     switch (sceneObject.type) {
       case 'material': {
         const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
+        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameBaseX = -nameLabelWidth / 2;
+        const nameBounds = {
+          minX: -sceneObject.width / 2,
+          maxX: sceneObject.width / 2,
+          minY: -sceneObject.height / 2,
+          maxY: sceneObject.height / 2,
+        };
+        const nameLayout = buildNameLabelLayout(
+          nameBaseX,
+          nameYOffset,
+          nameLabelWidth,
+          nameLabelHeight,
+          nameBounds,
+          true,
+        );
         const startMaterialNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
           startNameEdit(materialNameRef.current, {
-            x: sceneObject.x,
-            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
-            width: sceneObject.width * scaleX,
+            x: sceneObject.x + (nameLayout.x + nameLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (nameLayout.y + nameLabelHeight / 2) * scaleY,
+            width: nameLabelWidth * scaleX,
             height: nameLabelHeight * scaleY,
           });
         };
@@ -281,36 +502,47 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               ref={materialNameRef}
               visible={!isEditing}
               text={displayName}
-              width={sceneObject.width}
-              x={-sceneObject.width / 2}
-              y={nameYOffset}
+              width={nameLabelWidth}
+              x={nameLayout.x}
+              y={nameLayout.y}
               align={nameAlign}
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
               lineHeight={nameLineHeight}
               wrap="char"
-              onMouseEnter={(e) => {
-                const stage = e.target.getStage();
-                if (stage) stage.container().style.cursor = 'text';
-              }}
-              onMouseLeave={(e) => {
-                const stage = e.target.getStage();
-                if (stage) stage.container().style.cursor = 'default';
-              }}
+              onDblClick={startMaterialNameEdit}
+              onDblTap={startMaterialNameEdit}
+              {...nameLayout.dragProps}
             />
           </Group>
         );
       }
       case 'rect': {
         const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
+        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameBaseX = -nameLabelWidth / 2;
+        const nameBounds = {
+          minX: -sceneObject.width / 2,
+          maxX: sceneObject.width / 2,
+          minY: -sceneObject.height / 2,
+          maxY: sceneObject.height / 2,
+        };
+        const nameLayout = buildNameLabelLayout(
+          nameBaseX,
+          nameYOffset,
+          nameLabelWidth,
+          nameLabelHeight,
+          nameBounds,
+          true,
+        );
         const startBottomNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
           startNameEdit(objectNameRef.current, {
-            x: sceneObject.x,
-            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
-            width: sceneObject.width * scaleX,
+            x: sceneObject.x + (nameLayout.x + nameLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (nameLayout.y + nameLabelHeight / 2) * scaleY,
+            width: nameLabelWidth * scaleX,
             height: nameLabelHeight * scaleY,
           });
         };
@@ -335,28 +567,48 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               ref={objectNameRef}
               visible={!isEditing}
               text={displayName}
-              width={sceneObject.width}
-              x={-sceneObject.width / 2}
-              y={nameYOffset}
+              width={nameLabelWidth}
+              x={nameLayout.x}
+              y={nameLayout.y}
               align={nameAlign}
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
               lineHeight={nameLineHeight}
               wrap="char"
+              onDblClick={startBottomNameEdit}
+              onDblTap={startBottomNameEdit}
+              {...nameLayout.dragProps}
             />
           </Group>
         );
       }
       case 'circle': {
         const nameYOffset = sceneObject.width / 2 + NAME_LABEL_GAP;
+        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameBaseX = -nameLabelWidth / 2;
+        const radius = sceneObject.width / 2;
+        const nameBounds = {
+          minX: -radius,
+          maxX: radius,
+          minY: -radius,
+          maxY: radius,
+        };
+        const nameLayout = buildNameLabelLayout(
+          nameBaseX,
+          nameYOffset,
+          nameLabelWidth,
+          nameLabelHeight,
+          nameBounds,
+          true,
+        );
         const startBottomNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
           startNameEdit(objectNameRef.current, {
-            x: sceneObject.x,
-            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
-            width: sceneObject.width * scaleX,
+            x: sceneObject.x + (nameLayout.x + nameLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (nameLayout.y + nameLabelHeight / 2) * scaleY,
+            width: nameLabelWidth * scaleX,
             height: nameLabelHeight * scaleY,
           });
         };
@@ -377,15 +629,18 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               ref={objectNameRef}
               visible={!isEditing}
               text={displayName}
-              width={sceneObject.width}
-              x={-sceneObject.width / 2}
-              y={nameYOffset}
+              width={nameLabelWidth}
+              x={nameLayout.x}
+              y={nameLayout.y}
               align={nameAlign}
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
               lineHeight={nameLineHeight}
               wrap="char"
+              onDblClick={startBottomNameEdit}
+              onDblTap={startBottomNameEdit}
+              {...nameLayout.dragProps}
             />
           </Group>
         );
@@ -393,13 +648,29 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       case 'trapezoid': {
         const inset = sceneObject.width * 0.2;
         const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
+        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameBaseX = -nameLabelWidth / 2;
+        const nameBounds = {
+          minX: -sceneObject.width / 2,
+          maxX: sceneObject.width / 2,
+          minY: -sceneObject.height / 2,
+          maxY: sceneObject.height / 2,
+        };
+        const nameLayout = buildNameLabelLayout(
+          nameBaseX,
+          nameYOffset,
+          nameLabelWidth,
+          nameLabelHeight,
+          nameBounds,
+          true,
+        );
         const startBottomNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
           startNameEdit(objectNameRef.current, {
-            x: sceneObject.x,
-            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
-            width: sceneObject.width * scaleX,
+            x: sceneObject.x + (nameLayout.x + nameLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (nameLayout.y + nameLabelHeight / 2) * scaleY,
+            width: nameLabelWidth * scaleX,
             height: nameLabelHeight * scaleY,
           });
         };
@@ -429,15 +700,18 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               ref={objectNameRef}
               visible={!isEditing}
               text={displayName}
-              width={sceneObject.width}
-              x={-sceneObject.width / 2}
-              y={nameYOffset}
+              width={nameLabelWidth}
+              x={nameLayout.x}
+              y={nameLayout.y}
               align={nameAlign}
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
               lineHeight={nameLineHeight}
               wrap="char"
+              onDblClick={startBottomNameEdit}
+              onDblTap={startBottomNameEdit}
+              {...nameLayout.dragProps}
             />
           </Group>
         );
@@ -503,17 +777,25 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       case 'curve': {
         const points = getCurvePoints();
         const sideLabelWidth = SIDE_NAME_LABEL_MIN_WIDTH;
-        const { x: sideLabelX, y: sideLabelY } = getCurveNameLabelPosition(
+        const sideLabelBase = getCurveNameLabelPosition(
           points,
           sideLabelWidth,
           nameLabelHeight,
+        );
+        const sideNameBounds = getPointsBounds(points);
+        const nameLayout = buildNameLabelLayout(
+          sideLabelBase.x,
+          sideLabelBase.y,
+          sideLabelWidth,
+          nameLabelHeight,
+          sideNameBounds,
         );
         const startSideNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
           startNameEdit(objectNameRef.current, {
-            x: sceneObject.x + (sideLabelX + sideLabelWidth / 2) * scaleX,
-            y: sceneObject.y + (sideLabelY + nameLabelHeight / 2) * scaleY,
+            x: sceneObject.x + (nameLayout.x + sideLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (nameLayout.y + nameLabelHeight / 2) * scaleY,
             width: sideLabelWidth * scaleX,
             height: nameLabelHeight * scaleY,
           });
@@ -586,14 +868,17 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               visible={!isEditing}
               text={displayName}
               width={sideLabelWidth}
-              x={sideLabelX}
-              y={sideLabelY}
+              x={nameLayout.x}
+              y={nameLayout.y}
               align={nameAlign}
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
               lineHeight={nameLineHeight}
               wrap="char"
+              onDblClick={startSideNameEdit}
+              onDblTap={startSideNameEdit}
+              {...nameLayout.dragProps}
             />
           </Group>
         );
@@ -605,14 +890,21 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
         const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2;
         const centerY = bounds.minY + (bounds.maxY - bounds.minY) / 2;
         const sideLabelWidth = SIDE_NAME_LABEL_MIN_WIDTH;
-        const sideLabelX = centerX - sideLabelWidth / 2 + LINE_SIDE_NAME_OFFSET_X;
-        const sideLabelY = centerY + LINE_SIDE_NAME_OFFSET_Y;
+        const sideLabelBaseX = centerX - sideLabelWidth / 2 + LINE_SIDE_NAME_OFFSET_X;
+        const sideLabelBaseY = centerY + LINE_SIDE_NAME_OFFSET_Y;
+        const nameLayout = buildNameLabelLayout(
+          sideLabelBaseX,
+          sideLabelBaseY,
+          sideLabelWidth,
+          nameLabelHeight,
+          bounds,
+        );
         const startSideNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
           startNameEdit(objectNameRef.current, {
-            x: sceneObject.x + (sideLabelX + sideLabelWidth / 2) * scaleX,
-            y: sceneObject.y + (sideLabelY + nameLabelHeight / 2) * scaleY,
+            x: sceneObject.x + (nameLayout.x + sideLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (nameLayout.y + nameLabelHeight / 2) * scaleY,
             width: sideLabelWidth * scaleX,
             height: nameLabelHeight * scaleY,
           });
@@ -754,14 +1046,17 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                 visible={!isEditing}
                 text={displayName}
                 width={sideLabelWidth}
-                x={sideLabelX}
-                y={sideLabelY}
+                x={nameLayout.x}
+                y={nameLayout.y}
                 align={nameAlign}
                 fontSize={nameFontSize}
                 fontFamily={nameFontFamily}
                 fill={nameColor}
                 lineHeight={nameLineHeight}
                 wrap="char"
+                onDblClick={startSideNameEdit}
+                onDblTap={startSideNameEdit}
+                {...nameLayout.dragProps}
               />
             </Group>
           );
@@ -833,14 +1128,17 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                 visible={!isEditing}
                 text={displayName}
                 width={sideLabelWidth}
-                x={sideLabelX}
-                y={sideLabelY}
+                x={nameLayout.x}
+                y={nameLayout.y}
                 align={nameAlign}
                 fontSize={nameFontSize}
                 fontFamily={nameFontFamily}
                 fill={nameColor}
                 lineHeight={nameLineHeight}
                 wrap="char"
+                onDblClick={startSideNameEdit}
+                onDblTap={startSideNameEdit}
+                {...nameLayout.dragProps}
               />
             </Group>
           );
@@ -848,13 +1146,30 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       }
       case 'triangle': {
         const nameYOffset = sceneObject.width / 2 + NAME_LABEL_GAP;
+        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameBaseX = -nameLabelWidth / 2;
+        const triangleRadius = sceneObject.width / 2;
+        const nameBounds = {
+          minX: -triangleRadius,
+          maxX: triangleRadius,
+          minY: -triangleRadius,
+          maxY: triangleRadius,
+        };
+        const nameLayout = buildNameLabelLayout(
+          nameBaseX,
+          nameYOffset,
+          nameLabelWidth,
+          nameLabelHeight,
+          nameBounds,
+          true,
+        );
         const startBottomNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
           startNameEdit(objectNameRef.current, {
-            x: sceneObject.x,
-            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
-            width: sceneObject.width * scaleX,
+            x: sceneObject.x + (nameLayout.x + nameLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (nameLayout.y + nameLabelHeight / 2) * scaleY,
+            width: nameLabelWidth * scaleX,
             height: nameLabelHeight * scaleY,
           });
         };
@@ -876,15 +1191,18 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               ref={objectNameRef}
               visible={!isEditing}
               text={displayName}
-              width={sceneObject.width}
-              x={-sceneObject.width / 2}
-              y={nameYOffset}
+              width={nameLabelWidth}
+              x={nameLayout.x}
+              y={nameLayout.y}
               align={nameAlign}
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
               lineHeight={nameLineHeight}
               wrap="char"
+              onDblClick={startBottomNameEdit}
+              onDblTap={startBottomNameEdit}
+              {...nameLayout.dragProps}
             />
           </Group>
         );
