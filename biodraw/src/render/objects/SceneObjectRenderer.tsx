@@ -17,11 +17,17 @@ const DEFAULT_CURVE_POINTS = [0, 50, 50, 0, 100, 50];
 const DEFAULT_LINE_POINTS = [0, 0, 100, 100];
 const MATERIAL_NAME_MAX_LENGTH = 20;
 const MATERIAL_NAME_LABEL_MIN_HEIGHT = 22;
+const NAME_LABEL_GAP = 8;
+const SIDE_NAME_LABEL_MIN_WIDTH = 80;
+const LINE_SIDE_NAME_OFFSET_X = 8;
+const LINE_SIDE_NAME_OFFSET_Y = 4;
+const CURVE_SIDE_NAME_GAP = 2;
 
 export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditStart, isEditing }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
   const materialNameRef = useRef<Konva.Text>(null);
+  const objectNameRef = useRef<Konva.Text>(null);
   const [curveDraftPoints, setCurveDraftPoints] = useState<number[] | null>(null);
   
   // 当物体 ID 或数据点变化时，通过渲染过程中同步更新状态来重置草稿点（避免 useEffect 的性能报警）
@@ -112,43 +118,68 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     });
   };
 
+  const normalizedName = (sceneObject.name || '').replace(/\r?\n/g, ' ').trim();
+  const displayName = normalizedName.length > MATERIAL_NAME_MAX_LENGTH
+    ? `${normalizedName.slice(0, MATERIAL_NAME_MAX_LENGTH)}...`
+    : normalizedName;
+  const nameFontSize = sceneObject.style?.fontSize || 14;
+  const nameFontFamily = sceneObject.style?.fontFamily || 'sans-serif';
+  const nameColor = sceneObject.style?.fill || '#334155';
+  const nameAlign = sceneObject.style?.textAlign || 'center';
+  const nameLineHeight = 1.2;
+  const nameLabelHeight = Math.max(nameFontSize * nameLineHeight, MATERIAL_NAME_LABEL_MIN_HEIGHT);
+
+  const getPointsBounds = (points: number[]) => {
+    if (points.length < 2) {
+      return { minX: 0, maxX: sceneObject.width, minY: 0, maxY: sceneObject.height };
+    }
+    const xs: number[] = [];
+    const ys: number[] = [];
+    for (let i = 0; i < points.length; i += 2) {
+      xs.push(points[i]);
+      ys.push(points[i + 1]);
+    }
+    return {
+      minX: Math.min(...xs),
+      maxX: Math.max(...xs),
+      minY: Math.min(...ys),
+      maxY: Math.max(...ys),
+    };
+  };
+
+  const startNameEdit = (
+    nameNode: Konva.Text | null,
+    fallbackRect: { x: number; y: number; width: number; height: number },
+  ) => {
+    if (!onEditStart) return;
+    if (nameNode) {
+      const pos = nameNode.getAbsolutePosition();
+      const scale = nameNode.getAbsoluteScale();
+      const editHeight = Math.max(nameNode.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
+      onEditStart(sceneObject.id, {
+        x: pos.x + (nameNode.width() * scale.x) / 2,
+        y: pos.y + (editHeight * scale.y) / 2,
+        width: nameNode.width() * scale.x,
+        height: editHeight * scale.y,
+      }, 'name');
+      return;
+    }
+    onEditStart(sceneObject.id, fallbackRect, 'name');
+  };
+
   const renderContent = () => {
     switch (sceneObject.type) {
       case 'material': {
-        const normalizedName = (sceneObject.name || '').replace(/\r?\n/g, ' ').trim();
-        const displayName = normalizedName.length > MATERIAL_NAME_MAX_LENGTH
-          ? `${normalizedName.slice(0, MATERIAL_NAME_MAX_LENGTH)}...`
-          : normalizedName;
-        const nameFontSize = sceneObject.style?.fontSize || 14;
-        const nameFontFamily = sceneObject.style?.fontFamily || 'sans-serif';
-        const nameColor = sceneObject.style?.fill || '#334155';
-        const nameAlign = sceneObject.style?.textAlign || 'center';
-        const nameYOffset = sceneObject.height / 2 + 8;
+        const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
         const startMaterialNameEdit = () => {
-          if (!onEditStart) return;
-          const nameNode = materialNameRef.current;
-          if (nameNode) {
-            const pos = nameNode.getAbsolutePosition();
-            const scale = nameNode.getAbsoluteScale();
-            const editHeight = Math.max(nameNode.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
-            onEditStart(sceneObject.id, {
-              x: pos.x + (nameNode.width() * scale.x) / 2,
-              y: pos.y + (editHeight * scale.y) / 2,
-              width: nameNode.width() * scale.x,
-              height: editHeight * scale.y,
-            }, 'name');
-            return;
-          }
-
           const scaleX = sceneObject.scaleX || 1;
           const scaleY = sceneObject.scaleY || 1;
-          const labelHeight = Math.max(nameFontSize * 1.2, MATERIAL_NAME_LABEL_MIN_HEIGHT);
-          onEditStart(sceneObject.id, {
+          startNameEdit(materialNameRef.current, {
             x: sceneObject.x,
-            y: sceneObject.y + (nameYOffset + labelHeight / 2) * scaleY,
+            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
             width: sceneObject.width * scaleX,
-            height: labelHeight * scaleY,
-          }, 'name');
+            height: nameLabelHeight * scaleY,
+          });
         };
         return (
           <Group
@@ -175,7 +206,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
-              lineHeight={1.2}
+              lineHeight={nameLineHeight}
               wrap="char"
               onMouseEnter={(e) => {
                 const stage = e.target.getStage();
@@ -189,52 +220,144 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
           </Group>
         );
       }
-      case 'rect':
+      case 'rect': {
+        const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
+        const startBottomNameEdit = () => {
+          const scaleX = sceneObject.scaleX || 1;
+          const scaleY = sceneObject.scaleY || 1;
+          startNameEdit(objectNameRef.current, {
+            x: sceneObject.x,
+            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
+            width: sceneObject.width * scaleX,
+            height: nameLabelHeight * scaleY,
+          });
+        };
         return (
-          <Rect
+          <Group
             {...commonProps}
-            ref={shapeRef as React.RefObject<Konva.Rect>}
-            width={sceneObject.width}
-            height={sceneObject.height}
-            offsetX={sceneObject.width / 2}
-            offsetY={sceneObject.height / 2}
-            fill={sceneObject.style?.fill || '#3b82f6'}
-            stroke={sceneObject.style?.stroke || '#1d4ed8'}
-            strokeWidth={sceneObject.style?.strokeWidth || 1}
-            cornerRadius={sceneObject.style?.cornerRadius || 0}
-          />
+            ref={shapeRef as React.RefObject<Konva.Group>}
+            onDblClick={startBottomNameEdit}
+            onDblTap={startBottomNameEdit}
+          >
+            <Rect
+              width={sceneObject.width}
+              height={sceneObject.height}
+              offsetX={sceneObject.width / 2}
+              offsetY={sceneObject.height / 2}
+              fill={sceneObject.style?.fill || '#3b82f6'}
+              stroke={sceneObject.style?.stroke || '#1d4ed8'}
+              strokeWidth={sceneObject.style?.strokeWidth || 1}
+              cornerRadius={sceneObject.style?.cornerRadius || 0}
+            />
+            <Text
+              ref={objectNameRef}
+              visible={!isEditing}
+              text={displayName}
+              width={sceneObject.width}
+              x={-sceneObject.width / 2}
+              y={nameYOffset}
+              align={nameAlign}
+              fontSize={nameFontSize}
+              fontFamily={nameFontFamily}
+              fill={nameColor}
+              lineHeight={nameLineHeight}
+              wrap="char"
+            />
+          </Group>
         );
-      case 'circle':
+      }
+      case 'circle': {
+        const nameYOffset = sceneObject.width / 2 + NAME_LABEL_GAP;
+        const startBottomNameEdit = () => {
+          const scaleX = sceneObject.scaleX || 1;
+          const scaleY = sceneObject.scaleY || 1;
+          startNameEdit(objectNameRef.current, {
+            x: sceneObject.x,
+            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
+            width: sceneObject.width * scaleX,
+            height: nameLabelHeight * scaleY,
+          });
+        };
         return (
-          <Circle
+          <Group
             {...commonProps}
-            ref={shapeRef as React.RefObject<Konva.Circle>}
-            radius={sceneObject.width / 2}
-            fill={sceneObject.style?.fill || '#ef4444'}
-            stroke={sceneObject.style?.stroke || '#b91c1c'}
-            strokeWidth={sceneObject.style?.strokeWidth || 1}
-          />
+            ref={shapeRef as React.RefObject<Konva.Group>}
+            onDblClick={startBottomNameEdit}
+            onDblTap={startBottomNameEdit}
+          >
+            <Circle
+              radius={sceneObject.width / 2}
+              fill={sceneObject.style?.fill || '#ef4444'}
+              stroke={sceneObject.style?.stroke || '#b91c1c'}
+              strokeWidth={sceneObject.style?.strokeWidth || 1}
+            />
+            <Text
+              ref={objectNameRef}
+              visible={!isEditing}
+              text={displayName}
+              width={sceneObject.width}
+              x={-sceneObject.width / 2}
+              y={nameYOffset}
+              align={nameAlign}
+              fontSize={nameFontSize}
+              fontFamily={nameFontFamily}
+              fill={nameColor}
+              lineHeight={nameLineHeight}
+              wrap="char"
+            />
+          </Group>
         );
+      }
       case 'trapezoid': {
         const inset = sceneObject.width * 0.2;
+        const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
+        const startBottomNameEdit = () => {
+          const scaleX = sceneObject.scaleX || 1;
+          const scaleY = sceneObject.scaleY || 1;
+          startNameEdit(objectNameRef.current, {
+            x: sceneObject.x,
+            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
+            width: sceneObject.width * scaleX,
+            height: nameLabelHeight * scaleY,
+          });
+        };
         return (
-          <Line
+          <Group
             {...commonProps}
-            ref={shapeRef as React.RefObject<Konva.Line>}
-            points={[
-              inset, 0,
-              sceneObject.width - inset, 0,
-              sceneObject.width, sceneObject.height,
-              0, sceneObject.height,
-            ]}
-            closed
-            offsetX={sceneObject.width / 2}
-            offsetY={sceneObject.height / 2}
-            fill={sceneObject.style?.fill || '#f59e0b'}
-            stroke={sceneObject.style?.stroke || '#b45309'}
-            strokeWidth={sceneObject.style?.strokeWidth || 1}
-            lineJoin="round"
-          />
+            ref={shapeRef as React.RefObject<Konva.Group>}
+            onDblClick={startBottomNameEdit}
+            onDblTap={startBottomNameEdit}
+          >
+            <Line
+              points={[
+                inset, 0,
+                sceneObject.width - inset, 0,
+                sceneObject.width, sceneObject.height,
+                0, sceneObject.height,
+              ]}
+              closed
+              offsetX={sceneObject.width / 2}
+              offsetY={sceneObject.height / 2}
+              fill={sceneObject.style?.fill || '#f59e0b'}
+              stroke={sceneObject.style?.stroke || '#b45309'}
+              strokeWidth={sceneObject.style?.strokeWidth || 1}
+              lineJoin="round"
+            />
+            <Text
+              ref={objectNameRef}
+              visible={!isEditing}
+              text={displayName}
+              width={sceneObject.width}
+              x={-sceneObject.width / 2}
+              y={nameYOffset}
+              align={nameAlign}
+              fontSize={nameFontSize}
+              fontFamily={nameFontFamily}
+              fill={nameColor}
+              lineHeight={nameLineHeight}
+              wrap="char"
+            />
+          </Group>
         );
       }
       case 'text':
@@ -291,10 +414,27 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
         );
       case 'curve': {
         const points = getCurvePoints();
+        const bounds = getPointsBounds(points);
+        const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2;
+        const sideLabelWidth = SIDE_NAME_LABEL_MIN_WIDTH;
+        const sideLabelX = centerX - sideLabelWidth / 2;
+        const sideLabelY = bounds.minY - nameLabelHeight - CURVE_SIDE_NAME_GAP;
+        const startSideNameEdit = () => {
+          const scaleX = sceneObject.scaleX || 1;
+          const scaleY = sceneObject.scaleY || 1;
+          startNameEdit(objectNameRef.current, {
+            x: sceneObject.x + (sideLabelX + sideLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (sideLabelY + nameLabelHeight / 2) * scaleY,
+            width: sideLabelWidth * scaleX,
+            height: nameLabelHeight * scaleY,
+          });
+        };
         return (
           <Group
             {...commonProps}
             ref={shapeRef as React.RefObject<Konva.Group>}
+            onDblClick={startSideNameEdit}
+            onDblTap={startSideNameEdit}
           >
             <Line
               key={`${sceneObject.id}-${sceneObject.data?.dashStyle || 'solid'}`}
@@ -352,12 +492,42 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                   }}
                 />
               ))}
+            <Text
+              ref={objectNameRef}
+              visible={!isEditing}
+              text={displayName}
+              width={sideLabelWidth}
+              x={sideLabelX}
+              y={sideLabelY}
+              align={nameAlign}
+              fontSize={nameFontSize}
+              fontFamily={nameFontFamily}
+              fill={nameColor}
+              lineHeight={nameLineHeight}
+              wrap="char"
+            />
           </Group>
         );
       }
       case 'line':
       case 'arrow': {
         const points = (sceneObject.data?.points as number[]) || DEFAULT_LINE_POINTS;
+        const bounds = getPointsBounds(points);
+        const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2;
+        const centerY = bounds.minY + (bounds.maxY - bounds.minY) / 2;
+        const sideLabelWidth = SIDE_NAME_LABEL_MIN_WIDTH;
+        const sideLabelX = centerX - sideLabelWidth / 2 + LINE_SIDE_NAME_OFFSET_X;
+        const sideLabelY = centerY + LINE_SIDE_NAME_OFFSET_Y;
+        const startSideNameEdit = () => {
+          const scaleX = sceneObject.scaleX || 1;
+          const scaleY = sceneObject.scaleY || 1;
+          startNameEdit(objectNameRef.current, {
+            x: sceneObject.x + (sideLabelX + sideLabelWidth / 2) * scaleX,
+            y: sceneObject.y + (sideLabelY + nameLabelHeight / 2) * scaleY,
+            width: sideLabelWidth * scaleX,
+            height: nameLabelHeight * scaleY,
+          });
+        };
         
         if (sceneObject.type === 'arrow') {
           const style = (sceneObject.data?.arrowStyle as string) || 'single';
@@ -429,6 +599,8 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             <Group
               {...commonProps}
               ref={shapeRef as React.RefObject<Konva.Group>}
+              onDblClick={startSideNameEdit}
+              onDblTap={startSideNameEdit}
             >
               {/* 杆部：使用计算后的 shaftPoints，端点改为 butt */}
               <Line
@@ -488,6 +660,20 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                     }}
                   />
                 ))}
+              <Text
+                ref={objectNameRef}
+                visible={!isEditing}
+                text={displayName}
+                width={sideLabelWidth}
+                x={sideLabelX}
+                y={sideLabelY}
+                align={nameAlign}
+                fontSize={nameFontSize}
+                fontFamily={nameFontFamily}
+                fill={nameColor}
+                lineHeight={nameLineHeight}
+                wrap="char"
+              />
             </Group>
           );
         } else {
@@ -496,6 +682,8 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             <Group
               {...commonProps}
               ref={shapeRef as React.RefObject<Konva.Group>}
+              onDblClick={startSideNameEdit}
+              onDblTap={startSideNameEdit}
             >
               <Line
                 key={`${sceneObject.id}-${sceneObject.data?.dashStyle || 'solid'}`}
@@ -551,22 +739,67 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                     }}
                   />
                 ))}
+              <Text
+                ref={objectNameRef}
+                visible={!isEditing}
+                text={displayName}
+                width={sideLabelWidth}
+                x={sideLabelX}
+                y={sideLabelY}
+                align={nameAlign}
+                fontSize={nameFontSize}
+                fontFamily={nameFontFamily}
+                fill={nameColor}
+                lineHeight={nameLineHeight}
+                wrap="char"
+              />
             </Group>
           );
         }
       }
-      case 'triangle':
+      case 'triangle': {
+        const nameYOffset = sceneObject.width / 2 + NAME_LABEL_GAP;
+        const startBottomNameEdit = () => {
+          const scaleX = sceneObject.scaleX || 1;
+          const scaleY = sceneObject.scaleY || 1;
+          startNameEdit(objectNameRef.current, {
+            x: sceneObject.x,
+            y: sceneObject.y + (nameYOffset + nameLabelHeight / 2) * scaleY,
+            width: sceneObject.width * scaleX,
+            height: nameLabelHeight * scaleY,
+          });
+        };
         return (
-          <RegularPolygon
+          <Group
             {...commonProps}
-            ref={shapeRef as React.RefObject<Konva.RegularPolygon>}
-            sides={3}
-            radius={sceneObject.width / 2}
-            fill={sceneObject.style?.fill || '#10b981'}
-            stroke={sceneObject.style?.stroke || '#047857'}
-            strokeWidth={sceneObject.style?.strokeWidth || 1}
-          />
+            ref={shapeRef as React.RefObject<Konva.Group>}
+            onDblClick={startBottomNameEdit}
+            onDblTap={startBottomNameEdit}
+          >
+            <RegularPolygon
+              sides={3}
+              radius={sceneObject.width / 2}
+              fill={sceneObject.style?.fill || '#10b981'}
+              stroke={sceneObject.style?.stroke || '#047857'}
+              strokeWidth={sceneObject.style?.strokeWidth || 1}
+            />
+            <Text
+              ref={objectNameRef}
+              visible={!isEditing}
+              text={displayName}
+              width={sceneObject.width}
+              x={-sceneObject.width / 2}
+              y={nameYOffset}
+              align={nameAlign}
+              fontSize={nameFontSize}
+              fontFamily={nameFontFamily}
+              fill={nameColor}
+              lineHeight={nameLineHeight}
+              wrap="char"
+            />
+          </Group>
         );
+      }
       default:
         return null;
     }
