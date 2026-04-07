@@ -549,7 +549,7 @@ export function InspectorPanel() {
                   </div>
                 </>
               )}
-              {selectedObj.type === "text" && (
+              {(selectedObj.type === "text" || selectedObj.type === "material") && (
                 <>
                   <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>文字颜色：</label>
                   <div className="input-group" style={{ width: "38px" }}>
@@ -606,7 +606,7 @@ export function InspectorPanel() {
                   />
                 </>
               )}
-              {selectedObj.type === "text" && (
+              {(selectedObj.type === "text" || selectedObj.type === "material") && (
                 <>
                   <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>字体大小：</label>
                   <div className="input-group" style={{ width: "44px" }}>
@@ -664,7 +664,7 @@ export function InspectorPanel() {
                   </div>
                 </>
               )}
-              {selectedObj.type === "text" && (
+              {(selectedObj.type === "text" || selectedObj.type === "material") && (
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
                   <label style={{ marginBottom: 0, fontSize: "0.85rem", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>对齐方式：</label>
                   <div style={{ display: "flex", flex: 1, gap: "1px", backgroundColor: "rgba(0,0,0,0.05)", padding: "2px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>

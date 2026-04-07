@@ -9,12 +9,14 @@ interface Props {
   sceneObject: SceneObject;
   isSelected: boolean;
   onSelect: () => void;
-  onEditStart?: (id: string, rect: { x: number, y: number, width: number, height: number }) => void;
+  onEditStart?: (id: string, rect: { x: number, y: number, width: number, height: number }, target?: 'text' | 'name') => void;
   isEditing?: boolean;
 }
 
 const DEFAULT_CURVE_POINTS = [0, 50, 50, 0, 100, 50];
 const DEFAULT_LINE_POINTS = [0, 0, 100, 100];
+const MATERIAL_NAME_MAX_LENGTH = 20;
+const MATERIAL_NAME_LABEL_MIN_HEIGHT = 22;
 
 export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditStart, isEditing }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
@@ -111,18 +113,80 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
 
   const renderContent = () => {
     switch (sceneObject.type) {
-      case 'material':
+      case 'material': {
+        const normalizedName = (sceneObject.name || '').replace(/\r?\n/g, ' ').trim();
+        const displayName = normalizedName.length > MATERIAL_NAME_MAX_LENGTH
+          ? `${normalizedName.slice(0, MATERIAL_NAME_MAX_LENGTH)}...`
+          : normalizedName;
+        const nameFontSize = sceneObject.style?.fontSize || 14;
+        const nameFontFamily = sceneObject.style?.fontFamily || 'sans-serif';
+        const nameColor = sceneObject.style?.fill || '#334155';
+        const nameAlign = sceneObject.style?.textAlign || 'center';
+        const nameYOffset = sceneObject.height / 2 + 8;
         return (
-          <KonvaImage
+          <Group
             {...commonProps}
-            ref={shapeRef as React.RefObject<Konva.Image>}
-            image={image}
-            width={sceneObject.width}
-            height={sceneObject.height}
-            offsetX={sceneObject.width / 2}
-            offsetY={sceneObject.height / 2}
-          />
+            ref={shapeRef as React.RefObject<Konva.Group>}
+          >
+            <KonvaImage
+              image={image}
+              width={sceneObject.width}
+              height={sceneObject.height}
+              offsetX={sceneObject.width / 2}
+              offsetY={sceneObject.height / 2}
+            />
+            <Text
+              visible={!isEditing}
+              text={displayName}
+              width={sceneObject.width}
+              x={-sceneObject.width / 2}
+              y={nameYOffset}
+              align={nameAlign}
+              fontSize={nameFontSize}
+              fontFamily={nameFontFamily}
+              fill={nameColor}
+              lineHeight={1.2}
+              wrap="char"
+              onDblClick={(e) => {
+                if (onEditStart) {
+                  const node = e.currentTarget;
+                  const pos = node.getAbsolutePosition();
+                  const scale = node.getAbsoluteScale();
+                  const editHeight = Math.max(node.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
+                  onEditStart(sceneObject.id, {
+                    x: pos.x,
+                    y: pos.y,
+                    width: node.width() * scale.x,
+                    height: editHeight * scale.y,
+                  }, 'name');
+                }
+              }}
+              onDblTap={(e) => {
+                if (onEditStart) {
+                  const node = e.currentTarget;
+                  const pos = node.getAbsolutePosition();
+                  const scale = node.getAbsoluteScale();
+                  const editHeight = Math.max(node.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
+                  onEditStart(sceneObject.id, {
+                    x: pos.x,
+                    y: pos.y,
+                    width: node.width() * scale.x,
+                    height: editHeight * scale.y,
+                  }, 'name');
+                }
+              }}
+              onMouseEnter={(e) => {
+                const stage = e.target.getStage();
+                if (stage) stage.container().style.cursor = 'text';
+              }}
+              onMouseLeave={(e) => {
+                const stage = e.target.getStage();
+                if (stage) stage.container().style.cursor = 'default';
+              }}
+            />
+          </Group>
         );
+      }
       case 'rect':
         return (
           <Rect

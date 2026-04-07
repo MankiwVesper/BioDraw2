@@ -7,6 +7,8 @@ import type Konva from 'konva';
 import './CanvasPanel.css';
 
 export function CanvasPanel() {
+  type EditingTarget = 'text' | 'name';
+
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
@@ -14,6 +16,7 @@ export function CanvasPanel() {
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
   const [isPanMode, setIsPanMode] = useState(false); // 空格键按下时进入平移模式
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
+  const [editingTarget, setEditingTarget] = useState<EditingTarget>('text');
   const [editingRect, setEditingRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -218,22 +221,36 @@ export function CanvasPanel() {
     }
   };
 
-  const handleEditStart = (id: string, rect: { x: number, y: number, width: number, height: number }) => {
+  const handleEditStart = (
+    id: string,
+    rect: { x: number, y: number, width: number, height: number },
+    target: EditingTarget = 'text',
+  ) => {
     const obj = objects.find(o => o.id === id);
     if (!obj) return;
     
     setEditingTextId(id);
+    setEditingTarget(target);
     setEditingRect({
       x: rect.x * stageScale + stagePos.x,
       y: rect.y * stageScale + stagePos.y,
       width: rect.width * stageScale,
       height: rect.height * stageScale
     });
-    setEditingValue((obj.data?.text as string) || '');
+    setEditingValue(target === 'name' ? obj.name : ((obj.data?.text as string) || ''));
   };
 
   const commitTextChange = () => {
     if (editingTextId && textareaRef.current) {
+      if (editingTarget === 'name') {
+        updateSceneObject(editingTextId, {
+          name: editingValue.replace(/\r?\n/g, ' ').trim(),
+        });
+        setEditingTextId(null);
+        setEditingTarget('text');
+        setEditingRect(null);
+        return;
+      }
       // 计算文本的实际高度 (还原到画布空间)
       const scrollHeight = textareaRef.current.scrollHeight;
       const newHeight = scrollHeight / stageScale;
@@ -246,9 +263,12 @@ export function CanvasPanel() {
         }
       });
       setEditingTextId(null);
+      setEditingTarget('text');
       setEditingRect(null);
     }
   };
+
+  const editingObject = editingTextId ? objects.find(o => o.id === editingTextId) : null;
 
   return (
     <main className="canvas-panel">
@@ -345,26 +365,27 @@ export function CanvasPanel() {
                     commitTextChange();
                   } else if (e.key === 'Escape') {
                     setEditingTextId(null);
+                    setEditingTarget('text');
                     setEditingRect(null);
                   }
                 }}
                 style={{
                   width: '100%',
                   height: 'auto',
-                  fontSize: `${(objects.find(o => o.id === editingTextId)?.style?.fontSize || 18) * stageScale}px`,
-                  fontFamily: objects.find(o => o.id === editingTextId)?.style?.fontFamily || 'sans-serif',
-                  color: objects.find(o => o.id === editingTextId)?.style?.fill || '#1e293b',
+                  fontSize: `${((editingObject?.style?.fontSize || (editingTarget === 'name' ? 14 : 18)) * stageScale)}px`,
+                  fontFamily: editingObject?.style?.fontFamily || 'sans-serif',
+                  color: editingObject?.style?.fill || (editingTarget === 'name' ? '#334155' : '#1e293b'),
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
                   resize: 'none',
-                  textAlign: objects.find(o => o.id === editingTextId)?.style?.textAlign || 'center',
+                  textAlign: editingObject?.style?.textAlign || 'center',
                   padding: 0,
                   margin: 0,
                   overflow: 'hidden',
                   pointerEvents: 'auto',
                   lineHeight: 1.2,
-                  caretColor: objects.find(o => o.id === editingTextId)?.style?.fill || '#4f46e5',
+                  caretColor: editingObject?.style?.fill || (editingTarget === 'name' ? '#334155' : '#4f46e5'),
                 }}
               />
             </div>
