@@ -23,6 +23,12 @@ const LINE_SIDE_NAME_OFFSET_X = 8;
 const LINE_SIDE_NAME_OFFSET_Y = 4;
 const CURVE_SIDE_NAME_GAP = 2;
 
+const toVerticalText = (value: string) =>
+  value
+    .split('\n')
+    .map((line) => line.split('').join('\n'))
+    .join('\n\n');
+
 export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditStart, isEditing }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
@@ -360,13 +366,17 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
           </Group>
         );
       }
-      case 'text':
+      case 'text': {
+        const rawText = (sceneObject.data?.text as string) || '点击输入内容';
+        const isVerticalText = sceneObject.style?.textDirection === 'vertical';
+        const renderedText = isVerticalText ? toVerticalText(rawText) : rawText;
+        const textLineHeight = isVerticalText ? 1 : 1.2;
         return (
           <Text
             {...commonProps}
             ref={shapeRef as React.RefObject<Konva.Text>}
             visible={!isEditing}
-            text={(sceneObject.data?.text as string) || '点击输入内容'}
+            text={renderedText}
             fontSize={sceneObject.style?.fontSize || 18}
             fontFamily={sceneObject.style?.fontFamily || 'sans-serif'}
             fill={sceneObject.style?.fill || '#1e293b'}
@@ -376,6 +386,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             offsetY={sceneObject.height / 2}
             align={sceneObject.style?.textAlign || 'center'}
             verticalAlign="middle"
+            lineHeight={textLineHeight}
             onDblClick={(e) => {
               if (onEditStart) {
                 const node = e.currentTarget;
@@ -412,6 +423,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             }}
           />
         );
+      }
       case 'curve': {
         const points = getCurvePoints();
         const bounds = getPointsBounds(points);

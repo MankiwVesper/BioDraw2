@@ -1,10 +1,26 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useLayoutEffect, useState } from 'react';
 import { Stage, Layer } from 'react-konva';
 import { useEditorStore } from '../../state/editorStore';
 import { SceneObjectRenderer } from '../../render/objects/SceneObjectRenderer';
 import type { SceneObject } from '../../types';
 import type Konva from 'konva';
 import './CanvasPanel.css';
+
+const TEXT_LINE_HEIGHT = 1.2;
+
+const getVerticalEditorSize = (value: string, fontSizePx: number) => {
+  const lines = (value || ' ').split('\n');
+  const columnCount = Math.max(lines.length, 1);
+  const maxCharsInColumn = Math.max(
+    ...lines.map((line) => Math.max([...line].length, 1)),
+    1,
+  );
+  const unit = Math.max(fontSizePx * TEXT_LINE_HEIGHT, fontSizePx);
+  return {
+    width: Math.ceil(columnCount * unit),
+    height: Math.ceil(maxCharsInColumn * unit),
+  };
+};
 
 export function CanvasPanel() {
   type EditingTarget = 'text' | 'name';
@@ -21,14 +37,6 @@ export function CanvasPanel() {
   const [editingValue, setEditingValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // 聚焦编辑器
-  useEffect(() => {
-    if (editingTextId && textareaRef.current) {
-      textareaRef.current.focus();
-      textareaRef.current.select(); // 自动全选，方便修改
-    }
-  }, [editingTextId]);
-  
   const objects = useEditorStore(state => state.objects);
   const selectedIds = useEditorStore(state => state.selectedIds);
   const addSceneObject = useEditorStore(state => state.addSceneObject);
@@ -39,6 +47,27 @@ export function CanvasPanel() {
   const redo = useEditorStore(state => state.redo);
   const past = useEditorStore(state => state.past);
   const future = useEditorStore(state => state.future);
+
+  // 聚焦编辑器并在首帧同步输入框尺寸，避免首次进入编辑时位置跳变
+  useLayoutEffect(() => {
+    if (editingTextId && textareaRef.current) {
+      const targetObj = objects.find((o) => o.id === editingTextId);
+      const isVerticalText =
+        editingTarget === 'text'
+        && targetObj?.type === 'text'
+        && (targetObj.style?.textDirection || 'horizontal') === 'vertical';
+
+      if (!isVerticalText) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
+
+      textareaRef.current.focus();
+      textareaRef.current.select(); // 自动全选，方便修改
+      textareaRef.current.scrollLeft = 0;
+      textareaRef.current.scrollTop = 0;
+    }
+  }, [editingTextId, editingTarget, objects]);
 
   // 响应式 Resize Observer
   useEffect(() => {
@@ -251,14 +280,23 @@ export function CanvasPanel() {
         setEditingRect(null);
         return;
       }
-      // 计算文本的实际高度 (还原到画布空间)
+
+      const currentObject = objects.find(o => o.id === editingTextId);
+      const isVerticalText = currentObject?.type === 'text' && currentObject.style?.textDirection === 'vertical';
       const scrollHeight = textareaRef.current.scrollHeight;
       const newHeight = scrollHeight / stageScale;
+      const textFontSize = (currentObject?.style?.fontSize || 18) * stageScale;
+      const verticalSize = getVerticalEditorSize(editingValue, textFontSize);
 
       updateSceneObject(editingTextId, {
-        height: newHeight, // 同步高度，防止提交后被遮挡
+        ...(isVerticalText
+          ? {
+            width: verticalSize.width / stageScale,
+            height: verticalSize.height / stageScale,
+          }
+          : { height: newHeight }),
         data: {
-          ...(objects.find(o => o.id === editingTextId)?.data || {}),
+          ...(currentObject?.data || {}),
           text: editingValue,
         }
       });
@@ -269,6 +307,16 @@ export function CanvasPanel() {
   };
 
   const editingObject = editingTextId ? objects.find(o => o.id === editingTextId) : null;
+  const isVerticalTextEditing =
+    editingTarget === 'text'
+    && editingObject?.type === 'text'
+    && (editingObject.style?.textDirection || 'horizontal') === 'vertical';
+  const editorFontSizePx = ((editingObject?.style?.fontSize || (editingTarget === 'name' ? 14 : 18)) * stageScale);
+  const verticalEditorSize = isVerticalTextEditing
+    ? getVerticalEditorSize(editingValue, editorFontSizePx)
+    : null;
+  const horizontalTextEditOffset =
+    editingTarget === 'text' && !isVerticalTextEditing ? 1 : 0;
 
   return (
     <main className="canvas-panel">
@@ -331,8 +379,8 @@ export function CanvasPanel() {
             <div
               style={{
                 position: 'absolute',
-                top: `${editingRect.y}px`,
-                left: `${editingRect.x}px`,
+                top: `${editingRect.y + horizontalTextEditOffset}px`,
+                left: `${editingRect.x + horizontalTextEditOffset}px`,
                 width: `${editingRect.width}px`,
                 height: `${editingRect.height}px`,
                 transform: 'translate(-50%, -50%)',
@@ -348,14 +396,18 @@ export function CanvasPanel() {
                 value={editingValue}
                 onChange={(e) => {
                   setEditingValue(e.target.value);
-                  // 动态调整高度以适配内容
-                  e.target.style.height = 'auto';
-                  e.target.style.height = e.target.scrollHeight + 'px';
+                  if (!isVerticalTextEditing) {
+                    // 横排动态调整高度以适配内容
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }
                 }}
                 onBlur={commitTextChange}
                 onFocus={(e) => {
-                  e.target.style.height = 'auto';
-                  e.target.style.height = e.target.scrollHeight + 'px';
+                  if (!isVerticalTextEditing) {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -371,9 +423,9 @@ export function CanvasPanel() {
                   }
                 }}
                 style={{
-                  width: '100%',
-                  height: 'auto',
-                  fontSize: `${((editingObject?.style?.fontSize || (editingTarget === 'name' ? 14 : 18)) * stageScale)}px`,
+                  width: isVerticalTextEditing ? `${verticalEditorSize?.width || editingRect.width}px` : '100%',
+                  height: isVerticalTextEditing ? `${verticalEditorSize?.height || editingRect.height}px` : 'auto',
+                  fontSize: `${editorFontSizePx}px`,
                   fontFamily: editingObject?.style?.fontFamily || 'sans-serif',
                   color: editingObject?.style?.fill || (editingTarget === 'name' ? '#334155' : '#1e293b'),
                   background: 'transparent',
@@ -385,7 +437,10 @@ export function CanvasPanel() {
                   margin: 0,
                   overflow: 'hidden',
                   pointerEvents: 'auto',
-                  lineHeight: 1.2,
+                  lineHeight: TEXT_LINE_HEIGHT,
+                  writingMode: isVerticalTextEditing ? 'vertical-rl' : 'horizontal-tb',
+                  textOrientation: isVerticalTextEditing ? 'upright' : 'mixed',
+                  whiteSpace: 'pre-wrap',
                   caretColor: editingObject?.style?.fill || (editingTarget === 'name' ? '#334155' : '#4f46e5'),
                 }}
               />

@@ -106,6 +106,7 @@ export type SceneObjectStyle = {
   fontFamily?: string;
   fontWeight?: string | number;
   textAlign?: 'left' | 'center' | 'right';
+  textDirection?: 'horizontal' | 'vertical';
   opacity?: number;
 };
 
