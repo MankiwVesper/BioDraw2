@@ -130,7 +130,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     : normalizedName;
   const nameFontSize = sceneObject.style?.fontSize || 14;
   const nameFontFamily = sceneObject.style?.fontFamily || 'sans-serif';
-  const nameColor = sceneObject.style?.fill || '#334155';
+  const nameColor = sceneObject.style?.textColor || sceneObject.style?.fill || '#334155';
   const nameAlign = sceneObject.style?.textAlign || 'center';
   const nameLineHeight = 1.2;
   const nameLabelHeight = Math.max(nameFontSize * nameLineHeight, MATERIAL_NAME_LABEL_MIN_HEIGHT);

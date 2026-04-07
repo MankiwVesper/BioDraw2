@@ -311,6 +311,10 @@ export function CanvasPanel() {
     editingTarget === 'text'
     && editingObject?.type === 'text'
     && (editingObject.style?.textDirection || 'horizontal') === 'vertical';
+  const editorNameColor =
+    editingObject?.style?.textColor
+    || editingObject?.style?.fill
+    || '#334155';
   const editorFontSizePx = ((editingObject?.style?.fontSize || (editingTarget === 'name' ? 14 : 18)) * stageScale);
   const verticalEditorSize = isVerticalTextEditing
     ? getVerticalEditorSize(editingValue, editorFontSizePx)
@@ -427,7 +431,9 @@ export function CanvasPanel() {
                   height: isVerticalTextEditing ? `${verticalEditorSize?.height || editingRect.height}px` : 'auto',
                   fontSize: `${editorFontSizePx}px`,
                   fontFamily: editingObject?.style?.fontFamily || 'sans-serif',
-                  color: editingObject?.style?.fill || (editingTarget === 'name' ? '#334155' : '#1e293b'),
+                  color: editingTarget === 'name'
+                    ? editorNameColor
+                    : (editingObject?.style?.fill || '#1e293b'),
                   background: 'transparent',
                   border: 'none',
                   outline: 'none',
@@ -441,7 +447,9 @@ export function CanvasPanel() {
                   writingMode: isVerticalTextEditing ? 'vertical-rl' : 'horizontal-tb',
                   textOrientation: isVerticalTextEditing ? 'upright' : 'mixed',
                   whiteSpace: 'pre-wrap',
-                  caretColor: editingObject?.style?.fill || (editingTarget === 'name' ? '#334155' : '#4f46e5'),
+                  caretColor: editingTarget === 'name'
+                    ? editorNameColor
+                    : (editingObject?.style?.fill || '#4f46e5'),
                 }}
               />
             </div>
