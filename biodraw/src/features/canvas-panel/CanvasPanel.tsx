@@ -344,6 +344,7 @@ export function CanvasPanel() {
             >
               <textarea
                 ref={textareaRef}
+                rows={1}
                 value={editingValue}
                 onChange={(e) => {
                   setEditingValue(e.target.value);

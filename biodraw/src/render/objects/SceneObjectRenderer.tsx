@@ -153,9 +153,11 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                   const pos = node.getAbsolutePosition();
                   const scale = node.getAbsoluteScale();
                   const editHeight = Math.max(node.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
+                  const centerX = pos.x + (sceneObject.width * scale.x) / 2;
+                  const centerY = pos.y + (editHeight * scale.y) / 2;
                   onEditStart(sceneObject.id, {
-                    x: pos.x,
-                    y: pos.y,
+                    x: centerX,
+                    y: centerY,
                     width: node.width() * scale.x,
                     height: editHeight * scale.y,
                   }, 'name');
@@ -167,9 +169,11 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                   const pos = node.getAbsolutePosition();
                   const scale = node.getAbsoluteScale();
                   const editHeight = Math.max(node.height(), MATERIAL_NAME_LABEL_MIN_HEIGHT);
+                  const centerX = pos.x + (sceneObject.width * scale.x) / 2;
+                  const centerY = pos.y + (editHeight * scale.y) / 2;
                   onEditStart(sceneObject.id, {
-                    x: pos.x,
-                    y: pos.y,
+                    x: centerX,
+                    y: centerY,
                     width: node.width() * scale.x,
                     height: editHeight * scale.y,
                   }, 'name');
