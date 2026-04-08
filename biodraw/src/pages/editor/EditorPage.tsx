@@ -3,6 +3,7 @@ import { ToolbarPanel } from '../../features/toolbar/ToolbarPanel';
 import { MaterialsPanel } from '../../features/materials-panel/MaterialsPanel';
 import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
 import { InspectorPanel } from '../../features/inspector-panel/InspectorPanel';
+import { TimelinePanel } from '../../features/timeline-panel/TimelinePanel';
 
 export default function EditorPage() {
   return (
@@ -10,7 +11,10 @@ export default function EditorPage() {
       <ToolbarPanel />
       <div className="editor-main">
         <MaterialsPanel />
-        <CanvasPanel />
+        <div className="editor-center">
+          <CanvasPanel />
+          <TimelinePanel />
+        </div>
         <InspectorPanel />
       </div>
     </div>

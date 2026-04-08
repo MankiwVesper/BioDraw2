@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useLayoutEffect, useState } from 'react';
+import React, { useMemo, useRef, useEffect, useLayoutEffect, useState } from 'react';
 import { Stage, Layer } from 'react-konva';
 import { useEditorStore } from '../../state/editorStore';
+import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { SceneObjectRenderer } from '../../render/objects/SceneObjectRenderer';
 import type { SceneObject } from '../../types';
 import type Konva from 'konva';
@@ -22,6 +23,156 @@ const getVerticalEditorSize = (value: string, fontSizePx: number) => {
   };
 };
 
+const waitForNextPaint = () =>
+  new Promise<void>((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+
+const waitForMs = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+const formatExportProgress = (current: number, total: number) => {
+  if (total <= 0) return '100%';
+  const percent = Math.min(100, Math.max(0, Math.round((current / total) * 100)));
+  return `${current}/${total} (${percent}%)`;
+};
+
+const blobFromCanvas = (canvas: HTMLCanvasElement) =>
+  new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error('Failed to create image blob from canvas.'));
+        return;
+      }
+      resolve(blob);
+    }, 'image/png');
+  });
+
+const blobToUint8Array = async (blob: Blob) => {
+  const buffer = await blob.arrayBuffer();
+  return new Uint8Array(buffer);
+};
+
+const asArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
+  const copy = new Uint8Array(bytes.byteLength);
+  copy.set(bytes);
+  return copy.buffer;
+};
+
+const drawStageToExportCanvas = (
+  stage: Konva.Stage,
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+) => {
+  const frameCanvas = stage.toCanvas({ pixelRatio: 1 });
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(frameCanvas, 0, 0, width, height);
+  return frameCanvas;
+};
+
+const crc32Table = (() => {
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i += 1) {
+    let c = i;
+    for (let j = 0; j < 8; j += 1) {
+      c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    table[i] = c >>> 0;
+  }
+  return table;
+})();
+
+const calcCrc32 = (bytes: Uint8Array) => {
+  let crc = 0xffffffff;
+  for (let i = 0; i < bytes.length; i += 1) {
+    const idx = (crc ^ bytes[i]) & 0xff;
+    crc = (crc >>> 8) ^ crc32Table[idx];
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+};
+
+const buildZipBlob = (entries: Array<{ name: string; data: Uint8Array }>) => {
+  const encoder = new TextEncoder();
+  const localParts: Uint8Array[] = [];
+  const centralParts: Uint8Array[] = [];
+  let offset = 0;
+  const now = new Date();
+  const dosTime = ((now.getHours() & 0x1f) << 11) | ((now.getMinutes() & 0x3f) << 5) | ((Math.floor(now.getSeconds() / 2)) & 0x1f);
+  const dosDate = (((now.getFullYear() - 1980) & 0x7f) << 9) | (((now.getMonth() + 1) & 0x0f) << 5) | (now.getDate() & 0x1f);
+
+  for (const entry of entries) {
+    const nameBytes = encoder.encode(entry.name);
+    const data = entry.data;
+    const crc = calcCrc32(data);
+
+    const localHeader = new Uint8Array(30 + nameBytes.length);
+    const localView = new DataView(localHeader.buffer);
+    localView.setUint32(0, 0x04034b50, true);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, 0, true);
+    localView.setUint16(8, 0, true);
+    localView.setUint16(10, dosTime, true);
+    localView.setUint16(12, dosDate, true);
+    localView.setUint32(14, crc, true);
+    localView.setUint32(18, data.length, true);
+    localView.setUint32(22, data.length, true);
+    localView.setUint16(26, nameBytes.length, true);
+    localView.setUint16(28, 0, true);
+    localHeader.set(nameBytes, 30);
+
+    localParts.push(localHeader, data);
+
+    const centralHeader = new Uint8Array(46 + nameBytes.length);
+    const centralView = new DataView(centralHeader.buffer);
+    centralView.setUint32(0, 0x02014b50, true);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, 0, true);
+    centralView.setUint16(10, 0, true);
+    centralView.setUint16(12, dosTime, true);
+    centralView.setUint16(14, dosDate, true);
+    centralView.setUint32(16, crc, true);
+    centralView.setUint32(20, data.length, true);
+    centralView.setUint32(24, data.length, true);
+    centralView.setUint16(28, nameBytes.length, true);
+    centralView.setUint16(30, 0, true);
+    centralView.setUint16(32, 0, true);
+    centralView.setUint16(34, 0, true);
+    centralView.setUint16(36, 0, true);
+    centralView.setUint32(38, 0, true);
+    centralView.setUint32(42, offset, true);
+    centralHeader.set(nameBytes, 46);
+    centralParts.push(centralHeader);
+
+    offset += localHeader.length + data.length;
+  }
+
+  const centralSize = centralParts.reduce((sum, part) => sum + part.length, 0);
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  endView.setUint32(0, 0x06054b50, true);
+  endView.setUint16(4, 0, true);
+  endView.setUint16(6, 0, true);
+  endView.setUint16(8, entries.length, true);
+  endView.setUint16(10, entries.length, true);
+  endView.setUint32(12, centralSize, true);
+  endView.setUint32(16, offset, true);
+  endView.setUint16(20, 0, true);
+
+  const blobParts: BlobPart[] = [
+    ...localParts.map(asArrayBuffer),
+    ...centralParts.map(asArrayBuffer),
+    asArrayBuffer(end),
+  ];
+  return new Blob(blobParts, { type: 'application/zip' });
+};
+
 export function CanvasPanel() {
   type EditingTarget = 'text' | 'name';
 
@@ -30,7 +181,7 @@ export function CanvasPanel() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
-  const [isPanMode, setIsPanMode] = useState(false); // 空格键按下时进入平移模式
+  const [isPanMode, setIsPanMode] = useState(false); // 缁岀儤鐗搁柨顔藉瘻娑撳妞傛潻娑樺弳楠炲磭些濡€崇础
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [editingTarget, setEditingTarget] = useState<EditingTarget>('text');
   const [editingRect, setEditingRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
@@ -47,8 +198,35 @@ export function CanvasPanel() {
   const redo = useEditorStore(state => state.redo);
   const past = useEditorStore(state => state.past);
   const future = useEditorStore(state => state.future);
+  const animations = useEditorStore(state => state.animations);
+  const playbackStatus = useEditorStore(state => state.playbackStatus);
+  const currentTimeMs = useEditorStore(state => state.currentTimeMs);
+  const globalDurationMs = useEditorStore(state => state.globalDurationMs);
+  const sequenceExportStatus = useEditorStore(state => state.sequenceExportStatus);
+  const videoExportStatus = useEditorStore(state => state.videoExportStatus);
+  const setCurrentTimeMs = useEditorStore(state => state.setCurrentTimeMs);
+  const playPlayback = useEditorStore(state => state.play);
+  const pausePlayback = useEditorStore(state => state.pause);
+  const sequenceExportRequestId = useEditorStore(state => state.sequenceExportRequestId);
+  const sequenceExportOptions = useEditorStore(state => state.sequenceExportOptions);
+  const setSequenceExportStatus = useEditorStore(state => state.setSequenceExportStatus);
+  const videoExportRequestId = useEditorStore(state => state.videoExportRequestId);
+  const videoExportOptions = useEditorStore(state => state.videoExportOptions);
+  const setVideoExportStatus = useEditorStore(state => state.setVideoExportStatus);
+  const lastHandledExportRequestRef = useRef(0);
+  const lastHandledVideoExportRequestRef = useRef(0);
 
-  // 聚焦编辑器并在首帧同步输入框尺寸，避免首次进入编辑时位置跳变
+  const previewObjects = useMemo(() => {
+    if (currentTimeMs <= 0) return objects;
+    return buildAnimatedPreviewObjects(objects, animations, currentTimeMs);
+  }, [objects, animations, currentTimeMs]);
+
+  const isSequenceExportRunning = sequenceExportStatus === 'running';
+  const isVideoExportRunning = videoExportStatus === 'running';
+  const isAnyExportRunning = isSequenceExportRunning || isVideoExportRunning;
+  const interactionLocked = playbackStatus === 'playing' || isAnyExportRunning;
+
+  // Keep textarea focused while editing text/name.
   useLayoutEffect(() => {
     if (editingTextId && textareaRef.current) {
       const targetObj = objects.find((o) => o.id === editingTextId);
@@ -63,13 +241,13 @@ export function CanvasPanel() {
       }
 
       textareaRef.current.focus();
-      textareaRef.current.select(); // 自动全选，方便修改
+      textareaRef.current.select();
       textareaRef.current.scrollLeft = 0;
       textareaRef.current.scrollTop = 0;
     }
   }, [editingTextId, editingTarget, objects]);
 
-  // 响应式 Resize Observer
+  // 閸濆秴绨插?Resize Observer
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(entries => {
@@ -86,7 +264,6 @@ export function CanvasPanel() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 避免在输入框中触发快捷键
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) {
         return;
@@ -129,8 +306,7 @@ export function CanvasPanel() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedIds, objects, removeSceneObject, updateSceneObject, undo, redo]);
-
-  // 空格键控制平移模式
+  // Space key toggles temporary pan mode.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.code === 'Space' && e.target === document.body) {
@@ -149,14 +325,292 @@ export function CanvasPanel() {
     };
   }, []);
 
-  // 滚轮：Ctrl+滚轮 = 缩放，普通滚轮 = 平移
+  // 濠婃俺鐤嗛敍娆硉rl+濠婃俺鐤?= 缂傗晜鏂侀敍灞炬珮闁碍绮存潪?= 楠炲磭些
+  useEffect(() => {
+    if (sequenceExportRequestId <= 0) return;
+    if (lastHandledExportRequestRef.current === sequenceExportRequestId) return;
+    lastHandledExportRequestRef.current = sequenceExportRequestId;
+
+    let cancelled = false;
+
+    const runSequenceExport = async () => {
+      const stage = stageRef.current;
+      if (!stage) {
+        setSequenceExportStatus('error', '画布未就绪');
+        return;
+      }
+
+      const originalScale = stageScale;
+      const originalPos = { ...stagePos };
+      const originalTimeMs = currentTimeMs;
+      const wasPlaying = playbackStatus === 'playing';
+
+      try {
+        if (editingTextId) {
+          commitTextChange();
+          await waitForNextPaint();
+        }
+
+        const width = Math.max(16, Math.round(sequenceExportOptions.width));
+        const height = Math.max(16, Math.round(sequenceExportOptions.height));
+        const fps = Math.max(1, Math.min(60, Math.round(sequenceExportOptions.fps)));
+        const startMs = Math.max(0, Math.min(sequenceExportOptions.startMs, globalDurationMs));
+        const endMs = Math.max(startMs, Math.min(sequenceExportOptions.endMs, globalDurationMs));
+        const stepMs = 1000 / fps;
+        const totalFrames = Math.max(1, Math.floor((endMs - startMs) / stepMs) + 1);
+        const prefix = (sequenceExportOptions.prefix || 'biodraw-frame').trim() || 'biodraw-frame';
+
+        if (wasPlaying) {
+          pausePlayback();
+        }
+        setSequenceExportStatus('running', formatExportProgress(0, totalFrames));
+        setStageScale(1);
+        setStagePos({ x: 0, y: 0 });
+        await waitForNextPaint();
+
+        const targetCanvas = document.createElement('canvas');
+        targetCanvas.width = width;
+        targetCanvas.height = height;
+        const ctx = targetCanvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Failed to create export canvas context.');
+        }
+
+        const entries: Array<{ name: string; data: Uint8Array }> = [];
+        for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
+          if (cancelled) return;
+
+          const timeMs = Math.min(endMs, Math.round(startMs + frameIndex * stepMs));
+          setCurrentTimeMs(timeMs);
+          await waitForNextPaint();
+
+          drawStageToExportCanvas(stage, ctx, width, height);
+
+          const frameBlob = await blobFromCanvas(targetCanvas);
+          const frameBytes = await blobToUint8Array(frameBlob);
+          entries.push({
+            name: `${prefix}_${String(frameIndex + 1).padStart(4, '0')}.png`,
+            data: frameBytes,
+          });
+
+          setSequenceExportStatus('running', formatExportProgress(frameIndex + 1, totalFrames));
+        }
+
+        if (cancelled) return;
+
+        const zipBlob = buildZipBlob(entries);
+        const url = URL.createObjectURL(zipBlob);
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${prefix}_${stamp}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        setSequenceExportStatus('done', `${totalFrames} 帧`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '序列帧导出失败';
+        setSequenceExportStatus('error', message);
+      } finally {
+        setCurrentTimeMs(originalTimeMs);
+        setStageScale(originalScale);
+        setStagePos(originalPos);
+        if (wasPlaying) {
+          playPlayback();
+        }
+      }
+    };
+
+    runSequenceExport();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    globalDurationMs,
+    pausePlayback,
+    playPlayback,
+    sequenceExportOptions,
+    sequenceExportRequestId,
+    setCurrentTimeMs,
+    setSequenceExportStatus,
+  ]);
+
+  useEffect(() => {
+    if (videoExportRequestId <= 0) return;
+    if (lastHandledVideoExportRequestRef.current === videoExportRequestId) return;
+    lastHandledVideoExportRequestRef.current = videoExportRequestId;
+
+    let cancelled = false;
+
+    const runVideoExport = async () => {
+      const stage = stageRef.current;
+      if (!stage) {
+        setVideoExportStatus('error', '画布未就绪');
+        return;
+      }
+      if (typeof MediaRecorder === 'undefined') {
+        setVideoExportStatus('error', '当前浏览器不支持视频导出');
+        return;
+      }
+
+      const originalScale = stageScale;
+      const originalPos = { ...stagePos };
+      const originalTimeMs = currentTimeMs;
+      const wasPlaying = playbackStatus === 'playing';
+
+      try {
+        if (editingTextId) {
+          commitTextChange();
+          await waitForNextPaint();
+        }
+
+        const width = Math.max(16, Math.round(videoExportOptions.width));
+        const height = Math.max(16, Math.round(videoExportOptions.height));
+        const fps = Math.max(1, Math.min(60, Math.round(videoExportOptions.fps)));
+        const startMs = Math.max(0, Math.min(videoExportOptions.startMs, globalDurationMs));
+        const endMs = Math.max(startMs, Math.min(videoExportOptions.endMs, globalDurationMs));
+        const stepMs = 1000 / fps;
+        const totalFrames = Math.max(1, Math.floor((endMs - startMs) / stepMs) + 1);
+        const prefix = (videoExportOptions.prefix || 'biodraw-video').trim() || 'biodraw-video';
+
+        const preferredMimeTypes = videoExportOptions.format === 'mp4'
+          ? [
+            'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+            'video/mp4',
+            'video/webm;codecs=vp9',
+            'video/webm',
+          ]
+          : [
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8',
+            'video/webm',
+            'video/mp4',
+          ];
+        const mimeType = preferredMimeTypes.find((type) => MediaRecorder.isTypeSupported(type));
+        if (!mimeType) {
+          throw new Error('未找到可用的视频编码格式');
+        }
+        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+
+        if (wasPlaying) {
+          pausePlayback();
+        }
+        setVideoExportStatus('running', formatExportProgress(0, totalFrames));
+        setStageScale(1);
+        setStagePos({ x: 0, y: 0 });
+        await waitForNextPaint();
+
+        const targetCanvas = document.createElement('canvas');
+        targetCanvas.width = width;
+        targetCanvas.height = height;
+        const ctx = targetCanvas.getContext('2d');
+        if (!ctx) {
+          throw new Error('Failed to create export canvas context.');
+        }
+
+        const stream = targetCanvas.captureStream(fps);
+        const chunks: BlobPart[] = [];
+        let recorderError: Error | null = null;
+
+        const recorder = new MediaRecorder(stream, {
+          mimeType,
+          videoBitsPerSecond: 8_000_000,
+        });
+        recorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            chunks.push(event.data);
+          }
+        };
+        recorder.onerror = (event) => {
+          const mediaError = (event as Event & { error?: Error }).error;
+          recorderError = mediaError || new Error('视频录制失败');
+        };
+        const stopPromise = new Promise<Blob>((resolve) => {
+          recorder.onstop = () => {
+            resolve(new Blob(chunks, { type: mimeType }));
+          };
+        });
+
+        recorder.start(Math.max(100, Math.round(stepMs)));
+
+        for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
+          if (cancelled) {
+            if (recorder.state !== 'inactive') recorder.stop();
+            stream.getTracks().forEach((track) => track.stop());
+            return;
+          }
+
+          const timeMs = Math.min(endMs, Math.round(startMs + frameIndex * stepMs));
+          setCurrentTimeMs(timeMs);
+          await waitForNextPaint();
+
+          drawStageToExportCanvas(stage, ctx, width, height);
+          setVideoExportStatus('running', formatExportProgress(frameIndex + 1, totalFrames));
+          await waitForMs(stepMs);
+        }
+
+        if (recorder.state !== 'inactive') {
+          recorder.stop();
+        }
+        const videoBlob = await stopPromise;
+        stream.getTracks().forEach((track) => track.stop());
+
+        if (recorderError) {
+          throw recorderError;
+        }
+        if (cancelled) return;
+
+        const url = URL.createObjectURL(videoBlob);
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${prefix}_${stamp}.${extension}`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        if (videoExportOptions.format === 'mp4' && extension === 'webm') {
+          setVideoExportStatus('done', '已导出 WebM（浏览器不支持 MP4）');
+        } else {
+          setVideoExportStatus('done', `${totalFrames} 帧`);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '视频导出失败';
+        setVideoExportStatus('error', message);
+      } finally {
+        setCurrentTimeMs(originalTimeMs);
+        setStageScale(originalScale);
+        setStagePos(originalPos);
+        if (wasPlaying) {
+          playPlayback();
+        }
+      }
+    };
+
+    runVideoExport();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    globalDurationMs,
+    pausePlayback,
+    playPlayback,
+    setCurrentTimeMs,
+    setVideoExportStatus,
+    videoExportOptions,
+    videoExportRequestId,
+  ]);
   const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
     if (!stage) return;
 
     if (e.evt.ctrlKey || e.evt.metaKey) {
-      // 缩放：以鼠标位置为中心
+      // Zoom around the pointer position.
       const scaleBy = 1.08;
       const oldScale = stageScale;
       const pointer = stage.getPointerPosition();
@@ -176,13 +630,12 @@ export function CanvasPanel() {
         y: pointer.y - mousePointTo.y * newScale,
       });
     } else if (e.evt.shiftKey) {
-      // Shift + 滚轮 = 左右平移（普通鼠标 deltaX 始终为 0，需借助 deltaY 映射）
+      // Shift + wheel = horizontal pan.
       setStagePos(prev => ({
         x: prev.x - e.evt.deltaY,
         y: prev.y,
       }));
     } else {
-      // 普通滚轮 = 上下平移
       setStagePos(prev => ({
         x: prev.x - e.evt.deltaX,
         y: prev.y - e.evt.deltaY,
@@ -191,7 +644,7 @@ export function CanvasPanel() {
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // 必须调用，允许元素被放下
+    e.preventDefault(); // 韫囧懘銆忕拫鍐暏閿涘苯鍘戠拋绋垮帗缁辩姾顫﹂弨鍙ョ瑓
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -205,7 +658,7 @@ export function CanvasPanel() {
       if (!stage) return;
       
       const containerRect = containerRef.current!.getBoundingClientRect();
-      // 逆向映射：将鼠标屏幕坐标转换为画布空间坐标（考虑平移和缩放）
+      // 闁棗鎮滈弰鐘茬殸閿涙艾鐨㈡Η鐘崇垼鐏炲繐绠烽崸鎰垼鏉烆剚宕叉稉铏规暰鐢啰鈹栭梻鏉戞綏閺嶅浄绱欓懓鍐楠炲磭些閸滃瞼缂夐弨鎾呯礆
       const rawX = e.clientX - containerRect.left;
       const rawY = e.clientY - containerRect.top;
       const x = (rawX - stagePos.x) / stageScale;
@@ -227,8 +680,8 @@ export function CanvasPanel() {
         visible: true,
         zIndex: objects.length,
         animationIds: [],
-        data: data.data || { url: data.url }, // 灵活处理自定义数据或SVG路径
-        style: data.style || {}
+        data: data.data || { url: data.url },
+        style: data.style || {},
       };
 
       addSceneObject(newObj);
@@ -238,12 +691,12 @@ export function CanvasPanel() {
   };
 
   const checkDeselect = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
-    // 若正在编辑文字，点击其他地方应结束编辑
+    // When editing, clicking elsewhere should commit the edit first.
     if (editingTextId) {
       commitTextChange();
       return;
     }
-    // 若点击的不是具体图形而是舞台背景层，取消所有选中状态
+    // Click on empty stage to clear selection.
     const clickedOnEmpty = e.target === e.target.getStage();
     if (clickedOnEmpty) {
       selectObject(null);
@@ -347,14 +800,15 @@ export function CanvasPanel() {
             onWheel={handleWheel}
             onMouseDown={checkDeselect}
             onTouchStart={checkDeselect}
+            listening={!interactionLocked}
             style={{ cursor: isPanMode ? 'grab' : 'default' }}
           >
             <Layer>
-              {objects.map((obj) => (
+              {previewObjects.map((obj) => (
                 <SceneObjectRenderer 
                   key={obj.id} 
                   sceneObject={obj}
-                  isSelected={selectedIds.includes(obj.id)}
+                  isSelected={!isAnyExportRunning && selectedIds.includes(obj.id)}
                   onSelect={() => selectObject(obj.id)}
                   onEditStart={handleEditStart}
                   isEditing={editingTextId === obj.id}
@@ -363,10 +817,10 @@ export function CanvasPanel() {
             </Layer>
           </Stage>
         ) : (
-          <div className="canvas-placeholder">画布初始化中...</div>
+          <div className="canvas-placeholder">鐢诲竷鍒濆鍖栦腑...</div>
         )}
 
-        {/* 文字编辑遮罩层 */}
+        {/* 閺傚洤鐡х紓鏍帆闁喚鍍电仦?*/}
         {editingTextId && editingRect && (
           <div 
             style={{
@@ -379,7 +833,7 @@ export function CanvasPanel() {
               zIndex: 1000,
             }}
           >
-            {/* 容器层：负责定位和垂直居中 */}
+            {/* 鐎圭懓娅掔仦鍌︾窗鐠愮喕鐭楃€规矮缍呴崪灞界€惄鏉戠湷娑?*/}
             <div
               style={{
                 position: 'absolute',
@@ -389,8 +843,8 @@ export function CanvasPanel() {
                 height: `${editingRect.height}px`,
                 transform: 'translate(-50%, -50%)',
                 display: 'flex',
-                alignItems: 'center', // 垂直居中
-                justifyContent: 'center', // 水平居中
+                alignItems: 'center', // 閸ㄥ倻娲跨仦鍛厬
+                justifyContent: 'center', // 濮樻潙閽╃仦鍛厬
                 pointerEvents: 'none',
               }}
             >
@@ -401,7 +855,7 @@ export function CanvasPanel() {
                 onChange={(e) => {
                   setEditingValue(e.target.value);
                   if (!isVerticalTextEditing) {
-                    // 横排动态调整高度以适配内容
+                    // 濡亝甯撻崝銊︹偓浣界殶閺佹挳鐝惔锔夸簰闁倿鍘ら崘鍛啇
                     e.target.style.height = 'auto';
                     e.target.style.height = e.target.scrollHeight + 'px';
                   }
@@ -456,7 +910,7 @@ export function CanvasPanel() {
           </div>
         )}
 
-        {/* 右上角悬浮撤销/重做控制条 */}
+        {/* 閸欏厖绗傜憴鎺撳亾濞搭喗鎸欓柨鈧?闁插秴浠涢幒褍鍩楅弶?*/}
         <div style={{
           position: 'absolute', top: '12px', right: '12px',
           display: 'flex', alignItems: 'center', gap: '2px',
@@ -467,7 +921,7 @@ export function CanvasPanel() {
           <button
             onClick={undo}
             disabled={past.length === 0}
-            title="撤销 (Ctrl+Z)"
+            title="鎾ら攢 (Ctrl+Z)"
             style={{
               background: 'none', border: 'none', cursor: past.length === 0 ? 'not-allowed' : 'pointer',
               color: 'var(--text-muted)', fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
@@ -484,7 +938,7 @@ export function CanvasPanel() {
           <button
             onClick={redo}
             disabled={future.length === 0}
-            title="重做 (Ctrl+Y)"
+            title="閲嶅仛 (Ctrl+Y)"
             style={{
               background: 'none', border: 'none', cursor: future.length === 0 ? 'not-allowed' : 'pointer',
               color: 'var(--text-muted)', fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
@@ -499,7 +953,7 @@ export function CanvasPanel() {
           </button>
         </div>
 
-        {/* 右下角悬浮缩放控制条 */}
+        {/* 閸欏厖绗呯憴鎺撳亾濞搭喚缂夐弨鐐付閸掕埖娼?*/}
         <div style={{
           position: 'absolute', bottom: '12px', right: '12px',
           display: 'flex', alignItems: 'center', gap: '4px',
@@ -516,12 +970,12 @@ export function CanvasPanel() {
               setStageScale(newScale);
               setStagePos({ x: cx - pointTo.x * newScale, y: cy - pointTo.y * newScale });
             }}
-            title="缩小"
+            title="缂╁皬"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: '16px', lineHeight: 1, padding: '0 2px' }}
-          >−</button>
+          >-</button>
           <button
             onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }}
-            title="重置到 100%"
+            title="閲嶇疆鍒?100%"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '12px', minWidth: '44px', textAlign: 'center', padding: '0 4px' }}
           >
             {Math.round(stageScale * 100)}%
@@ -535,7 +989,7 @@ export function CanvasPanel() {
               setStageScale(newScale);
               setStagePos({ x: cx - pointTo.x * newScale, y: cy - pointTo.y * newScale });
             }}
-            title="放大"
+            title="鏀惧ぇ"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: '16px', lineHeight: 1, padding: '0 2px' }}
           >+</button>
         </div>
@@ -543,3 +997,8 @@ export function CanvasPanel() {
     </main>
   );
 }
+
+
+
+
+

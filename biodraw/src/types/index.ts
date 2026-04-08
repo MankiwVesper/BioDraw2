@@ -194,12 +194,18 @@ export type MotionPath = {
 export type AnimationClipType =
   | 'move'
   | 'moveAlongPath'
+  | 'shake'
   | 'fade'
   | 'scale'
   | 'rotate'
   | 'stateChange';
 
-export type EasingType = 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+export type EasingType =
+  | 'linear'
+  | 'ease-in'
+  | 'ease-out'
+  | 'ease-in-out'
+  | `cubic-bezier(${string})`;
 
 export type AnimationClipBase = {
   id: Id;
@@ -211,14 +217,55 @@ export type AnimationClipBase = {
   enabled?: boolean;
 };
 
+export type NumericKeyframe = {
+  at: number;
+  value: number;
+};
+
+export type PointKeyframe = {
+  at: number;
+  x: number;
+  y: number;
+};
+
+export type ScaleKeyframe = {
+  at: number;
+  scaleX: number;
+  scaleY: number;
+};
+
 export type MoveAlongPathClip = AnimationClipBase & {
   type: 'moveAlongPath';
   payload: {
-    pathId: Id;
-    followPathAngle?: boolean;
-    speedMode?: 'duration' | 'speed';
-    speed?: number;
-    loop?: boolean;
+    fromX: number;
+    fromY: number;
+    controlX: number;
+    controlY: number;
+    toX: number;
+    toY: number;
+  };
+};
+
+export type MoveClip = AnimationClipBase & {
+  type: 'move';
+  payload: {
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+    keyframes?: PointKeyframe[];
+  };
+};
+
+export type ShakeClip = AnimationClipBase & {
+  type: 'shake';
+  payload: {
+    baseX: number;
+    baseY: number;
+    amplitudeX: number;
+    amplitudeY: number;
+    frequency: number;
+    decay?: number;
   };
 };
 
@@ -235,6 +282,7 @@ export type FadeClip = AnimationClipBase & {
   payload: {
     fromOpacity: number;
     toOpacity: number;
+    keyframes?: NumericKeyframe[];
   };
 };
 
@@ -245,6 +293,7 @@ export type ScaleClip = AnimationClipBase & {
     fromScaleY: number;
     toScaleX: number;
     toScaleY: number;
+    keyframes?: ScaleKeyframe[];
   };
 };
 
@@ -253,11 +302,14 @@ export type RotateClip = AnimationClipBase & {
   payload: {
     fromRotation: number;
     toRotation: number;
+    keyframes?: NumericKeyframe[];
   };
 };
 
 export type AnimationClip =
+  | MoveClip
   | MoveAlongPathClip
+  | ShakeClip
   | StateChangeClip
   | FadeClip
   | ScaleClip
