@@ -84,6 +84,17 @@ export function InspectorPanel() {
       },
     });
   };
+  const isNameDirectionTarget =
+    selectedObj.type === "material" || basicNamedTypes.includes(selectedObj.type);
+
+  const handleDirectionChange = (direction: "horizontal" | "vertical") => {
+    if (selectedObj.type === "text") {
+      handleTextDirectionChange(direction);
+      return;
+    }
+    if (!isNameDirectionTarget) return;
+    handleStyleChange("textDirection", direction);
+  };
 
   const handleFontSizeChange = (fontSize: number) => {
     if (selectedObj.type === "text") {
@@ -1364,7 +1375,7 @@ export function InspectorPanel() {
             </>
           )}
 
-          {selectedObj.type === "text" && (
+          {(selectedObj.type === "text" || isNameDirectionTarget) && (
             <div
               className="property-field"
               style={{
@@ -1410,7 +1421,7 @@ export function InspectorPanel() {
                     <button
                       key={btn.id}
                       onClick={() =>
-                        handleTextDirectionChange(
+                        handleDirectionChange(
                           btn.id as "horizontal" | "vertical",
                         )
                       }

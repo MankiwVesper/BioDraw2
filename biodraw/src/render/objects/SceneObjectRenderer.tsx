@@ -24,6 +24,7 @@ const LINE_SIDE_NAME_OFFSET_Y = 4;
 const CURVE_SIDE_NAME_GAP = 2;
 const NAME_DRAG_BOUND_PADDING = 40;
 const NAME_OUTSIDE_GAP = 4;
+const NAME_LABEL_MAX_WIDTH = 320;
 
 const toVerticalText = (value: string) =>
   value
@@ -134,14 +135,21 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
   const nameFontFamily = sceneObject.style?.fontFamily || 'sans-serif';
   const nameColor = sceneObject.style?.textColor || sceneObject.style?.fill || '#334155';
   const nameAlign = sceneObject.style?.textAlign || 'center';
+  const isVerticalName = sceneObject.style?.textDirection === 'vertical';
+  const renderedName = isVerticalName ? toVerticalText(displayName) : displayName;
   const nameLineHeight = 1.2;
-  const nameLabelHeight = Math.max(nameFontSize * nameLineHeight, MATERIAL_NAME_LABEL_MIN_HEIGHT);
-  const getNameLabelWidth = (preferredMaxWidth: number) => {
+  const renderedNameLineHeight = isVerticalName ? 1 : nameLineHeight;
+  const nameLabelHeight = Math.max(
+    nameFontSize * renderedNameLineHeight,
+    MATERIAL_NAME_LABEL_MIN_HEIGHT,
+  );
+  const getNameLabelWidth = (preferredWidth: number) => {
     const estimatedTextWidth = Math.max(
       nameFontSize,
       displayName.length * nameFontSize * 0.9 + 12,
     );
-    return Math.max(36, Math.min(preferredMaxWidth, estimatedTextWidth));
+    const preferredMinWidth = Math.max(preferredWidth, SIDE_NAME_LABEL_MIN_WIDTH);
+    return Math.max(36, Math.min(NAME_LABEL_MAX_WIDTH, Math.max(preferredMinWidth, estimatedTextWidth)));
   };
 
   const getPointsBounds = (points: number[]) => {
@@ -501,7 +509,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             <Text
               ref={materialNameRef}
               visible={!isEditing}
-              text={displayName}
+              text={renderedName}
               width={nameLabelWidth}
               x={nameLayout.x}
               y={nameLayout.y}
@@ -509,7 +517,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
-              lineHeight={nameLineHeight}
+              lineHeight={renderedNameLineHeight}
               wrap="char"
               onDblClick={startMaterialNameEdit}
               onDblTap={startMaterialNameEdit}
@@ -566,7 +574,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             <Text
               ref={objectNameRef}
               visible={!isEditing}
-              text={displayName}
+              text={renderedName}
               width={nameLabelWidth}
               x={nameLayout.x}
               y={nameLayout.y}
@@ -574,7 +582,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
-              lineHeight={nameLineHeight}
+              lineHeight={renderedNameLineHeight}
               wrap="char"
               onDblClick={startBottomNameEdit}
               onDblTap={startBottomNameEdit}
@@ -628,7 +636,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             <Text
               ref={objectNameRef}
               visible={!isEditing}
-              text={displayName}
+              text={renderedName}
               width={nameLabelWidth}
               x={nameLayout.x}
               y={nameLayout.y}
@@ -636,7 +644,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
-              lineHeight={nameLineHeight}
+              lineHeight={renderedNameLineHeight}
               wrap="char"
               onDblClick={startBottomNameEdit}
               onDblTap={startBottomNameEdit}
@@ -699,7 +707,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             <Text
               ref={objectNameRef}
               visible={!isEditing}
-              text={displayName}
+              text={renderedName}
               width={nameLabelWidth}
               x={nameLayout.x}
               y={nameLayout.y}
@@ -707,7 +715,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
-              lineHeight={nameLineHeight}
+              lineHeight={renderedNameLineHeight}
               wrap="char"
               onDblClick={startBottomNameEdit}
               onDblTap={startBottomNameEdit}
@@ -866,7 +874,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             <Text
               ref={objectNameRef}
               visible={!isEditing}
-              text={displayName}
+              text={renderedName}
               width={sideLabelWidth}
               x={nameLayout.x}
               y={nameLayout.y}
@@ -874,7 +882,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
-              lineHeight={nameLineHeight}
+              lineHeight={renderedNameLineHeight}
               wrap="char"
               onDblClick={startSideNameEdit}
               onDblTap={startSideNameEdit}
@@ -1044,7 +1052,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               <Text
                 ref={objectNameRef}
                 visible={!isEditing}
-                text={displayName}
+                text={renderedName}
                 width={sideLabelWidth}
                 x={nameLayout.x}
                 y={nameLayout.y}
@@ -1052,7 +1060,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                 fontSize={nameFontSize}
                 fontFamily={nameFontFamily}
                 fill={nameColor}
-                lineHeight={nameLineHeight}
+                lineHeight={renderedNameLineHeight}
                 wrap="char"
                 onDblClick={startSideNameEdit}
                 onDblTap={startSideNameEdit}
@@ -1126,7 +1134,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               <Text
                 ref={objectNameRef}
                 visible={!isEditing}
-                text={displayName}
+                text={renderedName}
                 width={sideLabelWidth}
                 x={nameLayout.x}
                 y={nameLayout.y}
@@ -1134,7 +1142,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                 fontSize={nameFontSize}
                 fontFamily={nameFontFamily}
                 fill={nameColor}
-                lineHeight={nameLineHeight}
+                lineHeight={renderedNameLineHeight}
                 wrap="char"
                 onDblClick={startSideNameEdit}
                 onDblTap={startSideNameEdit}
@@ -1190,7 +1198,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
             <Text
               ref={objectNameRef}
               visible={!isEditing}
-              text={displayName}
+              text={renderedName}
               width={nameLabelWidth}
               x={nameLayout.x}
               y={nameLayout.y}
@@ -1198,7 +1206,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
               fontSize={nameFontSize}
               fontFamily={nameFontFamily}
               fill={nameColor}
-              lineHeight={nameLineHeight}
+              lineHeight={renderedNameLineHeight}
               wrap="char"
               onDblClick={startBottomNameEdit}
               onDblTap={startBottomNameEdit}
