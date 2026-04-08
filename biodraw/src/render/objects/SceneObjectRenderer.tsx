@@ -23,7 +23,6 @@ const LINE_SIDE_NAME_OFFSET_X = 8;
 const LINE_SIDE_NAME_OFFSET_Y = 4;
 const CURVE_SIDE_NAME_GAP = 2;
 const NAME_DRAG_BOUND_PADDING = 40;
-const NAME_OUTSIDE_GAP = 4;
 const NAME_LABEL_MAX_WIDTH = 320;
 
 const toVerticalText = (value: string) =>
@@ -143,13 +142,18 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     nameFontSize * renderedNameLineHeight,
     MATERIAL_NAME_LABEL_MIN_HEIGHT,
   );
-  const getNameLabelWidth = (preferredWidth: number) => {
+  const getNameLabelWidth = () => {
     const estimatedTextWidth = Math.max(
       nameFontSize,
       displayName.length * nameFontSize * 0.9 + 12,
     );
-    const preferredMinWidth = Math.max(preferredWidth, SIDE_NAME_LABEL_MIN_WIDTH);
-    return Math.max(36, Math.min(NAME_LABEL_MAX_WIDTH, Math.max(preferredMinWidth, estimatedTextWidth)));
+    return Math.max(
+      36,
+      Math.min(
+        NAME_LABEL_MAX_WIDTH,
+        Math.max(SIDE_NAME_LABEL_MIN_WIDTH, estimatedTextWidth),
+      ),
+    );
   };
 
   const getPointsBounds = (points: number[]) => {
@@ -267,44 +271,6 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     });
   };
 
-  const projectPointOutsideForbiddenRect = (
-    x: number,
-    y: number,
-    forbiddenMinX: number,
-    forbiddenMaxX: number,
-    forbiddenMinY: number,
-    forbiddenMaxY: number,
-  ) => {
-    const isInsideForbidden =
-      x > forbiddenMinX &&
-      x < forbiddenMaxX &&
-      y > forbiddenMinY &&
-      y < forbiddenMaxY;
-    if (!isInsideForbidden) {
-      return { x, y };
-    }
-
-    const centerX = (forbiddenMinX + forbiddenMaxX) / 2;
-    const centerY = (forbiddenMinY + forbiddenMaxY) / 2;
-    const halfW = Math.max((forbiddenMaxX - forbiddenMinX) / 2, 0.0001);
-    const halfH = Math.max((forbiddenMaxY - forbiddenMinY) / 2, 0.0001);
-
-    const dx = x - centerX;
-    let dy = y - centerY;
-    if (Math.abs(dx) < 0.0001 && Math.abs(dy) < 0.0001) {
-      dy = 1;
-    }
-
-    const tx = Math.abs(dx) / halfW;
-    const ty = Math.abs(dy) / halfH;
-    const scale = Math.max(tx, ty, 0.0001);
-
-    return {
-      x: centerX + dx / scale,
-      y: centerY + dy / scale,
-    };
-  };
-
   const clampNamePosition = (
     baseX: number,
     baseY: number,
@@ -312,22 +278,22 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     labelHeight: number,
     bounds: { minX: number; maxX: number; minY: number; maxY: number },
     offset: { x: number; y: number },
-    keepOutside: boolean,
+    _keepOutside: boolean,
   ) => {
     const desiredX = baseX + offset.x;
     const desiredY = baseY + offset.y;
 
-    const horizontalPadding = keepOutside
-      ? Math.max(NAME_DRAG_BOUND_PADDING, labelWidth + NAME_OUTSIDE_GAP)
-      : NAME_DRAG_BOUND_PADDING;
-    const verticalPadding = keepOutside
-      ? Math.max(NAME_DRAG_BOUND_PADDING, labelHeight + NAME_OUTSIDE_GAP)
-      : NAME_DRAG_BOUND_PADDING;
+    const horizontalPadding = NAME_DRAG_BOUND_PADDING;
+    const verticalPadding = NAME_DRAG_BOUND_PADDING;
 
-    let minX = bounds.minX - horizontalPadding;
-    let maxX = bounds.maxX + horizontalPadding - labelWidth;
-    let minY = bounds.minY - verticalPadding;
-    let maxY = bounds.maxY + verticalPadding - labelHeight;
+    // Clamp by edge distance to object bounds (not by forcing the entire
+    // label box to stay inside an expanded rectangle). This keeps dragging
+    // smooth while allowing wide labels to move to left/right without being
+    // squeezed toward overlap.
+    let minX = bounds.minX - horizontalPadding - labelWidth;
+    let maxX = bounds.maxX + horizontalPadding;
+    let minY = bounds.minY - verticalPadding - labelHeight;
+    let maxY = bounds.maxY + verticalPadding;
 
     if (maxX < minX) {
       const centerX = (bounds.minX + bounds.maxX) / 2 - labelWidth / 2;
@@ -342,23 +308,6 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
 
     let finalX = Math.max(minX, Math.min(desiredX, maxX));
     let finalY = Math.max(minY, Math.min(desiredY, maxY));
-
-    if (keepOutside) {
-      const forbiddenMinX = bounds.minX - labelWidth - NAME_OUTSIDE_GAP;
-      const forbiddenMaxX = bounds.maxX + NAME_OUTSIDE_GAP;
-      const forbiddenMinY = bounds.minY - labelHeight - NAME_OUTSIDE_GAP;
-      const forbiddenMaxY = bounds.maxY + NAME_OUTSIDE_GAP;
-      const projected = projectPointOutsideForbiddenRect(
-        finalX,
-        finalY,
-        forbiddenMinX,
-        forbiddenMaxX,
-        forbiddenMinY,
-        forbiddenMaxY,
-      );
-      finalX = Math.max(minX, Math.min(projected.x, maxX));
-      finalY = Math.max(minY, Math.min(projected.y, maxY));
-    }
 
     return {
       x: finalX,
@@ -466,7 +415,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     switch (sceneObject.type) {
       case 'material': {
         const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
-        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameLabelWidth = getNameLabelWidth();
         const nameBaseX = -nameLabelWidth / 2;
         const nameBounds = {
           minX: -sceneObject.width / 2,
@@ -528,7 +477,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       }
       case 'rect': {
         const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
-        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameLabelWidth = getNameLabelWidth();
         const nameBaseX = -nameLabelWidth / 2;
         const nameBounds = {
           minX: -sceneObject.width / 2,
@@ -593,7 +542,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       }
       case 'circle': {
         const nameYOffset = sceneObject.width / 2 + NAME_LABEL_GAP;
-        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameLabelWidth = getNameLabelWidth();
         const nameBaseX = -nameLabelWidth / 2;
         const radius = sceneObject.width / 2;
         const nameBounds = {
@@ -656,7 +605,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       case 'trapezoid': {
         const inset = sceneObject.width * 0.2;
         const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
-        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameLabelWidth = getNameLabelWidth();
         const nameBaseX = -nameLabelWidth / 2;
         const nameBounds = {
           minX: -sceneObject.width / 2,
@@ -1154,7 +1103,7 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       }
       case 'triangle': {
         const nameYOffset = sceneObject.width / 2 + NAME_LABEL_GAP;
-        const nameLabelWidth = getNameLabelWidth(sceneObject.width);
+        const nameLabelWidth = getNameLabelWidth();
         const nameBaseX = -nameLabelWidth / 2;
         const triangleRadius = sceneObject.width / 2;
         const nameBounds = {
