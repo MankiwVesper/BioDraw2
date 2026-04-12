@@ -329,7 +329,7 @@ export function TimelinePanel() {
   };
 
   // ── 预设模板
-  const createPresetTemplate = (template: 'fadeIn' | 'bounceIn' | 'moveFadeIn') => {
+  const createPresetTemplate = (template: 'fadeIn' | 'bounceIn' | 'moveFadeIn' | 'fadeOut' | 'crossMembrane' | 'endocytosis' | 'moveFadeOut') => {
     if (!selectedObject) return;
     ensurePausedForEdit();
     const src = selectedObjectAtCurrentTime || selectedObject;
@@ -347,6 +347,28 @@ export function TimelinePanel() {
       created.push(
         { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'move', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-out', enabled: true, payload: { fromX: src.x - 120, fromY: src.y, toX: src.x, toY: src.y } },
         { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-out', enabled: true, payload: { fromOpacity: 0, toOpacity: clamp01(src.opacity) } },
+      );
+    }
+    // ── 生物学场景模板 ──
+    if (template === 'fadeOut') {
+      created.push({ id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-in', enabled: true, payload: { fromOpacity: clamp01(src.opacity), toOpacity: 0 } });
+    }
+    if (template === 'crossMembrane') {
+      // 分子穿越膜结构：水平方向短弧穿越（控制点向上拱起）
+      created.push({ id: crypto.randomUUID(), objectId: selectedObject.id, type: 'moveAlongPath', startTimeMs: currentTimeMs, durationMs: 1200, easing: 'ease-in-out', enabled: true, payload: { fromX: src.x - 80, fromY: src.y, controlX: src.x, controlY: src.y - 60, toX: src.x + 80, toY: src.y } });
+    }
+    if (template === 'endocytosis') {
+      // 胞吞入胞：物质从细胞外弧形进入细胞内（大弧 + 淡入）
+      created.push(
+        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'moveAlongPath', startTimeMs: currentTimeMs, durationMs: 1500, easing: 'ease-in-out', enabled: true, payload: { fromX: src.x, fromY: src.y - 120, controlX: src.x + 130, controlY: src.y + 60, toX: src.x, toY: src.y + 80 } },
+        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 400, easing: 'ease-out', enabled: true, payload: { fromOpacity: 0, toOpacity: clamp01(src.opacity) } },
+      );
+    }
+    if (template === 'moveFadeOut') {
+      // 移动消失：向右平移同时淡出
+      created.push(
+        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'move', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-in', enabled: true, payload: { fromX: src.x, fromY: src.y, toX: src.x + 150, toY: src.y } },
+        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-in', enabled: true, payload: { fromOpacity: clamp01(src.opacity), toOpacity: 0 } },
       );
     }
     if (created.length === 0) return;
@@ -842,18 +864,37 @@ export function TimelinePanel() {
                         </button>
                       ))}
                     </div>
-                    <div className="tl-add-menu-section">快速模板</div>
+                    <div className="tl-add-menu-section">通用模板</div>
                     <div className="tl-add-menu-grid">
                       {(
                         [
                           { key: 'fadeIn', label: '淡入' },
                           { key: 'bounceIn', label: '弹跳进入' },
                           { key: 'moveFadeIn', label: '平移淡入' },
+                          { key: 'fadeOut', label: '淡出消失' },
+                          { key: 'moveFadeOut', label: '移动消失' },
                         ] as const
                       ).map((item) => (
                         <button
                           key={item.key}
                           className="tl-add-menu-item tl-add-menu-template"
+                          onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}
+                        >
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="tl-add-menu-section">生物场景</div>
+                    <div className="tl-add-menu-grid">
+                      {(
+                        [
+                          { key: 'crossMembrane', label: '跨膜移动' },
+                          { key: 'endocytosis', label: '胞吞入胞' },
+                        ] as const
+                      ).map((item) => (
+                        <button
+                          key={item.key}
+                          className="tl-add-menu-item tl-add-menu-template tl-add-menu-bio"
                           onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}
                         >
                           {item.label}
@@ -1092,6 +1133,24 @@ export function TimelinePanel() {
                         {/* 类型专属字段 */}
                         {clip.type === 'move' && (
                           <div className="tl-payload-section">
+                            <div className="tl-grab-row">
+                              <button
+                                type="button"
+                                className="tl-btn tl-btn-sm"
+                                title="将对象当前位置设为起点"
+                                onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}
+                              >
+                                取当前位置 → 起点
+                              </button>
+                              <button
+                                type="button"
+                                className="tl-btn tl-btn-sm"
+                                title="将对象当前位置设为终点"
+                                onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}
+                              >
+                                取当前位置 → 终点
+                              </button>
+                            </div>
                             <div className="tl-payload-grid">
                               <label className="tl-detail-label">起点X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
                               <label className="tl-detail-label">起点Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
@@ -1120,13 +1179,33 @@ export function TimelinePanel() {
                         )}
 
                         {clip.type === 'moveAlongPath' && (
-                          <div className="tl-payload-grid">
-                            <label className="tl-detail-label">起点X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
-                            <label className="tl-detail-label">起点Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
-                            <label className="tl-detail-label">控制点X<input type="number" value={clip.payload.controlX} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
-                            <label className="tl-detail-label">控制点Y<input type="number" value={clip.payload.controlY} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
-                            <label className="tl-detail-label">终点X<input type="number" value={clip.payload.toX} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                            <label className="tl-detail-label">终点Y<input type="number" value={clip.payload.toY} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                          <div className="tl-payload-section">
+                            <div className="tl-grab-row">
+                              <button
+                                type="button"
+                                className="tl-btn tl-btn-sm"
+                                title="将对象当前位置设为起点"
+                                onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}
+                              >
+                                取当前位置 → 起点
+                              </button>
+                              <button
+                                type="button"
+                                className="tl-btn tl-btn-sm"
+                                title="将对象当前位置设为终点"
+                                onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}
+                              >
+                                取当前位置 → 终点
+                              </button>
+                            </div>
+                            <div className="tl-payload-grid">
+                              <label className="tl-detail-label">起点X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
+                              <label className="tl-detail-label">起点Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
+                              <label className="tl-detail-label">控制点X<input type="number" value={clip.payload.controlX} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
+                              <label className="tl-detail-label">控制点Y<input type="number" value={clip.payload.controlY} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
+                              <label className="tl-detail-label">终点X<input type="number" value={clip.payload.toX} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
+                              <label className="tl-detail-label">终点Y<input type="number" value={clip.payload.toY} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                            </div>
                           </div>
                         )}
 

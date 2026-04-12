@@ -1,6 +1,26 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useEditorStore } from "../../state/editorStore";
 import "./InspectorPanel.css";
+
+const CLIP_TYPE_LABELS: Record<string, string> = {
+  move: '移动',
+  moveAlongPath: '曲线移动',
+  fade: '淡入淡出',
+  scale: '缩放',
+  rotate: '旋转',
+  shake: '抖动',
+  stateChange: '状态切换',
+};
+
+const CLIP_TYPE_COLORS: Record<string, string> = {
+  move: '#3b82f6',
+  moveAlongPath: '#06b6d4',
+  fade: '#8b5cf6',
+  scale: '#10b981',
+  rotate: '#f59e0b',
+  shake: '#ef4444',
+  stateChange: '#64748b',
+};
 
 export function InspectorPanel() {
   const isRatioLocked = useEditorStore((state) => state.isRatioLocked);
@@ -15,6 +35,9 @@ export function InspectorPanel() {
   );
   const moveObjectToFront = useEditorStore((state) => state.moveObjectToFront);
   const moveObjectToBack = useEditorStore((state) => state.moveObjectToBack);
+
+  const animations = useEditorStore((state) => state.animations);
+  const setExpandedAnimationClipId = useEditorStore((state) => state.setExpandedAnimationClipId);
 
   const selectedObj =
     selectedIds.length > 0
@@ -1458,19 +1481,63 @@ export function InspectorPanel() {
         </div>
 
         <div className="property-group">
-          <h4 className="group-title">动画设置 (即将推出)</h4>
-          <div className="property-row">
-            <span
-              style={{
-                fontSize: "0.8rem",
-                color: "var(--text-muted)",
-                lineHeight: "1.4",
-              }}
-            >
-              由于当前核心模块为绘图操作，高级动画与关键帧插值参数表将在 M5
-              阶段陆续释出。
+          <h4 className="group-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>动画片段</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>
+              {(selectedObj?.animationIds || []).length > 0
+                ? `共 ${(selectedObj?.animationIds || []).length} 个`
+                : '无'}
             </span>
-          </div>
+          </h4>
+          {(() => {
+            const clips = animations
+              .filter((a) => selectedObj?.animationIds?.includes(a.id))
+              .sort((a, b) => a.startTimeMs - b.startTimeMs);
+            if (clips.length === 0) {
+              return (
+                <div className="property-row">
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                    在下方时间线面板中添加动画片段
+                  </span>
+                </div>
+              );
+            }
+            return clips.map((clip) => {
+              const startS = (clip.startTimeMs / 1000).toFixed(1);
+              const endS = ((clip.startTimeMs + clip.durationMs) / 1000).toFixed(1);
+              const canActivate = clip.type === 'move' || clip.type === 'moveAlongPath';
+              const dotColor = CLIP_TYPE_COLORS[clip.type] || '#64748b';
+              return (
+                <div
+                  key={clip.id}
+                  className="property-row"
+                  onClick={() => canActivate && setExpandedAnimationClipId(clip.id)}
+                  style={{
+                    cursor: canActivate ? 'pointer' : 'default',
+                    borderRadius: '4px',
+                    padding: '3px 4px',
+                    transition: 'background 0.1s',
+                  }}
+                  onMouseEnter={(e) => { if (canActivate) e.currentTarget.style.background = 'rgba(59,130,246,0.06)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                  title={canActivate ? '点击在画布上显示路径手柄' : undefined}
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, overflow: 'hidden' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                    <span style={{ fontSize: '12px', color: 'var(--text-main)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {CLIP_TYPE_LABELS[clip.type] ?? clip.type}
+                    </span>
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    {startS}s → {endS}s
+                  </span>
+                  {clip.enabled === false && (
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: 4 }}>已禁用</span>
+                  )}
+                </div>
+              );
+            });
+          })()}
         </div>
       </div>
     </aside>

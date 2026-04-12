@@ -285,6 +285,12 @@
   border-style: dashed;
 }
 
+.tl-add-menu-bio {
+  background: rgba(16, 185, 129, 0.06);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #059669;
+}
+
 /* ── 批量面板 ──────────────────────────────────────── */
 .tl-batch-panel {
   border: 1px solid var(--border-color);
@@ -731,6 +737,12 @@
 }
 
 .tl-payload-grid {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.tl-grab-row {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
