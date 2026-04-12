@@ -38,6 +38,10 @@ export function InspectorPanel() {
 
   const animations = useEditorStore((state) => state.animations);
   const setExpandedAnimationClipId = useEditorStore((state) => state.setExpandedAnimationClipId);
+  const canvasWidth  = useEditorStore((state) => state.canvasWidth);
+  const canvasHeight = useEditorStore((state) => state.canvasHeight);
+  const duplicateObject = useEditorStore((state) => state.duplicateObject);
+  const removeSceneObject = useEditorStore((state) => state.removeSceneObject);
 
   const selectedObj =
     selectedIds.length > 0
@@ -703,6 +707,61 @@ export function InspectorPanel() {
                 </svg>
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* 对齐工具 */}
+        <div className="property-group">
+          <h4 className="group-title">对齐到画布</h4>
+          <div className="property-row" style={{ gap: 4 }}>
+            {[
+              { title: '左对齐',     calc: () => ({ x: 0 }),                                                  icon: '⫤' },
+              { title: '水平居中',   calc: () => ({ x: Math.round((canvasWidth  - (selectedObj?.width  ?? 0)) / 2) }), icon: '┼' },
+              { title: '右对齐',     calc: () => ({ x: Math.round(canvasWidth  - (selectedObj?.width  ?? 0)) }),       icon: '⫥' },
+              { title: '顶对齐',     calc: () => ({ y: 0 }),                                                  icon: '⫣' },
+              { title: '垂直居中',   calc: () => ({ y: Math.round((canvasHeight - (selectedObj?.height ?? 0)) / 2) }), icon: '╋' },
+              { title: '底对齐',     calc: () => ({ y: Math.round(canvasHeight - (selectedObj?.height ?? 0)) }),       icon: '⫢' },
+            ].map((btn) => (
+              <button
+                key={btn.title}
+                title={btn.title}
+                onClick={() => selectedObj && updateSceneObject(selectedObj.id, btn.calc())}
+                style={{
+                  flex: 1, height: 28, border: '1px solid var(--border-color)',
+                  background: 'transparent', color: 'var(--text-main)',
+                  borderRadius: 5, cursor: 'pointer', fontSize: 14,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.background = 'rgba(59,130,246,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)';   e.currentTarget.style.background = 'transparent'; }}
+              >
+                {btn.icon}
+              </button>
+            ))}
+          </div>
+          <div className="property-row" style={{ gap: 4, marginTop: 0 }}>
+            <button
+              title="复制对象 (Ctrl+D)"
+              onClick={() => selectedObj && duplicateObject(selectedObj.id)}
+              style={{
+                flex: 1, height: 26, border: '1px solid var(--border-color)',
+                background: 'transparent', color: 'var(--text-muted)',
+                borderRadius: 5, cursor: 'pointer', fontSize: 11,
+              }}
+            >
+              复制
+            </button>
+            <button
+              title="删除对象 (Delete)"
+              onClick={() => selectedObj && removeSceneObject(selectedObj.id)}
+              style={{
+                flex: 1, height: 26, border: '1px solid rgba(239,68,68,0.4)',
+                background: 'transparent', color: '#ef4444',
+                borderRadius: 5, cursor: 'pointer', fontSize: 11,
+              }}
+            >
+              删除
+            </button>
           </div>
         </div>
 

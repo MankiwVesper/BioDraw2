@@ -58,11 +58,18 @@ interface EditorState {
   future: EditorSnapshot[];
   selectedIds: string[];
   isRatioLocked: boolean;
+  canvasWidth: number;
+  canvasHeight: number;
+  canvasBgColor: string;
 
   addSceneObject: (obj: SceneObject) => void;
   updateSceneObject: (id: string, updates: Partial<SceneObject>) => void;
   removeSceneObject: (id: string) => void;
   selectObject: (id: string | null) => void;
+  selectAllObjects: () => void;
+  duplicateObject: (id: string) => void;
+  setCanvasSize: (width: number, height: number) => void;
+  setCanvasBgColor: (color: string) => void;
   moveObjectForward: (id: string) => void;
   moveObjectBackward: (id: string) => void;
   moveObjectToFront: (id: string) => void;
@@ -170,6 +177,9 @@ export const useEditorStore = create<EditorState>()(
     future: [],
     selectedIds: [],
     isRatioLocked: true,
+    canvasWidth: 1280,
+    canvasHeight: 720,
+    canvasBgColor: '#ffffff',
     expandedAnimationClipId: null,
 
     addSceneObject: (obj) =>
@@ -478,6 +488,38 @@ export const useEditorStore = create<EditorState>()(
         } else {
           state.selectedIds = [id];
         }
+      }),
+
+    selectAllObjects: () =>
+      set((state) => {
+        state.selectedIds = state.objects.map((o) => o.id);
+      }),
+
+    duplicateObject: (id) =>
+      set((state) => {
+        pushHistory(state);
+        const src = state.objects.find((o) => o.id === id);
+        if (!src) return;
+        const newObj: SceneObject = {
+          ...cloneDeep(src),
+          id: crypto.randomUUID(),
+          x: src.x + 20,
+          y: src.y + 20,
+          animationIds: [],
+        };
+        state.objects.push(newObj);
+        state.selectedIds = [newObj.id];
+      }),
+
+    setCanvasSize: (width, height) =>
+      set((state) => {
+        state.canvasWidth = Math.max(100, Math.round(width));
+        state.canvasHeight = Math.max(100, Math.round(height));
+      }),
+
+    setCanvasBgColor: (color) =>
+      set((state) => {
+        state.canvasBgColor = color;
       }),
 
     setExpandedAnimationClipId: (id) =>

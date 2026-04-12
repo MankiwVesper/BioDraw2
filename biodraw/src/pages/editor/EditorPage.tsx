@@ -4,8 +4,10 @@ import { MaterialsPanel } from '../../features/materials-panel/MaterialsPanel';
 import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
 import { InspectorPanel } from '../../features/inspector-panel/InspectorPanel';
 import { TimelinePanel } from '../../features/timeline-panel/TimelinePanel';
+import { useEditorKeyboard } from '../../hooks/useEditorKeyboard';
 
 export default function EditorPage() {
+  useEditorKeyboard();
   return (
     <div className="editor-layout">
       <ToolbarPanel />

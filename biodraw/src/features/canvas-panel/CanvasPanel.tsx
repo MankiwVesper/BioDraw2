@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useEffect, useLayoutEffect, useState } from 're
 import { Stage, Layer } from 'react-konva';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
+import { Rect } from 'react-konva';
 import { SceneObjectRenderer } from '../../render/objects/SceneObjectRenderer';
 import { AnimationPathOverlay } from '../../render/animation/AnimationPathOverlay';
 import type { SceneObject } from '../../types';
@@ -192,6 +193,9 @@ export function CanvasPanel() {
   const objects = useEditorStore(state => state.objects);
   const selectedIds = useEditorStore(state => state.selectedIds);
   const addSceneObject = useEditorStore(state => state.addSceneObject);
+  const canvasWidth    = useEditorStore((state) => state.canvasWidth);
+  const canvasHeight   = useEditorStore((state) => state.canvasHeight);
+  const canvasBgColor  = useEditorStore((state) => state.canvasBgColor);
   const selectObject = useEditorStore(state => state.selectObject);
   const removeSceneObject = useEditorStore(state => state.removeSceneObject);
   const updateSceneObject = useEditorStore(state => state.updateSceneObject);
@@ -805,6 +809,17 @@ export function CanvasPanel() {
             style={{ cursor: isPanMode ? 'grab' : 'default' }}
           >
             <Layer>
+              {/* 画布背景与边界 */}
+              <Rect
+                x={0} y={0}
+                width={canvasWidth} height={canvasHeight}
+                fill={canvasBgColor}
+                shadowColor="rgba(0,0,0,0.18)"
+                shadowBlur={24 / stageScale}
+                shadowOffsetX={0}
+                shadowOffsetY={4 / stageScale}
+                listening={false}
+              />
               {previewObjects.map((obj) => (
                 <SceneObjectRenderer
                   key={obj.id}

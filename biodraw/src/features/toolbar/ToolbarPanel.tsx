@@ -17,6 +17,11 @@ export function ToolbarPanel() {
   const videoExportMessage    = useEditorStore((s) => s.videoExportMessage);
   const past   = useEditorStore((s) => s.past);
   const future = useEditorStore((s) => s.future);
+  const canvasWidth    = useEditorStore((s) => s.canvasWidth);
+  const canvasHeight   = useEditorStore((s) => s.canvasHeight);
+  const canvasBgColor  = useEditorStore((s) => s.canvasBgColor);
+  const setCanvasSize  = useEditorStore((s) => s.setCanvasSize);
+  const setCanvasBgColor = useEditorStore((s) => s.setCanvasBgColor);
 
   const play      = useEditorStore((s) => s.play);
   const pause     = useEditorStore((s) => s.pause);
@@ -33,6 +38,12 @@ export function ToolbarPanel() {
   const requestVideoExport    = useEditorStore((s) => s.requestVideoExport);
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
+
+  // 画布设置面板状态
+  const [showCanvasPanel, setShowCanvasPanel] = useState(false);
+  const [localCanvasW, setLocalCanvasW] = useState(canvasWidth);
+  const [localCanvasH, setLocalCanvasH] = useState(canvasHeight);
+  const canvasPanelRef = useRef<HTMLDivElement>(null);
 
   // 导出面板状态
   const [showExportPanel, setShowExportPanel] = useState(false);
@@ -54,6 +65,18 @@ export function ToolbarPanel() {
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
   }, [playbackStatus, advancePlayback]);
+
+  // 点击外部关闭画布设置面板
+  useEffect(() => {
+    if (!showCanvasPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (canvasPanelRef.current && !canvasPanelRef.current.contains(e.target as Node)) {
+        setShowCanvasPanel(false);
+      }
+    };
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [showCanvasPanel]);
 
   // 点击外部关闭导出面板
   useEffect(() => {
@@ -203,8 +226,72 @@ export function ToolbarPanel() {
         )}
       </div>
 
-      {/* ── 右区：导出 + 状态 */}
+      {/* ── 右区：画布设置 + 导出 + 状态 */}
       <div className="tb-right">
+        {/* 画布设置按钮 + 面板 */}
+        <div className="tb-export-wrap" ref={canvasPanelRef}>
+          <button
+            className={`tb-export-btn${showCanvasPanel ? ' is-open' : ''}`}
+            onClick={() => {
+              setLocalCanvasW(canvasWidth);
+              setLocalCanvasH(canvasHeight);
+              setShowCanvasPanel((p) => !p);
+            }}
+          >
+            画布 ▾
+          </button>
+          {showCanvasPanel && (
+            <div className="tb-export-panel" style={{ width: 220 }}>
+              <div className="tb-export-title">画布设置</div>
+              <div className="tb-export-fields">
+                <label className="tb-export-label">
+                  宽度 (px)
+                  <input
+                    type="number" min={100}
+                    value={localCanvasW}
+                    onChange={(e) => setLocalCanvasW(parseInt(e.target.value || '1280', 10))}
+                    onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
+                    onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
+                  />
+                </label>
+                <label className="tb-export-label">
+                  高度 (px)
+                  <input
+                    type="number" min={100}
+                    value={localCanvasH}
+                    onChange={(e) => setLocalCanvasH(parseInt(e.target.value || '720', 10))}
+                    onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
+                    onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
+                  />
+                </label>
+              </div>
+              <label className="tb-export-label" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                背景颜色
+                <input
+                  type="color"
+                  value={canvasBgColor}
+                  onChange={(e) => setCanvasBgColor(e.target.value)}
+                  style={{ width: 32, height: 24, padding: 0, border: '1px solid var(--border-color)', borderRadius: 4, cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{canvasBgColor}</span>
+              </label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {['#ffffff', '#f8fafc', '#0f172a', '#1e3a5f', '#f0fdf4'].map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setCanvasBgColor(c)}
+                    title={c}
+                    style={{
+                      width: 20, height: 20, borderRadius: 4, cursor: 'pointer',
+                      background: c, border: canvasBgColor === c ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
         {exportStatusText && (
           <span className={`tb-status${isExportError ? ' is-error' : ''}`}>
             {exportStatusText}
