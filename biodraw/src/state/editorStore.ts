@@ -92,6 +92,10 @@ interface EditorState {
 
   undo: () => void;
   redo: () => void;
+
+  expandedAnimationClipId: string | null;
+  setExpandedAnimationClipId: (id: string | null) => void;
+  patchAnimationClipSilent: (id: string, updates: Partial<AnimationClip>) => void;
 }
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -166,6 +170,7 @@ export const useEditorStore = create<EditorState>()(
     future: [],
     selectedIds: [],
     isRatioLocked: true,
+    expandedAnimationClipId: null,
 
     addSceneObject: (obj) =>
       set((state) => {
@@ -472,6 +477,19 @@ export const useEditorStore = create<EditorState>()(
           state.selectedIds = [];
         } else {
           state.selectedIds = [id];
+        }
+      }),
+
+    setExpandedAnimationClipId: (id) =>
+      set((state) => {
+        state.expandedAnimationClipId = id;
+      }),
+
+    patchAnimationClipSilent: (id, updates) =>
+      set((state) => {
+        const idx = state.animations.findIndex((a) => a.id === id);
+        if (idx !== -1) {
+          state.animations[idx] = { ...state.animations[idx], ...updates } as AnimationClip;
         }
       }),
 

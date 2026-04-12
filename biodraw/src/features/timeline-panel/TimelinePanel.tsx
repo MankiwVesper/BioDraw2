@@ -163,6 +163,7 @@ export function TimelinePanel() {
   const addAnimationClip = useEditorStore((s) => s.addAnimationClip);
   const updateAnimationClip = useEditorStore((s) => s.updateAnimationClip);
   const removeAnimationClip = useEditorStore((s) => s.removeAnimationClip);
+  const setExpandedAnimationClipId = useEditorStore((s) => s.setExpandedAnimationClipId);
 
   // ── 派生状态
   const selectedObject = useMemo(
@@ -704,6 +705,20 @@ export function TimelinePanel() {
 
   // 切换展开片段时重置高级缓动面板
   useEffect(() => { setShowAdvancedEasing(false); }, [expandedClipId]);
+
+  // 同步当前展开的 move/moveAlongPath 片段到 store，供画布路径叠加层使用
+  useEffect(() => {
+    if (!expandedClipId) {
+      setExpandedAnimationClipId(null);
+      return;
+    }
+    const clip = animations.find((a) => a.id === expandedClipId);
+    if (clip?.type === 'move' || clip?.type === 'moveAlongPath') {
+      setExpandedAnimationClipId(expandedClipId);
+    } else {
+      setExpandedAnimationClipId(null);
+    }
+  }, [expandedClipId, animations, setExpandedAnimationClipId]);
 
   const cursorPercent = `${Math.max(0, Math.min(100, (currentTimeMs / Math.max(1, globalDurationMs)) * 100))}%`;
   const cursorTimeLabel = `${(currentTimeMs / 1000).toFixed(2)}s`;

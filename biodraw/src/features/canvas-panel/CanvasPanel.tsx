@@ -3,6 +3,7 @@ import { Stage, Layer } from 'react-konva';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { SceneObjectRenderer } from '../../render/objects/SceneObjectRenderer';
+import { AnimationPathOverlay } from '../../render/animation/AnimationPathOverlay';
 import type { SceneObject } from '../../types';
 import type Konva from 'konva';
 import './CanvasPanel.css';
@@ -805,8 +806,8 @@ export function CanvasPanel() {
           >
             <Layer>
               {previewObjects.map((obj) => (
-                <SceneObjectRenderer 
-                  key={obj.id} 
+                <SceneObjectRenderer
+                  key={obj.id}
                   sceneObject={obj}
                   isSelected={!isAnyExportRunning && selectedIds.includes(obj.id)}
                   onSelect={() => selectObject(obj.id)}
@@ -815,6 +816,12 @@ export function CanvasPanel() {
                 />
               ))}
             </Layer>
+            {/* 动画路径叠加层：仅在非导出状态下显示 */}
+            {!isAnyExportRunning && (
+              <Layer listening={!interactionLocked}>
+                <AnimationPathOverlay stageScale={stageScale} />
+              </Layer>
+            )}
           </Stage>
         ) : (
           <div className="canvas-placeholder">鐢诲竷鍒濆鍖栦腑...</div>
