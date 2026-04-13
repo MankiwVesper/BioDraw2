@@ -744,13 +744,17 @@ export function CanvasPanel() {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) return;
       const ctrl = e.ctrlKey || e.metaKey;
-      if (!ctrl || e.code !== 'Digit0') return;
-      e.preventDefault();
-      if (e.shiftKey) {
-        fitCanvas();
-      } else {
+      // Ctrl+0 / Ctrl+Numpad0 → 100%（e.code 不受 Shift 影响）
+      if (ctrl && !e.shiftKey && (e.code === 'Digit0' || e.code === 'Numpad0')) {
+        e.preventDefault();
         setStageScale(1);
         setStagePos({ x: 0, y: 0 });
+        return;
+      }
+      // Ctrl+Shift+F → 适应画布（避开 Windows IME 对 Ctrl+Shift+数字 的拦截）
+      if (ctrl && e.shiftKey && e.code === 'KeyF') {
+        e.preventDefault();
+        fitCanvas();
       }
     };
     window.addEventListener('keydown', handler);
@@ -1213,7 +1217,7 @@ export function CanvasPanel() {
           </button>
           <button
             onClick={fitCanvas}
-            title="适应画布 (Ctrl+Shift+0)"
+            title="适应画布 (Ctrl+Shift+F)"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '11px', padding: '0 4px' }}
           >
             适配
