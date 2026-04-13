@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useEditorStore } from "../../state/editorStore";
 import "./InspectorPanel.css";
 

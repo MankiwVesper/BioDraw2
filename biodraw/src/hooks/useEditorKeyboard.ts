@@ -6,25 +6,28 @@ import type { SceneObject } from '../types';
 let clipboard: SceneObject | null = null;
 
 export function useEditorKeyboard() {
-  const selectedIds        = useEditorStore((s) => s.selectedIds);
-  const objects            = useEditorStore((s) => s.objects);
-  const playbackStatus     = useEditorStore((s) => s.playbackStatus);
-  const removeSceneObjects = useEditorStore((s) => s.removeSceneObjects);
-  const addSceneObject     = useEditorStore((s) => s.addSceneObject);
-  const selectObject       = useEditorStore((s) => s.selectObject);
-  const selectAllObjects   = useEditorStore((s) => s.selectAllObjects);
-  const duplicateObject    = useEditorStore((s) => s.duplicateObject);
-  const undo               = useEditorStore((s) => s.undo);
-  const redo               = useEditorStore((s) => s.redo);
+  const selectedIds              = useEditorStore((s) => s.selectedIds);
+  const objects                  = useEditorStore((s) => s.objects);
+  const playbackStatus           = useEditorStore((s) => s.playbackStatus);
+  const removeSceneObjects       = useEditorStore((s) => s.removeSceneObjects);
+  const addSceneObject           = useEditorStore((s) => s.addSceneObject);
+  const selectObject             = useEditorStore((s) => s.selectObject);
+  const selectAllObjects         = useEditorStore((s) => s.selectAllObjects);
+  const duplicateObject          = useEditorStore((s) => s.duplicateObject);
+  const moveMultipleSceneObjects = useEditorStore((s) => s.moveMultipleSceneObjects);
+  const undo                     = useEditorStore((s) => s.undo);
+  const redo                     = useEditorStore((s) => s.redo);
 
   // Refs 避免 stale closure
-  const selectedIdsRef     = useRef(selectedIds);
-  const objectsRef         = useRef(objects);
-  const playbackRef        = useRef(playbackStatus);
+  const selectedIdsRef              = useRef(selectedIds);
+  const objectsRef                  = useRef(objects);
+  const playbackRef                 = useRef(playbackStatus);
+  const moveMultipleSceneObjectsRef = useRef(moveMultipleSceneObjects);
 
   useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useEffect(() => { objectsRef.current = objects; }, [objects]);
   useEffect(() => { playbackRef.current = playbackStatus; }, [playbackStatus]);
+  useEffect(() => { moveMultipleSceneObjectsRef.current = moveMultipleSceneObjects; }, [moveMultipleSceneObjects]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -107,6 +110,6 @@ export function useEditorKeyboard() {
     return () => window.removeEventListener('keydown', handler);
   }, [
     removeSceneObjects, addSceneObject, selectObject,
-    selectAllObjects, duplicateObject, undo, redo,
+    selectAllObjects, duplicateObject, moveMultipleSceneObjects, undo, redo,
   ]);
 }

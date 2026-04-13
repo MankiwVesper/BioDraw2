@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useEffect, useLayoutEffect, useState } from 'react';
-import { Stage, Layer } from 'react-konva';
+import React, { useMemo, useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
+import { Stage, Layer, Line } from 'react-konva';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { Rect } from 'react-konva';
@@ -8,6 +8,8 @@ import { AnimationPathOverlay } from '../../render/animation/AnimationPathOverla
 import type { SceneObject } from '../../types';
 import type Konva from 'konva';
 import './CanvasPanel.css';
+
+type SnapLine = { axis: 'x' | 'y'; value: number };
 
 const TEXT_LINE_HEIGHT = 1.2;
 
@@ -197,8 +199,10 @@ export function CanvasPanel() {
   const canvasHeight   = useEditorStore((state) => state.canvasHeight);
   const canvasBgColor  = useEditorStore((state) => state.canvasBgColor);
   const selectObject = useEditorStore(state => state.selectObject);
+  const toggleSelectObject = useEditorStore(state => state.toggleSelectObject);
   const removeSceneObject = useEditorStore(state => state.removeSceneObject);
   const updateSceneObject = useEditorStore(state => state.updateSceneObject);
+  const moveMultipleSceneObjects = useEditorStore(state => state.moveMultipleSceneObjects);
   const undo = useEditorStore(state => state.undo);
   const redo = useEditorStore(state => state.redo);
   const past = useEditorStore(state => state.past);
@@ -220,6 +224,25 @@ export function CanvasPanel() {
   const setVideoExportStatus = useEditorStore(state => state.setVideoExportStatus);
   const lastHandledExportRequestRef = useRef(0);
   const lastHandledVideoExportRequestRef = useRef(0);
+  // ── Group drag state
+  const groupDragIdRef = useRef<string | null>(null);
+  const groupDragStartsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const groupDragOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
+  const [groupDragOffset, setGroupDragOffset] = useState<{ dx: number; dy: number } | null>(null);
+  // ── Snap lines
+  const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
+  const stageScaleRef = useRef(stageScale);
+  const objectsSnapRef = useRef(objects);
+  const selectedIdsSnapRef = useRef(selectedIds);
+  const canvasWidthRef = useRef(canvasWidth);
+  const canvasHeightRef = useRef(canvasHeight);
+
+  // Keep refs in sync for snap / group-drag callbacks
+  useEffect(() => { stageScaleRef.current = stageScale; }, [stageScale]);
+  useEffect(() => { objectsSnapRef.current = objects; }, [objects]);
+  useEffect(() => { selectedIdsSnapRef.current = selectedIds; }, [selectedIds]);
+  useEffect(() => { canvasWidthRef.current = canvasWidth; }, [canvasWidth]);
+  useEffect(() => { canvasHeightRef.current = canvasHeight; }, [canvasHeight]);
 
   const previewObjects = useMemo(() => {
     if (currentTimeMs <= 0) return objects;
@@ -285,32 +308,51 @@ export function CanvasPanel() {
         return;
       }
 
+      // Ctrl+0 → 100%; Ctrl+Shift+0 → fit canvas
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key === '0' && !e.shiftKey) {
+        e.preventDefault();
+        setStageScale(1);
+        setStagePos({ x: 0, y: 0 });
+        return;
+      }
+      if (ctrl && e.key === '0' && e.shiftKey) {
+        e.preventDefault();
+        fitCanvas();
+        return;
+      }
+
       if (selectedIds.length === 0) return;
-      const selectedId = selectedIds[0];
-      const selectedObj = objects.find(o => o.id === selectedId);
-      if (!selectedObj) return;
+
+      const step = e.shiftKey ? 10 : 1;
+      let dx = 0, dy = 0;
+      if (e.key === 'ArrowUp') { e.preventDefault(); dy = -step; }
+      else if (e.key === 'ArrowDown') { e.preventDefault(); dy = step; }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); dx = -step; }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); dx = step; }
+
+      if (dx !== 0 || dy !== 0) {
+        const moves = selectedIds
+          .map((sid) => objects.find((o) => o.id === sid))
+          .filter(Boolean)
+          .map((obj) => ({ id: obj!.id, x: obj!.x + dx, y: obj!.y + dy }));
+        if (moves.length === 1) {
+          updateSceneObject(moves[0].id, { x: moves[0].x, y: moves[0].y });
+        } else if (moves.length > 1) {
+          moveMultipleSceneObjects(moves);
+        }
+        return;
+      }
 
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
-        removeSceneObject(selectedId);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        updateSceneObject(selectedId, { y: selectedObj.y - 1 });
-      } else if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        updateSceneObject(selectedId, { y: selectedObj.y + 1 });
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        updateSceneObject(selectedId, { x: selectedObj.x - 1 });
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        updateSceneObject(selectedId, { x: selectedObj.x + 1 });
+        removeSceneObject(selectedIds[0]);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, objects, removeSceneObject, updateSceneObject, undo, redo]);
+  }, [selectedIds, objects, removeSceneObject, updateSceneObject, moveMultipleSceneObjects, undo, redo]);
   // Space key toggles temporary pan mode.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -695,6 +737,131 @@ export function CanvasPanel() {
     }
   };
 
+
+  // ── Fit canvas to viewport ─────────────────────────────────
+  const fitCanvas = useCallback(() => {
+    if (dimensions.width <= 0 || dimensions.height <= 0) return;
+    const padding = 40;
+    const scaleX = (dimensions.width - padding * 2) / canvasWidth;
+    const scaleY = (dimensions.height - padding * 2) / canvasHeight;
+    const newScale = Math.min(scaleX, scaleY, 10);
+    setStageScale(newScale);
+    setStagePos({
+      x: (dimensions.width - canvasWidth * newScale) / 2,
+      y: (dimensions.height - canvasHeight * newScale) / 2,
+    });
+  }, [dimensions, canvasWidth, canvasHeight]);
+
+  // ── Group drag handlers ─────────────────────────────────────
+  const handleObjectDragStart = useCallback((id: string) => {
+    const ids = selectedIdsSnapRef.current;
+    if (ids.length < 2 || !ids.includes(id)) return;
+    groupDragIdRef.current = id;
+    const starts = new Map<string, { x: number; y: number }>();
+    for (const sid of ids) {
+      const obj = objectsSnapRef.current.find((o) => o.id === sid);
+      if (obj) starts.set(sid, { x: obj.x, y: obj.y });
+    }
+    groupDragStartsRef.current = starts;
+    setGroupDragOffset({ dx: 0, dy: 0 });
+  }, []);
+
+  const handleObjectDragMove = useCallback((
+    id: string, cx: number, cy: number, w: number, h: number,
+  ): { x: number; y: number } | null => {
+    const scale = stageScaleRef.current;
+    const THRESHOLD = 8 / scale;
+    const allObjs = objectsSnapRef.current;
+    const selIds = selectedIdsSnapRef.current;
+    const cvW = canvasWidthRef.current;
+    const cvH = canvasHeightRef.current;
+
+    // Guide positions (canvas coords)
+    const guideXs: number[] = [0, cvW / 2, cvW];
+    const guideYs: number[] = [0, cvH / 2, cvH];
+    for (const obj of allObjs) {
+      if (selIds.includes(obj.id)) continue;
+      const ox = obj.x, ow = obj.width * (obj.scaleX ?? 1);
+      const oy = obj.y, oh = obj.height * (obj.scaleY ?? 1);
+      guideXs.push(ox, ox + ow / 2, ox + ow);
+      guideYs.push(oy, oy + oh / 2, oy + oh);
+    }
+
+    // Snap points on the dragged object
+    const checkXs = [cx, cx + w / 2, cx + w];
+    const checkYs = [cy, cy + h / 2, cy + h];
+
+    let bestXDiff = THRESHOLD + 1, bestXGuide = 0, bestXSnap = cx;
+    for (let i = 0; i < checkXs.length; i++) {
+      for (const gx of guideXs) {
+        const d = Math.abs(checkXs[i] - gx);
+        if (d < bestXDiff) {
+          bestXDiff = d;
+          bestXGuide = gx;
+          bestXSnap = cx + (gx - checkXs[i]);
+        }
+      }
+    }
+
+    let bestYDiff = THRESHOLD + 1, bestYGuide = 0, bestYSnap = cy;
+    for (let i = 0; i < checkYs.length; i++) {
+      for (const gy of guideYs) {
+        const d = Math.abs(checkYs[i] - gy);
+        if (d < bestYDiff) {
+          bestYDiff = d;
+          bestYGuide = gy;
+          bestYSnap = cy + (gy - checkYs[i]);
+        }
+      }
+    }
+
+    const newSnapLines: SnapLine[] = [];
+    const snappedX = bestXDiff <= THRESHOLD ? bestXSnap : cx;
+    const snappedY = bestYDiff <= THRESHOLD ? bestYSnap : cy;
+    if (bestXDiff <= THRESHOLD) newSnapLines.push({ axis: 'x', value: bestXGuide });
+    if (bestYDiff <= THRESHOLD) newSnapLines.push({ axis: 'y', value: bestYGuide });
+    setSnapLines(newSnapLines);
+
+    // Update group follower offsets
+    const draggingId = groupDragIdRef.current;
+    if (draggingId === id && groupDragStartsRef.current.size > 1) {
+      const start = groupDragStartsRef.current.get(id);
+      if (start) {
+        const dx = snappedX - start.x;
+        const dy = snappedY - start.y;
+        groupDragOffsetRef.current = { dx, dy };
+        setGroupDragOffset({ dx, dy });
+      }
+    }
+
+    return (bestXDiff <= THRESHOLD || bestYDiff <= THRESHOLD)
+      ? { x: snappedX, y: snappedY }
+      : null;
+  }, []);
+
+  const handleObjectDragStop = useCallback(() => {
+    setSnapLines([]);
+    const draggingId = groupDragIdRef.current;
+    if (!draggingId || groupDragStartsRef.current.size < 2) {
+      groupDragIdRef.current = null;
+      setGroupDragOffset(null);
+      return;
+    }
+    const offset = groupDragOffsetRef.current;
+    groupDragIdRef.current = null;
+    groupDragOffsetRef.current = null;
+    setGroupDragOffset(null);
+    if (!offset || (offset.dx === 0 && offset.dy === 0)) {
+      groupDragStartsRef.current = new Map();
+      return;
+    }
+    const moves = Array.from(groupDragStartsRef.current.entries())
+      .filter(([sid]) => sid !== draggingId)
+      .map(([sid, start]) => ({ id: sid, x: start.x + offset.dx, y: start.y + offset.dy }));
+    groupDragStartsRef.current = new Map();
+    if (moves.length > 0) moveMultipleSceneObjects(moves);
+  }, [moveMultipleSceneObjects]);
+
   const checkDeselect = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     // When editing, clicking elsewhere should commit the edit first.
     if (editingTextId) {
@@ -816,17 +983,58 @@ export function CanvasPanel() {
                 shadowOffsetY={4 / stageScale}
                 listening={false}
               />
-              {previewObjects.map((obj) => (
-                <SceneObjectRenderer
-                  key={obj.id}
-                  sceneObject={obj}
-                  isSelected={!isAnyExportRunning && selectedIds.includes(obj.id)}
-                  onSelect={() => selectObject(obj.id)}
-                  onEditStart={handleEditStart}
-                  isEditing={editingTextId === obj.id}
-                />
-              ))}
+              {previewObjects.map((obj) => {
+                const isSelected = !isAnyExportRunning && selectedIds.includes(obj.id);
+                const isFollower = groupDragOffset !== null &&
+                  groupDragIdRef.current !== null &&
+                  groupDragIdRef.current !== obj.id &&
+                  selectedIds.includes(obj.id);
+                return (
+                  <SceneObjectRenderer
+                    key={obj.id}
+                    sceneObject={obj}
+                    isSelected={isSelected}
+                    onSelect={(shiftKey) => {
+                      if (shiftKey) toggleSelectObject(obj.id);
+                      else selectObject(obj.id);
+                    }}
+                    onEditStart={handleEditStart}
+                    isEditing={editingTextId === obj.id}
+                    xOverride={isFollower ? obj.x + (groupDragOffset?.dx ?? 0) : undefined}
+                    yOverride={isFollower ? obj.y + (groupDragOffset?.dy ?? 0) : undefined}
+                    onDragStart={handleObjectDragStart}
+                    onDragMove={handleObjectDragMove}
+                    onDragStop={handleObjectDragStop}
+                  />
+                );
+              })}
             </Layer>
+            {/* 参考线层 */}
+            {snapLines.length > 0 && (
+              <Layer listening={false}>
+                {snapLines.map((line, i) =>
+                  line.axis === 'x' ? (
+                    <Line
+                      key={i}
+                      points={[line.value, -5000 / stageScale, line.value, 5000 / stageScale]}
+                      stroke="#ef4444"
+                      strokeWidth={1 / stageScale}
+                      dash={[4 / stageScale, 4 / stageScale]}
+                      listening={false}
+                    />
+                  ) : (
+                    <Line
+                      key={i}
+                      points={[-5000 / stageScale, line.value, 5000 / stageScale, line.value]}
+                      stroke="#ef4444"
+                      strokeWidth={1 / stageScale}
+                      dash={[4 / stageScale, 4 / stageScale]}
+                      listening={false}
+                    />
+                  ),
+                )}
+              </Layer>
+            )}
             {/* 动画路径叠加层：仅在非导出状态下显示 */}
             {!isAnyExportRunning && (
               <Layer listening={!interactionLocked}>
@@ -993,10 +1201,17 @@ export function CanvasPanel() {
           >-</button>
           <button
             onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }}
-            title="閲嶇疆鍒?100%"
+            title="重置到 100% (Ctrl+0)"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '12px', minWidth: '44px', textAlign: 'center', padding: '0 4px' }}
           >
             {Math.round(stageScale * 100)}%
+          </button>
+          <button
+            onClick={fitCanvas}
+            title="适应画布 (Ctrl+Shift+0)"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '11px', padding: '0 4px' }}
+          >
+            适配
           </button>
           <button
             onClick={() => {

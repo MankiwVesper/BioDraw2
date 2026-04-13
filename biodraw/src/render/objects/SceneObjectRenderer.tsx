@@ -8,9 +8,18 @@ import type Konva from 'konva';
 interface Props {
   sceneObject: SceneObject;
   isSelected: boolean;
-  onSelect: () => void;
+  onSelect: (shiftKey?: boolean) => void;
   onEditStart?: (id: string, rect: { x: number, y: number, width: number, height: number }, target?: 'text' | 'name') => void;
   isEditing?: boolean;
+  /** Visual-only position override while group-dragging (followers) */
+  xOverride?: number;
+  yOverride?: number;
+  /** Called when drag starts on this object */
+  onDragStart?: (id: string) => void;
+  /** Called on each dragmove; return the snapped {x,y} in canvas coords */
+  onDragMove?: (id: string, x: number, y: number, w: number, h: number) => { x: number; y: number } | null;
+  /** Clears snap lines when drag ends */
+  onDragStop?: () => void;
 }
 
 const DEFAULT_CURVE_POINTS = [0, 50, 50, 0, 100, 50];
@@ -31,7 +40,7 @@ const toVerticalText = (value: string) =>
     .map((line) => line.split('').join('\n'))
     .join('\n\n');
 
-export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditStart, isEditing }: Props) {
+export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditStart, isEditing, xOverride, yOverride, onDragStart, onDragMove, onDragStop }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
   const materialNameRef = useRef<Konva.Text>(null);
@@ -67,11 +76,27 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
   // 画板内随意拖拽结束回调
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
     if (e.target !== e.currentTarget) return;
-
+    onDragStop?.();
     updateSceneObject(sceneObject.id, {
       x: e.target.x(),
       y: e.target.y(),
     });
+  };
+
+  const handleDragStartEvt = (e: Konva.KonvaEventObject<DragEvent>) => {
+    if (e.target !== e.currentTarget) return;
+    onDragStart?.(sceneObject.id);
+  };
+
+  const handleDragMoveEvt = (e: Konva.KonvaEventObject<DragEvent>) => {
+    if (e.target !== e.currentTarget) return;
+    if (!onDragMove) return;
+    const node = e.target;
+    const result = onDragMove(sceneObject.id, node.x(), node.y(), sceneObject.width * (sceneObject.scaleX ?? 1), sceneObject.height * (sceneObject.scaleY ?? 1));
+    if (result) {
+      node.x(result.x);
+      node.y(result.y);
+    }
   };
 
   // 画板内缩放、旋转结束回调
@@ -89,16 +114,18 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
   };
 
   const commonProps = {
-    x: sceneObject.x,
-    y: sceneObject.y,
+    x: xOverride ?? sceneObject.x,
+    y: yOverride ?? sceneObject.y,
     rotation: sceneObject.rotation,
     scaleX: sceneObject.scaleX,
     scaleY: sceneObject.scaleY,
     draggable: true,
+    onDragStart: handleDragStartEvt,
+    onDragMove: handleDragMoveEvt,
     onDragEnd: handleDragEnd,
     onTransformEnd: handleTransformEnd,
-    onClick: onSelect,
-    onTap: onSelect,
+    onClick: (e: Konva.KonvaEventObject<MouseEvent>) => onSelect(e.evt.shiftKey),
+    onTap: (e: Konva.KonvaEventObject<TouchEvent>) => onSelect((e.evt as TouchEvent & { shiftKey?: boolean }).shiftKey),
     opacity: sceneObject.opacity,
   };
 

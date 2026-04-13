@@ -76,8 +76,10 @@ interface EditorState {
   removeSceneObject: (id: string) => void;
   removeSceneObjects: (ids: string[]) => void;
   selectObject: (id: string | null) => void;
+  toggleSelectObject: (id: string) => void;
   selectAllObjects: () => void;
   duplicateObject: (id: string) => void;
+  moveMultipleSceneObjects: (moves: Array<{ id: string; x: number; y: number }>) => void;
   setCanvasSize: (width: number, height: number) => void;
   setCanvasBgColor: (color: string) => void;
   moveObjectForward: (id: string) => void;
@@ -89,6 +91,7 @@ interface EditorState {
   addAnimationClip: (clip: AnimationClip) => void;
   updateAnimationClip: (id: string, updates: Partial<AnimationClip>) => void;
   removeAnimationClip: (id: string) => void;
+  copyAnimationClipsToObjects: (sourceObjectId: string, targetObjectIds: string[]) => void;
   setGlobalDurationMs: (durationMs: number) => void;
   setCurrentTimeMs: (timeMs: number) => void;
   play: () => void;
@@ -323,6 +326,29 @@ export const useEditorStore = create<EditorState>()(
         state.animations = state.animations.filter((a) => a.id !== id);
       }),
 
+    copyAnimationClipsToObjects: (sourceObjectId, targetObjectIds) =>
+      set((state) => {
+        if (targetObjectIds.length === 0) return;
+        const sourceClips = state.animations.filter((a) => a.objectId === sourceObjectId);
+        if (sourceClips.length === 0) return;
+        pushHistory(state);
+        for (const targetId of targetObjectIds) {
+          const targetObj = state.objects.find((o) => o.id === targetId);
+          if (!targetObj) continue;
+          for (const clip of sourceClips) {
+            const newClip: AnimationClip = {
+              ...cloneDeep(clip),
+              id: crypto.randomUUID(),
+              objectId: targetId,
+            };
+            state.animations.push(newClip);
+            targetObj.animationIds = Array.from(
+              new Set([...(targetObj.animationIds || []), newClip.id]),
+            );
+          }
+        }
+      }),
+
     setGlobalDurationMs: (durationMs) =>
       set((state) => {
         pushHistory(state);
@@ -519,9 +545,31 @@ export const useEditorStore = create<EditorState>()(
         }
       }),
 
+    toggleSelectObject: (id) =>
+      set((state) => {
+        const idx = state.selectedIds.indexOf(id);
+        if (idx === -1) {
+          state.selectedIds.push(id);
+        } else {
+          state.selectedIds.splice(idx, 1);
+        }
+      }),
+
     selectAllObjects: () =>
       set((state) => {
         state.selectedIds = state.objects.map((o) => o.id);
+      }),
+
+    moveMultipleSceneObjects: (moves) =>
+      set((state) => {
+        if (moves.length === 0) return;
+        pushHistory(state);
+        const moveMap = new Map(moves.map((m) => [m.id, m]));
+        state.objects = state.objects.map((o) => {
+          const m = moveMap.get(o.id);
+          if (!m) return o;
+          return { ...o, x: m.x, y: m.y };
+        });
       }),
 
     duplicateObject: (id) =>

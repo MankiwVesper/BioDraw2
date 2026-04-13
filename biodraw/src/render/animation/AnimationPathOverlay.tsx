@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Group, Circle, Arrow, Line, RegularPolygon, Text } from 'react-konva';
 import { useEditorStore } from '../../state/editorStore';
 import type Konva from 'konva';

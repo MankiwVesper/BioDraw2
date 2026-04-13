@@ -148,7 +148,10 @@ export function TimelinePanel() {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showBatchPanel, setShowBatchPanel] = useState(false);
   const [showAdvancedEasing, setShowAdvancedEasing] = useState(false);
+  const [showCopyDialog, setShowCopyDialog] = useState(false);
+  const [copyTargetIds, setCopyTargetIds] = useState<string[]>([]);
   const addMenuRef = useRef<HTMLDivElement>(null);
+  const copyDialogRef = useRef<HTMLDivElement>(null);
 
   // ── Store 订阅
   const objects = useEditorStore((s) => s.objects);
@@ -164,6 +167,7 @@ export function TimelinePanel() {
   const updateAnimationClip = useEditorStore((s) => s.updateAnimationClip);
   const removeAnimationClip = useEditorStore((s) => s.removeAnimationClip);
   const setExpandedAnimationClipId = useEditorStore((s) => s.setExpandedAnimationClipId);
+  const copyAnimationClipsToObjects = useEditorStore((s) => s.copyAnimationClipsToObjects);
 
   // ── 派生状态
   const selectedObject = useMemo(
@@ -725,6 +729,19 @@ export function TimelinePanel() {
     return () => window.removeEventListener('mousedown', handler);
   }, [showAddMenu]);
 
+  // 关闭复制动画对话框（点击外部）
+  useEffect(() => {
+    if (!showCopyDialog) return;
+    const handler = (e: MouseEvent) => {
+      if (copyDialogRef.current && !copyDialogRef.current.contains(e.target as Node)) {
+        setShowCopyDialog(false);
+        setCopyTargetIds([]);
+      }
+    };
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [showCopyDialog]);
+
   // 切换展开片段时重置高级缓动面板
   useEffect(() => { setShowAdvancedEasing(false); }, [expandedClipId]);
 
@@ -833,6 +850,73 @@ export function TimelinePanel() {
                 >
                   批量
                 </button>
+              )}
+
+              {/* 复制动画到其他对象 */}
+              {selectedObjectClips.length > 0 && objects.length > 1 && (
+                <div style={{ position: 'relative' }} ref={copyDialogRef}>
+                  <button
+                    className={`tl-btn${showCopyDialog ? ' is-active' : ''}`}
+                    title="将当前对象的所有动画片段复制到其他对象"
+                    onClick={() => {
+                      setCopyTargetIds([]);
+                      setShowCopyDialog((p) => !p);
+                    }}
+                  >
+                    复制动画
+                  </button>
+                  {showCopyDialog && (
+                    <div style={{
+                      position: 'absolute', top: '100%', right: 0, zIndex: 200,
+                      background: 'var(--bg-panel)', border: '1px solid var(--border-color)',
+                      borderRadius: 8, padding: '8px', minWidth: 180,
+                      boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                    }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>
+                        选择目标对象
+                      </div>
+                      <div style={{ maxHeight: 160, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {objects
+                          .filter((o) => o.id !== selectedObject.id)
+                          .map((o) => (
+                            <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '3px 4px', borderRadius: 4, fontSize: 12 }}
+                              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
+                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={copyTargetIds.includes(o.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
+                                  else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
+                                }}
+                              />
+                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {o.name || '未命名'}
+                              </span>
+                            </label>
+                          ))}
+                      </div>
+                      <button
+                        disabled={copyTargetIds.length === 0}
+                        onClick={() => {
+                          copyAnimationClipsToObjects(selectedObject.id, copyTargetIds);
+                          setShowCopyDialog(false);
+                          setCopyTargetIds([]);
+                        }}
+                        style={{
+                          marginTop: 8, width: '100%', padding: '5px 0',
+                          background: copyTargetIds.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
+                          color: copyTargetIds.length === 0 ? 'var(--text-muted)' : '#fff',
+                          border: 'none', borderRadius: 5, cursor: copyTargetIds.length === 0 ? 'not-allowed' : 'pointer',
+                          fontSize: 12, fontWeight: 600,
+                        }}
+                      >
+                        确认复制 {copyTargetIds.length > 0 ? `(${copyTargetIds.length})` : ''}
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* 添加动画下拉 */}
