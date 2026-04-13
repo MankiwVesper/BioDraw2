@@ -118,8 +118,10 @@ interface EditorState {
   patchAnimationClipSilent: (id: string, updates: Partial<AnimationClip>) => void;
 
   hasUnsavedChanges: boolean;
-  markSaved: () => void;
+  currentFileName: string | null;
+  markSaved: (fileName?: string) => void;
   resetScene: () => void;
+  setCurrentFileName: (name: string | null) => void;
 }
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -200,6 +202,7 @@ export const useEditorStore = create<EditorState>()(
     canvasBgColor: '#ffffff',
     expandedAnimationClipId: null,
     hasUnsavedChanges: false,
+    currentFileName: null,
 
     addSceneObject: (obj) =>
       set((state) => {
@@ -621,9 +624,10 @@ export const useEditorStore = create<EditorState>()(
         state.hasUnsavedChanges = false;
       }),
 
-    markSaved: () =>
+    markSaved: (fileName?: string) =>
       set((state) => {
         state.hasUnsavedChanges = false;
+        if (fileName !== undefined) state.currentFileName = fileName;
       }),
 
     resetScene: () =>
@@ -636,6 +640,12 @@ export const useEditorStore = create<EditorState>()(
         state.past = [];
         state.future = [];
         state.hasUnsavedChanges = false;
+        state.currentFileName = null;
+      }),
+
+    setCurrentFileName: (name) =>
+      set((state) => {
+        state.currentFileName = name;
       }),
 
     setExpandedAnimationClipId: (id) =>

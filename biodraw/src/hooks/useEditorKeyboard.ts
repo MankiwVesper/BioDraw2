@@ -111,7 +111,7 @@ export function useEditorKeyboard() {
       if (ctrl && e.key === 's') {
         e.preventDefault();
         const state = useEditorStore.getState();
-        downloadDocument({
+        const fileName = downloadDocument({
           objects: state.objects,
           animations: state.animations,
           globalDurationMs: state.globalDurationMs,
@@ -119,7 +119,7 @@ export function useEditorKeyboard() {
           canvasHeight: state.canvasHeight,
           canvasBgColor: state.canvasBgColor,
         });
-        markSaved();
+        markSaved(fileName);
         return;
       }
 

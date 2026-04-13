@@ -40,6 +40,7 @@ export function ToolbarPanel() {
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
+  const currentFileName   = useEditorStore((s) => s.currentFileName);
   const markSaved   = useEditorStore((s) => s.markSaved);
   const resetScene  = useEditorStore((s) => s.resetScene);
   const loadSnapshot = useEditorStore((s) => s.loadSnapshot);
@@ -55,7 +56,7 @@ export function ToolbarPanel() {
 
   const handleSave = () => {
     const state = useEditorStore.getState();
-    downloadDocument({
+    const fileName = downloadDocument({
       objects: state.objects,
       animations: state.animations,
       globalDurationMs: state.globalDurationMs,
@@ -63,7 +64,7 @@ export function ToolbarPanel() {
       canvasHeight: state.canvasHeight,
       canvasBgColor: state.canvasBgColor,
     });
-    markSaved();
+    markSaved(fileName);
   };
 
   const handleOpenClick = () => {
@@ -76,7 +77,7 @@ export function ToolbarPanel() {
     try {
       const snapshot = await parseDocumentFile(file);
       loadSnapshot(snapshot);
-      markSaved();
+      markSaved(file.name);
     } catch (err) {
       alert(err instanceof Error ? err.message : '打开文件失败');
     } finally {
@@ -190,6 +191,20 @@ export function ToolbarPanel() {
       <div className="tb-left">
         <span className="tb-logo">BioDraw</span>
         <div className="tb-divider" />
+        {currentFileName && (
+          <span style={{
+            fontSize: 12,
+            color: 'var(--text-muted)',
+            maxWidth: 180,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            userSelect: 'none',
+          }} title={currentFileName}>
+            {currentFileName}{hasUnsavedChanges ? ' *' : ''}
+          </span>
+        )}
+        {currentFileName && <div className="tb-divider" />}
         <input
           ref={fileInputRef}
           type="file"
@@ -199,8 +214,8 @@ export function ToolbarPanel() {
         />
         <button className="tb-btn" onClick={handleNew}>新建</button>
         <button className="tb-btn" onClick={handleOpenClick}>打开</button>
-        <button className="tb-btn" onClick={handleSave}>
-          {hasUnsavedChanges ? '保存 *' : '保存'}
+        <button className="tb-btn" onClick={handleSave} title={hasUnsavedChanges ? '有未保存的修改' : '保存文档 (Ctrl+S)'}>
+          {hasUnsavedChanges && !currentFileName ? '保存 *' : '保存'}
         </button>
         <div className="tb-divider" />
         <button className="tb-btn tb-undo-btn" onClick={undo} disabled={past.length === 0} title="撤销 (Ctrl+Z)">
