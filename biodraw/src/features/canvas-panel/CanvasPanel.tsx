@@ -308,20 +308,6 @@ export function CanvasPanel() {
         return;
       }
 
-      // Ctrl+0 → 100%; Ctrl+Shift+0 → fit canvas
-      const ctrl = e.ctrlKey || e.metaKey;
-      if (ctrl && e.key === '0' && !e.shiftKey) {
-        e.preventDefault();
-        setStageScale(1);
-        setStagePos({ x: 0, y: 0 });
-        return;
-      }
-      if (ctrl && e.key === '0' && e.shiftKey) {
-        e.preventDefault();
-        fitCanvas();
-        return;
-      }
-
       if (selectedIds.length === 0) return;
 
       const step = e.shiftKey ? 10 : 1;
@@ -751,6 +737,25 @@ export function CanvasPanel() {
       y: (dimensions.height - canvasHeight * newScale) / 2,
     });
   }, [dimensions, canvasWidth, canvasHeight]);
+
+  // Ctrl+0 → 100%；Ctrl+Shift+0 → fit canvas（独立 effect 以正确依赖 fitCanvas）
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) return;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl || e.key !== '0') return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        fitCanvas();
+      } else {
+        setStageScale(1);
+        setStagePos({ x: 0, y: 0 });
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [fitCanvas]);
 
   // ── Group drag handlers ─────────────────────────────────────
   const handleObjectDragStart = useCallback((id: string) => {
