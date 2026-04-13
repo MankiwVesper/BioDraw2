@@ -744,7 +744,7 @@ export function CanvasPanel() {
       const target = e.target as HTMLElement;
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) return;
       const ctrl = e.ctrlKey || e.metaKey;
-      if (!ctrl || e.key !== '0') return;
+      if (!ctrl || e.code !== 'Digit0') return;
       e.preventDefault();
       if (e.shiftKey) {
         fitCanvas();
