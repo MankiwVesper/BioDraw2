@@ -277,6 +277,8 @@
 
 .tb-export-label input,
 .tb-export-label select {
+  width: 100%;
+  box-sizing: border-box;
   height: 26px;
   border: 1px solid var(--border-color);
   border-radius: 4px;

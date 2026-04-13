@@ -65,6 +65,7 @@ interface EditorState {
   addSceneObject: (obj: SceneObject) => void;
   updateSceneObject: (id: string, updates: Partial<SceneObject>) => void;
   removeSceneObject: (id: string) => void;
+  removeSceneObjects: (ids: string[]) => void;
   selectObject: (id: string | null) => void;
   selectAllObjects: () => void;
   duplicateObject: (id: string) => void;
@@ -199,6 +200,25 @@ export const useEditorStore = create<EditorState>()(
         );
         if (removedClipIds.size > 0) {
           state.animations = state.animations.filter((a) => a.objectId !== id);
+          state.objects = state.objects.map((o) => ({
+            ...o,
+            animationIds: (o.animationIds || []).filter((cid) => !removedClipIds.has(cid)),
+          }));
+        }
+      }),
+
+    removeSceneObjects: (ids) =>
+      set((state) => {
+        if (ids.length === 0) return;
+        pushHistory(state);
+        const idSet = new Set(ids);
+        const removedClipIds = new Set(
+          state.animations.filter((a) => idSet.has(a.objectId)).map((a) => a.id),
+        );
+        state.objects = state.objects.filter((o) => !idSet.has(o.id));
+        state.selectedIds = state.selectedIds.filter((sid) => !idSet.has(sid));
+        if (removedClipIds.size > 0) {
+          state.animations = state.animations.filter((a) => !idSet.has(a.objectId));
           state.objects = state.objects.map((o) => ({
             ...o,
             animationIds: (o.animationIds || []).filter((cid) => !removedClipIds.has(cid)),

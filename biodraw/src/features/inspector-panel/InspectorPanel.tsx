@@ -713,29 +713,127 @@ export function InspectorPanel() {
         {/* 对齐工具 */}
         <div className="property-group">
           <h4 className="group-title">对齐到画布</h4>
-          <div className="property-row" style={{ gap: 4 }}>
-            {[
-              { title: '左对齐',     calc: () => ({ x: 0 }),                                                  icon: '⫤' },
-              { title: '水平居中',   calc: () => ({ x: Math.round((canvasWidth  - (selectedObj?.width  ?? 0)) / 2) }), icon: '┼' },
-              { title: '右对齐',     calc: () => ({ x: Math.round(canvasWidth  - (selectedObj?.width  ?? 0)) }),       icon: '⫥' },
-              { title: '顶对齐',     calc: () => ({ y: 0 }),                                                  icon: '⫣' },
-              { title: '垂直居中',   calc: () => ({ y: Math.round((canvasHeight - (selectedObj?.height ?? 0)) / 2) }), icon: '╋' },
-              { title: '底对齐',     calc: () => ({ y: Math.round(canvasHeight - (selectedObj?.height ?? 0)) }),       icon: '⫢' },
-            ].map((btn) => (
+          {/* 水平对齐：左对齐 / 水平居中 / 右对齐 */}
+          <div className="property-row" style={{ gap: 4, marginBottom: 4 }}>
+            {([
+              {
+                title: '左对齐（左边缘贴画布左边）',
+                calc: () => {
+                  const hw = Math.round((selectedObj!.width * (selectedObj!.scaleX ?? 1)) / 2);
+                  return { x: hw };
+                },
+                icon: (
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor">
+                    <rect x="0" y="0" width="2" height="14" />
+                    <rect x="2" y="4" width="7" height="6" opacity="0.45" />
+                  </svg>
+                ),
+                label: '左对齐',
+              },
+              {
+                title: '水平居中（水平方向居中于画布）',
+                calc: () => ({ x: Math.round(canvasWidth / 2) }),
+                icon: (
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor">
+                    <rect x="6" y="0" width="2" height="14" opacity="0.35" />
+                    <rect x="3.5" y="4" width="7" height="6" opacity="0.45" />
+                    <rect x="6.5" y="0" width="1" height="14" />
+                  </svg>
+                ),
+                label: '水平居中',
+              },
+              {
+                title: '右对齐（右边缘贴画布右边）',
+                calc: () => {
+                  const hw = Math.round((selectedObj!.width * (selectedObj!.scaleX ?? 1)) / 2);
+                  return { x: canvasWidth - hw };
+                },
+                icon: (
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor">
+                    <rect x="12" y="0" width="2" height="14" />
+                    <rect x="5" y="4" width="7" height="6" opacity="0.45" />
+                  </svg>
+                ),
+                label: '右对齐',
+              },
+            ] as const).map((btn) => (
               <button
-                key={btn.title}
+                key={btn.label}
                 title={btn.title}
                 onClick={() => selectedObj && updateSceneObject(selectedObj.id, btn.calc())}
                 style={{
-                  flex: 1, height: 28, border: '1px solid var(--border-color)',
+                  flex: 1, height: 32, border: '1px solid var(--border-color)',
                   background: 'transparent', color: 'var(--text-main)',
-                  borderRadius: 5, cursor: 'pointer', fontSize: 14,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: 5, cursor: 'pointer', fontSize: 10,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.background = 'rgba(59,130,246,0.05)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)';   e.currentTarget.style.background = 'transparent'; }}
               >
                 {btn.icon}
+                <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{btn.label}</span>
+              </button>
+            ))}
+          </div>
+          {/* 垂直对齐：顶对齐 / 垂直居中 / 底对齐 */}
+          <div className="property-row" style={{ gap: 4 }}>
+            {([
+              {
+                title: '顶对齐（上边缘贴画布顶部）',
+                calc: () => {
+                  const hh = Math.round((selectedObj!.height * (selectedObj!.scaleY ?? 1)) / 2);
+                  return { y: hh };
+                },
+                icon: (
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor">
+                    <rect x="0" y="0" width="14" height="2" />
+                    <rect x="4" y="2" width="6" height="7" opacity="0.45" />
+                  </svg>
+                ),
+                label: '顶对齐',
+              },
+              {
+                title: '垂直居中（垂直方向居中于画布）',
+                calc: () => ({ y: Math.round(canvasHeight / 2) }),
+                icon: (
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor">
+                    <rect x="0" y="6" width="14" height="2" opacity="0.35" />
+                    <rect x="4" y="3.5" width="6" height="7" opacity="0.45" />
+                    <rect x="0" y="6.5" width="14" height="1" />
+                  </svg>
+                ),
+                label: '垂直居中',
+              },
+              {
+                title: '底对齐（下边缘贴画布底部）',
+                calc: () => {
+                  const hh = Math.round((selectedObj!.height * (selectedObj!.scaleY ?? 1)) / 2);
+                  return { y: canvasHeight - hh };
+                },
+                icon: (
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor">
+                    <rect x="0" y="12" width="14" height="2" />
+                    <rect x="4" y="5" width="6" height="7" opacity="0.45" />
+                  </svg>
+                ),
+                label: '底对齐',
+              },
+            ] as const).map((btn) => (
+              <button
+                key={btn.label}
+                title={btn.title}
+                onClick={() => selectedObj && updateSceneObject(selectedObj.id, btn.calc())}
+                style={{
+                  flex: 1, height: 32, border: '1px solid var(--border-color)',
+                  background: 'transparent', color: 'var(--text-main)',
+                  borderRadius: 5, cursor: 'pointer', fontSize: 10,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-color)'; e.currentTarget.style.background = 'rgba(59,130,246,0.05)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)';   e.currentTarget.style.background = 'transparent'; }}
+              >
+                {btn.icon}
+                <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{btn.label}</span>
               </button>
             ))}
           </div>

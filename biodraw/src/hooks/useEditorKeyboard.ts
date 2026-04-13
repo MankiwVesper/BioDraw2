@@ -9,7 +9,7 @@ export function useEditorKeyboard() {
   const selectedIds        = useEditorStore((s) => s.selectedIds);
   const objects            = useEditorStore((s) => s.objects);
   const playbackStatus     = useEditorStore((s) => s.playbackStatus);
-  const removeSceneObject  = useEditorStore((s) => s.removeSceneObject);
+  const removeSceneObjects = useEditorStore((s) => s.removeSceneObjects);
   const addSceneObject     = useEditorStore((s) => s.addSceneObject);
   const selectObject       = useEditorStore((s) => s.selectObject);
   const selectAllObjects   = useEditorStore((s) => s.selectAllObjects);
@@ -18,9 +18,9 @@ export function useEditorKeyboard() {
   const redo               = useEditorStore((s) => s.redo);
 
   // Refs 避免 stale closure
-  const selectedIdsRef  = useRef(selectedIds);
-  const objectsRef      = useRef(objects);
-  const playbackRef     = useRef(playbackStatus);
+  const selectedIdsRef     = useRef(selectedIds);
+  const objectsRef         = useRef(objects);
+  const playbackRef        = useRef(playbackStatus);
 
   useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useEffect(() => { objectsRef.current = objects; }, [objects]);
@@ -36,13 +36,14 @@ export function useEditorKeyboard() {
         target.isContentEditable
       ) return;
 
-      const selectedId = selectedIdsRef.current[0];
+      const selectedId  = selectedIdsRef.current[0];
+      const selectedAll = selectedIdsRef.current;
       const ctrl = e.ctrlKey || e.metaKey;
 
-      // Delete / Backspace：删除选中对象
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedId) {
+      // Delete / Backspace：删除所有选中对象
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedAll.length > 0) {
         e.preventDefault();
-        removeSceneObject(selectedId);
+        removeSceneObjects(selectedAll);
         return;
       }
 
@@ -66,8 +67,8 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Ctrl+Shift+Z / Ctrl+Y：重做
-      if ((ctrl && e.shiftKey && e.key === 'z') || (ctrl && e.key === 'y')) {
+      // Ctrl+Shift+Z / Ctrl+Y：重做（Shift 时 e.key 为大写 'Z'，统一 toLowerCase）
+      if ((ctrl && e.shiftKey && e.key.toLowerCase() === 'z') || (ctrl && e.key === 'y')) {
         e.preventDefault();
         redo();
         return;
@@ -105,7 +106,7 @@ export function useEditorKeyboard() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [
-    removeSceneObject, addSceneObject, selectObject,
+    removeSceneObjects, addSceneObject, selectObject,
     selectAllObjects, duplicateObject, undo, redo,
   ]);
 }
