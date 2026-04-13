@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useEditorStore } from '../state/editorStore';
+import { downloadDocument } from '../infrastructure/documentSerializer';
 import type { SceneObject } from '../types';
 
 // 模块级剪贴板，跨渲染保持
@@ -17,6 +18,7 @@ export function useEditorKeyboard() {
   const moveMultipleSceneObjects = useEditorStore((s) => s.moveMultipleSceneObjects);
   const undo                     = useEditorStore((s) => s.undo);
   const redo                     = useEditorStore((s) => s.redo);
+  const markSaved                = useEditorStore((s) => s.markSaved);
 
   // Refs 避免 stale closure
   const selectedIdsRef              = useRef(selectedIds);
@@ -104,12 +106,45 @@ export function useEditorKeyboard() {
         duplicateObject(selectedId);
         return;
       }
+
+      // Ctrl+S：保存文档
+      if (ctrl && e.key === 's') {
+        e.preventDefault();
+        const state = useEditorStore.getState();
+        downloadDocument({
+          objects: state.objects,
+          animations: state.animations,
+          globalDurationMs: state.globalDurationMs,
+          canvasWidth: state.canvasWidth,
+          canvasHeight: state.canvasHeight,
+          canvasBgColor: state.canvasBgColor,
+        });
+        markSaved();
+        return;
+      }
+
+      // 方向键微移选中对象（1px；Shift 时 10px）
+      if (
+        (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
+        selectedAll.length > 0 &&
+        !ctrl
+      ) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1;
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp'   ? -step : e.key === 'ArrowDown'  ? step : 0;
+        const moves = objectsRef.current
+          .filter((o) => selectedAll.includes(o.id))
+          .map((o) => ({ id: o.id, x: o.x + dx, y: o.y + dy }));
+        moveMultipleSceneObjectsRef.current(moves);
+        return;
+      }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [
     removeSceneObjects, addSceneObject, selectObject,
-    selectAllObjects, duplicateObject, moveMultipleSceneObjects, undo, redo,
+    selectAllObjects, duplicateObject, moveMultipleSceneObjects, undo, redo, markSaved,
   ]);
 }

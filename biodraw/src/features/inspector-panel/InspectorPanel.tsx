@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useEditorStore } from "../../state/editorStore";
 import "./InspectorPanel.css";
 
@@ -42,11 +42,66 @@ export function InspectorPanel() {
   const canvasHeight = useEditorStore((state) => state.canvasHeight);
   const duplicateObject = useEditorStore((state) => state.duplicateObject);
   const removeSceneObject = useEditorStore((state) => state.removeSceneObject);
+  const moveMultipleSceneObjects = useEditorStore((state) => state.moveMultipleSceneObjects);
+  const removeSceneObjects = useEditorStore((state) => state.removeSceneObjects);
 
   const selectedObj =
     selectedIds.length > 0
       ? objects.find((o) => o.id === selectedIds[0])
       : null;
+
+  // ── 多选对齐逻辑 ─────────────────────────────────────────────
+  const selectedObjects = objects.filter((o) => selectedIds.includes(o.id));
+
+  const getBox = (o: typeof objects[0]) => {
+    const w = o.width  * (o.scaleX ?? 1);
+    const h = o.height * (o.scaleY ?? 1);
+    return { left: o.x - w / 2, right: o.x + w / 2, top: o.y - h / 2, bottom: o.y + h / 2, cx: o.x, cy: o.y, w, h };
+  };
+
+  // edge: 'left'|'right'|'cx' for X axis, 'top'|'bottom'|'cy' for Y axis
+  const alignToEdge = (edgeX: 'left' | 'right' | 'cx' | null, edgeY: 'top' | 'bottom' | 'cy' | null) => {
+    const boxes = selectedObjects.map((o) => ({ id: o.id, obj: o, box: getBox(o) }));
+    let refX: number | null = null;
+    let refY: number | null = null;
+    if (edgeX) {
+      const vals = boxes.map(({ box }) => edgeX === 'left' ? box.left : edgeX === 'right' ? box.right : box.cx);
+      if (edgeX === 'left') refX = Math.min(...vals);
+      else if (edgeX === 'right') refX = Math.max(...vals);
+      else refX = vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+    if (edgeY) {
+      const vals = boxes.map(({ box }) => edgeY === 'top' ? box.top : edgeY === 'bottom' ? box.bottom : box.cy);
+      if (edgeY === 'top') refY = Math.min(...vals);
+      else if (edgeY === 'bottom') refY = Math.max(...vals);
+      else refY = vals.reduce((a, b) => a + b, 0) / vals.length;
+    }
+    moveMultipleSceneObjects(boxes.map(({ id, obj, box }) => ({
+      id,
+      x: refX !== null
+        ? (edgeX === 'left' ? refX + box.w / 2 : edgeX === 'right' ? refX - box.w / 2 : refX)
+        : obj.x,
+      y: refY !== null
+        ? (edgeY === 'top' ? refY + box.h / 2 : edgeY === 'bottom' ? refY - box.h / 2 : refY)
+        : obj.y,
+    })));
+  };
+
+  const distributeH = () => {
+    if (selectedObjects.length < 3) return;
+    const sorted = [...selectedObjects].sort((a, b) => a.x - b.x);
+    const first = sorted[0].x, last = sorted[sorted.length - 1].x;
+    const step = (last - first) / (sorted.length - 1);
+    moveMultipleSceneObjects(sorted.map((o, i) => ({ id: o.id, x: first + i * step, y: o.y })));
+  };
+
+  const distributeV = () => {
+    if (selectedObjects.length < 3) return;
+    const sorted = [...selectedObjects].sort((a, b) => a.y - b.y);
+    const first = sorted[0].y, last = sorted[sorted.length - 1].y;
+    const step = (last - first) / (sorted.length - 1);
+    moveMultipleSceneObjects(sorted.map((o, i) => ({ id: o.id, x: o.x, y: first + i * step })));
+  };
   const basicNamedTypes = [
     "rect",
     "circle",
@@ -58,6 +113,124 @@ export function InspectorPanel() {
   ];
 
   if (!selectedObj) {
+    // 多选时显示对齐面板
+    if (selectedIds.length > 1) {
+      const btnStyle: React.CSSProperties = {
+        flex: 1, height: 32, border: '1px solid var(--border-color)',
+        background: 'transparent', color: 'var(--text-main)',
+        borderRadius: 5, cursor: 'pointer', fontSize: 10,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+      };
+      const hoverOn = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = 'var(--primary-color)';
+        e.currentTarget.style.background = 'rgba(59,130,246,0.05)';
+      };
+      const hoverOff = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = 'var(--border-color)';
+        e.currentTarget.style.background = 'transparent';
+      };
+      return (
+        <aside className="inspector-panel">
+          <div className="panel-header"><h3>属性控制</h3></div>
+          <div className="inspector-content">
+            <div className="property-group">
+              <h4 className="group-title">已选中 {selectedIds.length} 个对象</h4>
+
+              {/* 对齐到彼此 */}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>对齐到彼此</div>
+              <div className="property-row" style={{ gap: 4, marginBottom: 4 }}>
+                <button style={btnStyle} title="左边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                  onClick={() => alignToEdge('left', null)}>
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="2" height="14"/><rect x="2" y="3" width="5" height="4" opacity="0.55"/><rect x="2" y="8" width="8" height="3" opacity="0.35"/></svg>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>左对齐</span>
+                </button>
+                <button style={btnStyle} title="水平居中对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                  onClick={() => alignToEdge('cx', null)}>
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="6.5" y="0" width="1" height="14"/><rect x="3" y="2" width="8" height="4" opacity="0.35"/><rect x="4" y="7" width="6" height="4" opacity="0.55"/></svg>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>水平中</span>
+                </button>
+                <button style={btnStyle} title="右边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                  onClick={() => alignToEdge('right', null)}>
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="12" y="0" width="2" height="14"/><rect x="7" y="3" width="5" height="4" opacity="0.55"/><rect x="4" y="8" width="8" height="3" opacity="0.35"/></svg>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>右对齐</span>
+                </button>
+              </div>
+              <div className="property-row" style={{ gap: 4, marginBottom: 8 }}>
+                <button style={btnStyle} title="顶边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                  onClick={() => alignToEdge(null, 'top')}>
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="14" height="2"/><rect x="2" y="2" width="4" height="6" opacity="0.55"/><rect x="8" y="2" width="4" height="9" opacity="0.35"/></svg>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>顶对齐</span>
+                </button>
+                <button style={btnStyle} title="垂直居中对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                  onClick={() => alignToEdge(null, 'cy')}>
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="6.5" width="14" height="1"/><rect x="2" y="3" width="4" height="8" opacity="0.35"/><rect x="8" y="4" width="4" height="6" opacity="0.55"/></svg>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>垂直中</span>
+                </button>
+                <button style={btnStyle} title="底边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                  onClick={() => alignToEdge(null, 'bottom')}>
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="12" width="14" height="2"/><rect x="2" y="5" width="4" height="7" opacity="0.55"/><rect x="8" y="3" width="4" height="9" opacity="0.35"/></svg>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>底对齐</span>
+                </button>
+              </div>
+
+              {/* 等间距分布（3个以上才有意义）*/}
+              {selectedIds.length >= 3 && (
+                <>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>等间距分布</div>
+                  <div className="property-row" style={{ gap: 4, marginBottom: 8 }}>
+                    <button style={btnStyle} title="水平等间距" onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={distributeH}>
+                      <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="1" height="14" opacity="0.4"/><rect x="13" y="0" width="1" height="14" opacity="0.4"/><rect x="3" y="3" width="3" height="8" opacity="0.55"/><rect x="8" y="3" width="3" height="8" opacity="0.55"/></svg>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>水平分布</span>
+                    </button>
+                    <button style={btnStyle} title="垂直等间距" onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={distributeV}>
+                      <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="14" height="1" opacity="0.4"/><rect x="0" y="13" width="14" height="1" opacity="0.4"/><rect x="3" y="3" width="8" height="3" opacity="0.55"/><rect x="3" y="8" width="8" height="3" opacity="0.55"/></svg>
+                      <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>垂直分布</span>
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* 对齐到画布 */}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>对齐到画布</div>
+              <div className="property-row" style={{ gap: 4, marginBottom: 4 }}>
+                {[
+                  { label: '左', title: '所有对象左边缘贴画布左边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: w/2, y: o.y }; })) },
+                  { label: '水平中', title: '所有对象水平居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: canvasWidth/2, y: o.y }))) },
+                  { label: '右', title: '所有对象右边缘贴画布右边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: canvasWidth-w/2, y: o.y }; })) },
+                ].map((b) => (
+                  <button key={b.label} style={btnStyle} title={b.title} onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={b.onClick}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{b.label}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="property-row" style={{ gap: 4, marginBottom: 8 }}>
+                {[
+                  { label: '顶', title: '所有对象顶边缘贴画布顶部', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: h/2 }; })) },
+                  { label: '垂直中', title: '所有对象垂直居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: o.x, y: canvasHeight/2 }))) },
+                  { label: '底', title: '所有对象底边缘贴画布底部', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: canvasHeight-h/2 }; })) },
+                ].map((b) => (
+                  <button key={b.label} style={btnStyle} title={b.title} onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={b.onClick}>
+                    <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{b.label}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* 删除多选 */}
+              <div className="property-row" style={{ gap: 4 }}>
+                <button
+                  title="删除所有选中对象 (Delete)"
+                  onClick={() => removeSceneObjects(selectedIds)}
+                  style={{ flex: 1, height: 26, border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: '#ef4444', borderRadius: 5, cursor: 'pointer', fontSize: 11 }}
+                >
+                  删除全部
+                </button>
+              </div>
+            </div>
+          </div>
+        </aside>
+      );
+    }
+
     return (
       <aside className="inspector-panel">
         <div className="panel-header">
