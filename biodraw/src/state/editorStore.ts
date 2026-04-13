@@ -116,6 +116,10 @@ interface EditorState {
   expandedAnimationClipId: string | null;
   setExpandedAnimationClipId: (id: string | null) => void;
   patchAnimationClipSilent: (id: string, updates: Partial<AnimationClip>) => void;
+
+  hasUnsavedChanges: boolean;
+  markSaved: () => void;
+  resetScene: () => void;
 }
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -149,6 +153,7 @@ function pushHistory(state: EditorState) {
   state.past.push(toSnapshot(state));
   if (state.past.length > MAX_HISTORY) state.past.shift();
   state.future = [];
+  state.hasUnsavedChanges = true;
 }
 
 export const useEditorStore = create<EditorState>()(
@@ -194,6 +199,7 @@ export const useEditorStore = create<EditorState>()(
     canvasHeight: 720,
     canvasBgColor: '#ffffff',
     expandedAnimationClipId: null,
+    hasUnsavedChanges: false,
 
     addSceneObject: (obj) =>
       set((state) => {
@@ -612,6 +618,24 @@ export const useEditorStore = create<EditorState>()(
         state.future = [];
         state.currentTimeMs = 0;
         state.playbackStatus = 'stopped';
+        state.hasUnsavedChanges = false;
+      }),
+
+    markSaved: () =>
+      set((state) => {
+        state.hasUnsavedChanges = false;
+      }),
+
+    resetScene: () =>
+      set((state) => {
+        state.objects = [];
+        state.animations = [];
+        state.selectedIds = [];
+        state.currentTimeMs = 0;
+        state.playbackStatus = 'stopped';
+        state.past = [];
+        state.future = [];
+        state.hasUnsavedChanges = false;
       }),
 
     setExpandedAnimationClipId: (id) =>

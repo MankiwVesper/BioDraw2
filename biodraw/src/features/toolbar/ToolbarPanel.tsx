@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useEditorStore } from '../../state/editorStore';
+import { downloadDocument, parseDocumentFile, clearAutoSave } from '../../infrastructure/documentSerializer';
 import './ToolbarPanel.css';
 
 export function ToolbarPanel() {
@@ -38,6 +39,51 @@ export function ToolbarPanel() {
   const requestVideoExport    = useEditorStore((s) => s.requestVideoExport);
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
+  const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
+  const markSaved   = useEditorStore((s) => s.markSaved);
+  const resetScene  = useEditorStore((s) => s.resetScene);
+  const loadSnapshot = useEditorStore((s) => s.loadSnapshot);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleNew = () => {
+    if (window.confirm('将清空当前场景，确认新建？')) {
+      resetScene();
+      clearAutoSave();
+    }
+  };
+
+  const handleSave = () => {
+    const state = useEditorStore.getState();
+    downloadDocument({
+      objects: state.objects,
+      animations: state.animations,
+      globalDurationMs: state.globalDurationMs,
+      canvasWidth: state.canvasWidth,
+      canvasHeight: state.canvasHeight,
+      canvasBgColor: state.canvasBgColor,
+    });
+    markSaved();
+  };
+
+  const handleOpenClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const snapshot = await parseDocumentFile(file);
+      loadSnapshot(snapshot);
+      markSaved();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '打开文件失败');
+    } finally {
+      // 清空 input 以允许重复打开同一文件
+      e.target.value = '';
+    }
+  };
 
   // 画布设置面板状态
   const [showCanvasPanel, setShowCanvasPanel] = useState(false);
@@ -144,8 +190,18 @@ export function ToolbarPanel() {
       <div className="tb-left">
         <span className="tb-logo">BioDraw</span>
         <div className="tb-divider" />
-        <button className="tb-btn">新建</button>
-        <button className="tb-btn">保存</button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".biodraw,.json"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+        <button className="tb-btn" onClick={handleNew}>新建</button>
+        <button className="tb-btn" onClick={handleOpenClick}>打开</button>
+        <button className="tb-btn" onClick={handleSave}>
+          {hasUnsavedChanges ? '保存 *' : '保存'}
+        </button>
         <div className="tb-divider" />
         <button className="tb-btn tb-undo-btn" onClick={undo} disabled={past.length === 0} title="撤销 (Ctrl+Z)">
           ↩ 撤销

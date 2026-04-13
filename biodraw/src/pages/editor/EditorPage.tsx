@@ -6,10 +6,14 @@ import { InspectorPanel } from '../../features/inspector-panel/InspectorPanel';
 import { TimelinePanel } from '../../features/timeline-panel/TimelinePanel';
 import { useEditorKeyboard } from '../../hooks/useEditorKeyboard';
 import { useAutoSave } from '../../hooks/useAutoSave';
+import { useBeforeUnload } from '../../hooks/useBeforeUnload';
+import { useEditorStore } from '../../state/editorStore';
 
 export default function EditorPage() {
   useEditorKeyboard();
   useAutoSave();
+  const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
+  useBeforeUnload(hasUnsavedChanges);
   return (
     <div className="editor-layout">
       <ToolbarPanel />
