@@ -715,16 +715,12 @@ export function CanvasPanel() {
   ) => {
     const obj = objects.find(o => o.id === id);
     if (!obj) return;
-    
+
     setEditingTextId(id);
     setEditingTarget(target);
-    setEditingRect({
-      x: rect.x * stageScale + stagePos.x,
-      y: rect.y * stageScale + stagePos.y,
-      width: rect.width * stageScale,
-      height: rect.height * stageScale
-    });
-    setEditingValue(target === 'name' ? obj.name : ((obj.data?.text as string) || ''));
+    // rect 已经是屏幕坐标（来自 Konva getAbsolutePosition()），无需再乘 stageScale
+    setEditingRect(rect);
+    setEditingValue(target === 'name' ? obj.name : ((obj.data?.text as string) || '点击输入内容'));
   };
 
   const commitTextChange = () => {

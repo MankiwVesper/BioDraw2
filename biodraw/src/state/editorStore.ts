@@ -62,6 +62,15 @@ interface EditorState {
   canvasHeight: number;
   canvasBgColor: string;
 
+  loadSnapshot: (snapshot: {
+    objects: SceneObject[];
+    animations: AnimationClip[];
+    globalDurationMs: number;
+    canvasWidth?: number;
+    canvasHeight?: number;
+    canvasBgColor?: string;
+  }) => void;
+
   addSceneObject: (obj: SceneObject) => void;
   updateSceneObject: (id: string, updates: Partial<SceneObject>) => void;
   removeSceneObject: (id: string) => void;
@@ -540,6 +549,21 @@ export const useEditorStore = create<EditorState>()(
     setCanvasBgColor: (color) =>
       set((state) => {
         state.canvasBgColor = color;
+      }),
+
+    loadSnapshot: (snapshot) =>
+      set((state) => {
+        state.objects = snapshot.objects;
+        state.animations = snapshot.animations;
+        state.globalDurationMs = snapshot.globalDurationMs;
+        if (snapshot.canvasWidth !== undefined) state.canvasWidth = snapshot.canvasWidth;
+        if (snapshot.canvasHeight !== undefined) state.canvasHeight = snapshot.canvasHeight;
+        if (snapshot.canvasBgColor !== undefined) state.canvasBgColor = snapshot.canvasBgColor;
+        state.selectedIds = [];
+        state.past = [];
+        state.future = [];
+        state.currentTimeMs = 0;
+        state.playbackStatus = 'stopped';
       }),
 
     setExpandedAnimationClipId: (id) =>

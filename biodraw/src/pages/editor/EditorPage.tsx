@@ -5,9 +5,11 @@ import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
 import { InspectorPanel } from '../../features/inspector-panel/InspectorPanel';
 import { TimelinePanel } from '../../features/timeline-panel/TimelinePanel';
 import { useEditorKeyboard } from '../../hooks/useEditorKeyboard';
+import { useAutoSave } from '../../hooks/useAutoSave';
 
 export default function EditorPage() {
   useEditorKeyboard();
+  useAutoSave();
   return (
     <div className="editor-layout">
       <ToolbarPanel />
