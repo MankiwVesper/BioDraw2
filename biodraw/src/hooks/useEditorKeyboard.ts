@@ -15,6 +15,8 @@ export function useEditorKeyboard() {
   const selectObject             = useEditorStore((s) => s.selectObject);
   const selectAllObjects         = useEditorStore((s) => s.selectAllObjects);
   const duplicateObject          = useEditorStore((s) => s.duplicateObject);
+  const groupObjects             = useEditorStore((s) => s.groupObjects);
+  const ungroupObjects           = useEditorStore((s) => s.ungroupObjects);
   const moveMultipleSceneObjects = useEditorStore((s) => s.moveMultipleSceneObjects);
   const undo                     = useEditorStore((s) => s.undo);
   const redo                     = useEditorStore((s) => s.redo);
@@ -104,6 +106,21 @@ export function useEditorKeyboard() {
       if (ctrl && e.key === 'd' && selectedId) {
         e.preventDefault();
         duplicateObject(selectedId);
+        return;
+      }
+
+      // Ctrl+G：组合选中对象（≥2个）
+      if (ctrl && !e.shiftKey && e.key === 'g' && selectedAll.length >= 2) {
+        e.preventDefault();
+        groupObjects(selectedAll);
+        return;
+      }
+
+      // Ctrl+Shift+G：取消组合（选中对象有 groupId 时）
+      if (ctrl && e.shiftKey && e.key.toLowerCase() === 'g' && selectedAll.length > 0) {
+        e.preventDefault();
+        const obj = objectsRef.current.find((o) => selectedAll.includes(o.id) && o.groupId);
+        if (obj?.groupId) ungroupObjects(obj.groupId);
         return;
       }
 
