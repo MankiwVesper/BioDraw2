@@ -1075,6 +1075,11 @@ export function CanvasPanel() {
   const horizontalTextEditOffset =
     editingTarget === 'text' && !isVerticalTextEditing ? 1 : 0;
 
+  // 选中对象信息（用于左下角坐标栏）
+  const selectedObj = selectedIds.length === 1
+    ? objects.find((o) => o.id === selectedIds[0]) ?? null
+    : null;
+
   return (
     <main className="canvas-panel">
       <div 
@@ -1287,6 +1292,23 @@ export function CanvasPanel() {
         )}
 
         {/* 閸欏厖绗傜憴鎺撳亾濞搭喗鎸欓柨鈧?闁插秴浠涢幒褍鍩楅弶?*/}
+        {/* 左下角：选中对象坐标/尺寸信息栏 */}
+        {selectedObj && !isAnyExportRunning && (
+          <div style={{
+            position: 'absolute', bottom: 8, left: 8, zIndex: 10,
+            background: 'rgba(0,0,0,0.52)', color: '#fff',
+            borderRadius: 5, padding: '3px 8px', fontSize: 11,
+            fontFamily: 'monospace', pointerEvents: 'none',
+            display: 'flex', gap: 10, userSelect: 'none',
+          }}>
+            <span>X {Math.round(selectedObj.x)}</span>
+            <span>Y {Math.round(selectedObj.y)}</span>
+            <span>W {Math.round(selectedObj.width * (selectedObj.scaleX ?? 1))}</span>
+            <span>H {Math.round(selectedObj.height * (selectedObj.scaleY ?? 1))}</span>
+            {!!selectedObj.rotation && <span>R {Math.round(selectedObj.rotation)}°</span>}
+          </div>
+        )}
+
         <div style={{
           position: 'absolute', top: '12px', right: '12px',
           display: 'flex', alignItems: 'center', gap: '2px',

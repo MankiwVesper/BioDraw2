@@ -586,6 +586,23 @@ export function TimelinePanel() {
     setCursorSnapGuideMs(snap.snapped ? snap.value : null);
   };
 
+  // ── 时间轴标尺刻度计算 ───────────────────────────────────────
+  const rulerIntervalMs = useMemo(() => {
+    const trackWidthPx = 600 * (timelineZoomPercent / 100);
+    const msPerPx = globalDurationMs / Math.max(1, trackWidthPx);
+    const rawIntervalMs = msPerPx * 80;
+    const niceIntervals = [100, 200, 250, 500, 1000, 2000, 5000, 10000, 30000];
+    return niceIntervals.find((v) => v >= rawIntervalMs) ?? 30000;
+  }, [globalDurationMs, timelineZoomPercent]);
+
+  const rulerTicks = useMemo(() => {
+    const ticks: number[] = [];
+    for (let ms = 0; ms <= globalDurationMs; ms += rulerIntervalMs) {
+      ticks.push(ms);
+    }
+    return ticks;
+  }, [globalDurationMs, rulerIntervalMs]);
+
   const getClipTrackStyle = (startTimeMs: number, durationMs: number) => {
     const safe = Math.max(1, globalDurationMs);
     const s = Math.max(0, Math.min(startTimeMs, safe));
@@ -1031,6 +1048,36 @@ export function TimelinePanel() {
 
           {/* 片段列表 */}
           <div className="tl-clip-list">
+
+            {/* 时间轴标尺 */}
+            <div
+              style={{
+                position: 'relative', height: 20, flexShrink: 0,
+                borderBottom: '1px solid var(--border-color)',
+                overflow: 'hidden', fontSize: 10,
+                color: 'var(--text-muted)', userSelect: 'none',
+              }}
+              onClick={seekByTrackClick}
+            >
+              {rulerTicks.map((ms) => {
+                const pct = globalDurationMs > 0 ? (ms / globalDurationMs) * 100 : 0;
+                return (
+                  <div key={ms} style={{ position: 'absolute', left: `${pct}%`, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
+                    <div style={{ width: 1, height: 6, background: 'var(--border-color)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 9, lineHeight: '14px', whiteSpace: 'nowrap', transform: 'translateX(-50%)' }}>
+                      {ms >= 1000 ? `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s` : `${ms}ms`}
+                    </span>
+                  </div>
+                );
+              })}
+              {/* 播放头线 */}
+              <div style={{
+                position: 'absolute', top: 0, bottom: 0, width: 1,
+                background: 'var(--primary-color, #3b82f6)', pointerEvents: 'none',
+                left: `${globalDurationMs > 0 ? (currentTimeMs / globalDurationMs) * 100 : 0}%`,
+              }} />
+            </div>
+
             {selectedObjectClips.length === 0 ? (
               <div className="tl-placeholder tl-placeholder-sm">
                 点击上方「＋ 添加动画」，或在右侧检查器快速添加
