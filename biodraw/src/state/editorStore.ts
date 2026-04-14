@@ -109,6 +109,11 @@ interface EditorState {
   setPlaybackLoopOutMs: (timeMs: number | null) => void;
   clearPlaybackLoopRegion: () => void;
   stepPlaybackFrame: (direction: 1 | -1) => void;
+  exportCancelCount: number;
+  singleFrameExportId: number;
+  cancelExport: () => void;
+  requestSingleFrameExport: () => void;
+
   requestSequenceExport: (options: SequenceExportOptions) => void;
   setSequenceExportStatus: (status: SequenceExportStatus, message?: string) => void;
   requestVideoExport: (options: VideoExportOptions) => void;
@@ -183,6 +188,8 @@ export const useEditorStore = create<EditorState>()(
       endMs: 10000,
       prefix: 'biodraw-frame',
     },
+    exportCancelCount: 0,
+    singleFrameExportId: 0,
     sequenceExportStatus: 'idle',
     sequenceExportMessage: '',
     videoExportRequestId: 0,
@@ -537,6 +544,16 @@ export const useEditorStore = create<EditorState>()(
         if (state.currentTimeMs === 0) {
           state.playbackStatus = 'stopped';
         }
+      }),
+
+    cancelExport: () =>
+      set((state) => {
+        state.exportCancelCount += 1;
+      }),
+
+    requestSingleFrameExport: () =>
+      set((state) => {
+        state.singleFrameExportId += 1;
       }),
 
     requestSequenceExport: (options) =>

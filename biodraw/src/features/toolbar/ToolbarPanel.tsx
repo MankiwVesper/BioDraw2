@@ -37,6 +37,9 @@ export function ToolbarPanel() {
   const stepPlaybackFrame  = useEditorStore((s) => s.stepPlaybackFrame);
   const requestSequenceExport = useEditorStore((s) => s.requestSequenceExport);
   const requestVideoExport    = useEditorStore((s) => s.requestVideoExport);
+  const cancelExport          = useEditorStore((s) => s.cancelExport);
+  const requestSingleFrameExport = useEditorStore((s) => s.requestSingleFrameExport);
+  const setSequenceExportStatus  = useEditorStore((s) => s.setSequenceExportStatus);
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
@@ -183,6 +186,21 @@ export function ToolbarPanel() {
   }, [sequenceExportMessage, sequenceExportStatus, videoExportMessage, videoExportStatus]);
 
   const isExportError = videoExportStatus === 'error' || sequenceExportStatus === 'error';
+
+  // 导出完成或出错后 3 秒自动重置状态
+  useEffect(() => {
+    if (sequenceExportStatus === 'done' || sequenceExportStatus === 'error') {
+      const timer = setTimeout(() => setSequenceExportStatus('idle'), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [sequenceExportStatus, setSequenceExportStatus]);
+
+  // 解析序列帧导出进度
+  let exportProgress = 0;
+  const progressMatch = sequenceExportMessage?.match(/^(\d+)\/(\d+)/);
+  if (progressMatch) {
+    exportProgress = parseInt(progressMatch[1]) / parseInt(progressMatch[2]);
+  }
 
   return (
     <header className="tb-panel">
@@ -369,6 +387,29 @@ export function ToolbarPanel() {
           </span>
         )}
 
+        {/* 序列帧导出进度条 */}
+        {sequenceExportStatus === 'running' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 2 }}>
+              <div style={{
+                height: '100%',
+                width: `${Math.round(exportProgress * 100)}%`,
+                background: 'var(--primary-color, #3b82f6)',
+                borderRadius: 2,
+                transition: 'width 0.1s linear',
+              }} />
+            </div>
+            <button
+              className="tb-btn"
+              style={{ fontSize: 11, padding: '1px 6px', color: 'var(--error-color, #ef4444)' }}
+              onClick={cancelExport}
+              title="取消导出"
+            >
+              取消
+            </button>
+          </div>
+        )}
+
         {/* 导出按钮 + 下拉面板 */}
         <div className="tb-export-wrap" ref={exportPanelRef}>
           <button
@@ -413,10 +454,18 @@ export function ToolbarPanel() {
               </div>
 
               <div className="tb-export-actions">
-                <button className="tb-export-action-btn" onClick={triggerSequenceExport}>
+                <button
+                  className="tb-export-action-btn"
+                  onClick={() => { requestSingleFrameExport(); setShowExportPanel(false); }}
+                  disabled={isExporting}
+                  title={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
+                >
+                  当前帧 PNG
+                </button>
+                <button className="tb-export-action-btn" onClick={triggerSequenceExport} disabled={isExporting}>
                   导出 PNG 序列帧
                 </button>
-                <button className="tb-export-action-btn tb-export-action-primary" onClick={triggerVideoExport}>
+                <button className="tb-export-action-btn tb-export-action-primary" onClick={triggerVideoExport} disabled={isExporting}>
                   导出视频
                 </button>
               </div>

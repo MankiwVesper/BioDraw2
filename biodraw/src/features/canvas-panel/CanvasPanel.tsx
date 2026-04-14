@@ -224,8 +224,13 @@ export function CanvasPanel() {
   const videoExportRequestId = useEditorStore(state => state.videoExportRequestId);
   const videoExportOptions = useEditorStore(state => state.videoExportOptions);
   const setVideoExportStatus = useEditorStore(state => state.setVideoExportStatus);
+  const exportCancelCount = useEditorStore(state => state.exportCancelCount);
+  const cancelExport = useEditorStore(state => state.cancelExport);
+  const singleFrameExportId = useEditorStore(state => state.singleFrameExportId);
   const lastHandledExportRequestRef = useRef(0);
   const lastHandledVideoExportRequestRef = useRef(0);
+  const exportCancelCountRef = useRef(exportCancelCount);
+  const lastSingleFrameExportIdRef = useRef(0);
   // ── Group drag state
   const groupDragIdRef = useRef<string | null>(null);
   const groupDragStartsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
@@ -247,6 +252,7 @@ export function CanvasPanel() {
   const canvasHeightRef = useRef(canvasHeight);
 
   // Keep refs in sync for snap / group-drag callbacks
+  useEffect(() => { exportCancelCountRef.current = exportCancelCount; }, [exportCancelCount]);
   useEffect(() => { stageScaleRef.current = stageScale; }, [stageScale]);
   useEffect(() => { objectsSnapRef.current = objects; }, [objects]);
   useEffect(() => { selectedIdsSnapRef.current = selectedIds; }, [selectedIds]);
@@ -378,9 +384,9 @@ export function CanvasPanel() {
     if (lastHandledExportRequestRef.current === sequenceExportRequestId) return;
     lastHandledExportRequestRef.current = sequenceExportRequestId;
 
-    let cancelled = false;
-
     const runSequenceExport = async () => {
+      const cancelSnapshot = exportCancelCountRef.current;
+
       const stage = stageRef.current;
       if (!stage) {
         setSequenceExportStatus('error', '画布未就绪');
@@ -425,7 +431,10 @@ export function CanvasPanel() {
 
         const entries: Array<{ name: string; data: Uint8Array }> = [];
         for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
-          if (cancelled) return;
+          if (exportCancelCountRef.current !== cancelSnapshot) {
+            setSequenceExportStatus('idle');
+            return;
+          }
 
           const timeMs = Math.min(endMs, Math.round(startMs + frameIndex * stepMs));
           setCurrentTimeMs(timeMs);
@@ -443,7 +452,10 @@ export function CanvasPanel() {
           setSequenceExportStatus('running', formatExportProgress(frameIndex + 1, totalFrames));
         }
 
-        if (cancelled) return;
+        if (exportCancelCountRef.current !== cancelSnapshot) {
+          setSequenceExportStatus('idle');
+          return;
+        }
 
         const zipBlob = buildZipBlob(entries);
         const url = URL.createObjectURL(zipBlob);
@@ -472,9 +484,10 @@ export function CanvasPanel() {
     runSequenceExport();
 
     return () => {
-      cancelled = true;
+      cancelExport();
     };
   }, [
+    cancelExport,
     globalDurationMs,
     pausePlayback,
     playPlayback,
@@ -483,6 +496,25 @@ export function CanvasPanel() {
     setCurrentTimeMs,
     setSequenceExportStatus,
   ]);
+
+  const exportCurrentFrameAsPng = useCallback(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const exportWidth = sequenceExportOptions.width;
+    const pixelRatio = exportWidth / (stage.width() || exportWidth);
+    const dataUrl = stage.toDataURL({ pixelRatio, mimeType: 'image/png' });
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `frame_${currentTimeMs}ms.png`;
+    a.click();
+  }, [currentTimeMs, sequenceExportOptions.width]);
+
+  useEffect(() => {
+    if (singleFrameExportId === 0) return;
+    if (singleFrameExportId === lastSingleFrameExportIdRef.current) return;
+    lastSingleFrameExportIdRef.current = singleFrameExportId;
+    exportCurrentFrameAsPng();
+  }, [singleFrameExportId, exportCurrentFrameAsPng]);
 
   useEffect(() => {
     if (videoExportRequestId <= 0) return;
