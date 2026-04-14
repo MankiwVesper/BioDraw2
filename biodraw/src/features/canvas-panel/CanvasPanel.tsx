@@ -199,7 +199,6 @@ export function CanvasPanel() {
   const canvasHeight   = useEditorStore((state) => state.canvasHeight);
   const canvasBgColor  = useEditorStore((state) => state.canvasBgColor);
   const selectObject = useEditorStore(state => state.selectObject);
-  const toggleSelectObject = useEditorStore(state => state.toggleSelectObject);
   const removeSceneObject = useEditorStore(state => state.removeSceneObject);
   const removeSceneObjects = useEditorStore(state => state.removeSceneObjects);
   const selectSceneObjects = useEditorStore(state => state.selectSceneObjects);
@@ -1133,10 +1132,6 @@ export function CanvasPanel() {
                     key={obj.id}
                     sceneObject={obj}
                     isSelected={isSelected}
-                    onSelect={(shiftKey) => {
-                      if (shiftKey) toggleSelectObject(obj.id);
-                      else selectObject(obj.id);
-                    }}
                     onEditStart={handleEditStart}
                     isEditing={editingTextId === obj.id}
                     xOverride={isFollower ? obj.x + (groupDragOffset?.dx ?? 0) : undefined}

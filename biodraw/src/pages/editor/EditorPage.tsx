@@ -14,28 +14,35 @@ export default function EditorPage() {
   useAutoSave();
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
+  const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
   useBeforeUnload(hasUnsavedChanges);
-
-  if (isPreviewMode) {
-    return (
-      <div className="editor-preview-fullscreen">
-        <CanvasPanel />
-        <div className="preview-exit-hint">按 ESC 或 F 退出预览</div>
-      </div>
-    );
-  }
 
   return (
     <div className="editor-layout">
-      <ToolbarPanel />
+      {!isPreviewMode && <ToolbarPanel />}
       <div className="editor-main">
-        <MaterialsPanel />
+        {!isPreviewMode && <MaterialsPanel />}
         <div className="editor-center">
           <CanvasPanel />
-          <TimelinePanel />
+          {!isPreviewMode && <TimelinePanel />}
         </div>
-        <InspectorPanel />
+        {!isPreviewMode && <InspectorPanel />}
       </div>
+      {isPreviewMode && (
+        <button
+          onClick={() => setPreviewMode(false)}
+          style={{
+            position: 'fixed', top: 12, right: 12, zIndex: 9999,
+            background: 'rgba(0,0,0,0.55)', color: '#fff',
+            border: '1px solid rgba(255,255,255,0.25)', borderRadius: 6,
+            padding: '5px 12px', cursor: 'pointer', fontSize: 12,
+            backdropFilter: 'blur(4px)',
+          }}
+          title="退出预览 (Esc)"
+        >
+          ✕ 退出预览
+        </button>
+      )}
     </div>
   );
 }

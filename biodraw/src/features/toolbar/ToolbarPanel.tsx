@@ -297,6 +297,16 @@ export function ToolbarPanel() {
 
         <div className="tb-divider" />
 
+        <button
+          className="tb-btn"
+          onClick={() => setPreviewMode(true)}
+          title="全屏预览 (F)"
+        >
+          ⛶ 预览
+        </button>
+
+        <div className="tb-divider" />
+
         {/* 循环控制 */}
         <button
           className={`tb-btn${playbackLoopEnabled ? ' is-active' : ''}`}

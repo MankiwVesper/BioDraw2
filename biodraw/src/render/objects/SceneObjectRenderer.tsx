@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Rect, Circle, Line, Text, Image as KonvaImage, Transformer, Group, RegularPolygon } from 'react-konva';
 import useImage from 'use-image';
 import type { SceneObject } from '../../types';
@@ -8,7 +8,6 @@ import type Konva from 'konva';
 interface Props {
   sceneObject: SceneObject;
   isSelected: boolean;
-  onSelect: (shiftKey?: boolean) => void;
   onEditStart?: (id: string, rect: { x: number, y: number, width: number, height: number }, target?: 'text' | 'name') => void;
   isEditing?: boolean;
   /** Visual-only position override while group-dragging (followers) */
@@ -40,7 +39,7 @@ const toVerticalText = (value: string) =>
     .map((line) => line.split('').join('\n'))
     .join('\n\n');
 
-export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditStart, isEditing, xOverride, yOverride, onDragStart, onDragMove, onDragStop }: Props) {
+export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, xOverride, yOverride, onDragStart, onDragMove, onDragStop }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
   const materialNameRef = useRef<Konva.Text>(null);
@@ -62,8 +61,10 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
   const url = sceneObject.type === 'material' ? (sceneObject.data?.url as string) : '';
   const [image] = useImage(url);
 
-  const updateSceneObject = useEditorStore(state => state.updateSceneObject);
-  const isRatioLocked = useEditorStore(state => state.isRatioLocked);
+  const updateSceneObject  = useEditorStore(state => state.updateSceneObject);
+  const isRatioLocked      = useEditorStore(state => state.isRatioLocked);
+  const selectObject       = useEditorStore(state => state.selectObject);
+  const toggleSelectObject = useEditorStore(state => state.toggleSelectObject);
 
   // 处理选中状态框的绑定
   useEffect(() => {
@@ -126,8 +127,15 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     onDragMove: isLocked ? undefined : handleDragMoveEvt,
     onDragEnd: isLocked ? undefined : handleDragEnd,
     onTransformEnd: isLocked ? undefined : handleTransformEnd,
-    onClick: (e: Konva.KonvaEventObject<MouseEvent>) => onSelect(e.evt.shiftKey),
-    onTap: (e: Konva.KonvaEventObject<TouchEvent>) => onSelect((e.evt as TouchEvent & { shiftKey?: boolean }).shiftKey),
+    onClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (e.evt.shiftKey) toggleSelectObject(sceneObject.id);
+      else selectObject(sceneObject.id);
+    },
+    onTap: (e: Konva.KonvaEventObject<TouchEvent>) => {
+      const shiftKey = (e.evt as TouchEvent & { shiftKey?: boolean }).shiftKey;
+      if (shiftKey) toggleSelectObject(sceneObject.id);
+      else selectObject(sceneObject.id);
+    },
     opacity: sceneObject.opacity,
   };
 
@@ -408,11 +416,11 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
         draggable: !isEditing,
         onMouseDown: (e: Konva.KonvaEventObject<MouseEvent>) => {
           e.cancelBubble = true;
-          onSelect();
+          selectObject(sceneObject.id);
         },
         onDragStart: (e: Konva.KonvaEventObject<DragEvent>) => {
           e.cancelBubble = true;
-          onSelect();
+          selectObject(sceneObject.id);
         },
         onDragMove: handleNameDragMove,
         onDragEnd: handleNameDragEnd,
@@ -827,11 +835,11 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                   }}
                   onClick={(e) => {
                     e.cancelBubble = true;
-                    onSelect();
+                    selectObject(sceneObject.id);
                   }}
                   onTap={(e) => {
                     e.cancelBubble = true;
-                    onSelect();
+                    selectObject(sceneObject.id);
                   }}
                   onDragMove={(e) => {
                     e.cancelBubble = true;
@@ -1004,11 +1012,11 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                     }}
                     onClick={(e) => {
                       e.cancelBubble = true;
-                      onSelect();
+                      selectObject(sceneObject.id);
                     }}
                     onTap={(e) => {
                       e.cancelBubble = true;
-                      onSelect();
+                      selectObject(sceneObject.id);
                     }}
                     onDragMove={(e) => {
                       e.cancelBubble = true;
@@ -1086,11 +1094,11 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
                     }}
                     onClick={(e) => {
                       e.cancelBubble = true;
-                      onSelect();
+                      selectObject(sceneObject.id);
                     }}
                     onTap={(e) => {
                       e.cancelBubble = true;
-                      onSelect();
+                      selectObject(sceneObject.id);
                     }}
                     onDragMove={(e) => {
                       e.cancelBubble = true;
@@ -1219,4 +1227,4 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
       )}
     </Group>
   );
-}
+});

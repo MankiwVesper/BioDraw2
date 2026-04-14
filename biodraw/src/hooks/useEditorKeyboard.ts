@@ -31,11 +31,13 @@ export function useEditorKeyboard() {
   const objectsRef                  = useRef(objects);
   const playbackRef                 = useRef(playbackStatus);
   const moveMultipleSceneObjectsRef = useRef(moveMultipleSceneObjects);
+  const isPreviewModeRef            = useRef(isPreviewMode);
 
   useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useEffect(() => { objectsRef.current = objects; }, [objects]);
   useEffect(() => { playbackRef.current = playbackStatus; }, [playbackStatus]);
   useEffect(() => { moveMultipleSceneObjectsRef.current = moveMultipleSceneObjects; }, [moveMultipleSceneObjects]);
+  useEffect(() => { isPreviewModeRef.current = isPreviewMode; }, [isPreviewMode]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -65,21 +67,10 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // F：进入 / 退出全屏预览
-      if (e.key === 'f' || e.key === 'F') {
-        const preview = useEditorStore.getState().isPreviewMode;
-        useEditorStore.getState().setPreviewMode(!preview);
-        if (!preview) useEditorStore.getState().play();
-        return;
-      }
-
-      // Escape：退出预览 > 取消选中
+      // Escape：优先退出预览模式，否则取消选中
       if (e.key === 'Escape') {
-        if (useEditorStore.getState().isPreviewMode) {
-          useEditorStore.getState().setPreviewMode(false);
-        } else {
-          selectObject(null);
-        }
+        if (isPreviewModeRef.current) { setPreviewMode(false); return; }
+        selectObject(null);
         return;
       }
 
@@ -166,6 +157,15 @@ export function useEditorKeyboard() {
         return;
       }
 
+      // F 键：切换全屏预览模式（进入时自动播放）
+      if (e.key === 'f' && !ctrl) {
+        e.preventDefault();
+        const entering = !isPreviewModeRef.current;
+        setPreviewMode(entering);
+        if (entering) play();
+        return;
+      }
+
       // 方向键微移选中对象（1px；Shift 时 10px）
       if (
         (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
@@ -189,7 +189,6 @@ export function useEditorKeyboard() {
   }, [
     removeSceneObjects, addSceneObject, selectObject,
     selectAllObjects, duplicateObject, groupObjects, ungroupObjects,
-    play, pause, undo, redo, markSaved,
-    isPreviewMode, setPreviewMode,
+    play, pause, undo, redo, markSaved, setPreviewMode, isPreviewMode,
   ]);
 }
