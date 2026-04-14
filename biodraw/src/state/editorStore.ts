@@ -90,6 +90,7 @@ interface EditorState {
   toggleObjectLock: (id: string) => void;
   groupObjects: (ids: string[]) => void;
   ungroupObjects: (groupId: string) => void;
+  selectSceneObjects: (ids: string[]) => void;
 
   addAnimationClip: (clip: AnimationClip) => void;
   updateAnimationClip: (id: string, updates: Partial<AnimationClip>) => void;
@@ -334,6 +335,11 @@ export const useEditorStore = create<EditorState>()(
         state.objects = state.objects.map((o) =>
           o.groupId === groupId ? { ...o, groupId: undefined } : o,
         );
+      }),
+
+    selectSceneObjects: (ids) =>
+      set((state) => {
+        state.selectedIds = ids;
       }),
 
     addAnimationClip: (clip) =>

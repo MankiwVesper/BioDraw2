@@ -202,6 +202,7 @@ export function CanvasPanel() {
   const toggleSelectObject = useEditorStore(state => state.toggleSelectObject);
   const removeSceneObject = useEditorStore(state => state.removeSceneObject);
   const removeSceneObjects = useEditorStore(state => state.removeSceneObjects);
+  const selectSceneObjects = useEditorStore(state => state.selectSceneObjects);
   const updateSceneObject = useEditorStore(state => state.updateSceneObject);
   const moveMultipleSceneObjects = useEditorStore(state => state.moveMultipleSceneObjects);
   const undo = useEditorStore(state => state.undo);
@@ -230,6 +231,13 @@ export function CanvasPanel() {
   const groupDragStartsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const groupDragOffsetRef = useRef<{ dx: number; dy: number } | null>(null);
   const [groupDragOffset, setGroupDragOffset] = useState<{ dx: number; dy: number } | null>(null);
+
+  // ── Rubber-band selection state
+  const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
+  const selectionRectRef = useRef<{ x: number; y: number; w: number; h: number } | null>(null);
+  const selectionStartCanvasRef = useRef<{ x: number; y: number } | null>(null);
+  const isSelectingRef = useRef(false);
+  const stagePosRef = useRef(stagePos);
   // ── Snap lines
   const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
   const stageScaleRef = useRef(stageScale);
@@ -244,6 +252,7 @@ export function CanvasPanel() {
   useEffect(() => { selectedIdsSnapRef.current = selectedIds; }, [selectedIds]);
   useEffect(() => { canvasWidthRef.current = canvasWidth; }, [canvasWidth]);
   useEffect(() => { canvasHeightRef.current = canvasHeight; }, [canvasHeight]);
+  useEffect(() => { stagePosRef.current = stagePos; }, [stagePos]);
 
   const previewObjects = useMemo(() => {
     if (currentTimeMs <= 0) return objects;
@@ -889,6 +898,85 @@ export function CanvasPanel() {
     }
   };
 
+  // ── Rubber-band selection handlers ──────────────────────────────────────
+  const handleStageMouseDown = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (editingTextId) { commitTextChange(); return; }
+    const clickedOnEmpty = e.target === e.target.getStage();
+    if (!clickedOnEmpty) return;
+    // Right-click or pan mode: just deselect, don't start rubber-band
+    if (e.evt.button !== 0 || isPanMode) { selectObject(null); return; }
+
+    const stage = stageRef.current;
+    if (!stage) { selectObject(null); return; }
+    const pointer = stage.getPointerPosition();
+    if (!pointer) { selectObject(null); return; }
+
+    const scale = stageScaleRef.current;
+    const pos = stagePosRef.current;
+    const canvasX = (pointer.x - pos.x) / scale;
+    const canvasY = (pointer.y - pos.y) / scale;
+
+    selectionStartCanvasRef.current = { x: canvasX, y: canvasY };
+    isSelectingRef.current = true;
+    const rect = { x: canvasX, y: canvasY, w: 0, h: 0 };
+    selectionRectRef.current = rect;
+    setSelectionRect(rect);
+    selectObject(null);
+  };
+
+  const handleStageMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    if (!isSelectingRef.current || !selectionStartCanvasRef.current) return;
+    const stage = stageRef.current;
+    if (!stage) return;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+
+    const scale = stageScaleRef.current;
+    const pos = stagePosRef.current;
+    const canvasX = (pointer.x - pos.x) / scale;
+    const canvasY = (pointer.y - pos.y) / scale;
+    const start = selectionStartCanvasRef.current;
+
+    const rect = {
+      x: Math.min(start.x, canvasX),
+      y: Math.min(start.y, canvasY),
+      w: Math.abs(canvasX - start.x),
+      h: Math.abs(canvasY - start.y),
+    };
+    selectionRectRef.current = rect;
+    setSelectionRect(rect);
+    e.evt.preventDefault();
+  };
+
+  const handleStageMouseUp = () => {
+    if (!isSelectingRef.current) return;
+    isSelectingRef.current = false;
+    selectionStartCanvasRef.current = null;
+    const rect = selectionRectRef.current;
+    selectionRectRef.current = null;
+    setSelectionRect(null);
+
+    // Too small → treat as a click (already deselected on mousedown)
+    if (!rect || rect.w < 5 || rect.h < 5) return;
+
+    const allObjs = objectsSnapRef.current;
+    const ids = allObjs
+      .filter((obj) => {
+        if (obj.locked || !obj.visible) return false;
+        const w = obj.width * (obj.scaleX || 1);
+        const h = obj.height * (obj.scaleY || 1);
+        const objLeft  = obj.x - w / 2;
+        const objRight = obj.x + w / 2;
+        const objTop    = obj.y - h / 2;
+        const objBottom = obj.y + h / 2;
+        return objLeft < rect.x + rect.w && objRight > rect.x &&
+               objTop  < rect.y + rect.h && objBottom > rect.y;
+      })
+      .map((obj) => obj.id);
+
+    if (ids.length > 0) selectSceneObjects(ids);
+  };
+
   const handleEditStart = (
     id: string,
     rect: { x: number, y: number, width: number, height: number },
@@ -980,7 +1068,9 @@ export function CanvasPanel() {
               if (stage) setStagePos({ x: stage.x(), y: stage.y() });
             }}
             onWheel={handleWheel}
-            onMouseDown={checkDeselect}
+            onMouseDown={handleStageMouseDown}
+            onMouseMove={handleStageMouseMove}
+            onMouseUp={handleStageMouseUp}
             onTouchStart={checkDeselect}
             listening={!interactionLocked}
             style={{ cursor: isPanMode ? 'grab' : 'default' }}
@@ -1053,6 +1143,22 @@ export function CanvasPanel() {
             {!isAnyExportRunning && (
               <Layer listening={!interactionLocked}>
                 <AnimationPathOverlay stageScale={stageScale} />
+              </Layer>
+            )}
+            {/* 框选矩形层 */}
+            {selectionRect && !isAnyExportRunning && (
+              <Layer listening={false}>
+                <Rect
+                  x={selectionRect.x}
+                  y={selectionRect.y}
+                  width={selectionRect.w}
+                  height={selectionRect.h}
+                  fill="rgba(59,130,246,0.07)"
+                  stroke="#3b82f6"
+                  strokeWidth={1 / stageScale}
+                  dash={[4 / stageScale, 4 / stageScale]}
+                  listening={false}
+                />
               </Layer>
             )}
           </Stage>
