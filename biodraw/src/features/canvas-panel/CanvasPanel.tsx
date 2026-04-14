@@ -201,6 +201,7 @@ export function CanvasPanel() {
   const selectObject = useEditorStore(state => state.selectObject);
   const toggleSelectObject = useEditorStore(state => state.toggleSelectObject);
   const removeSceneObject = useEditorStore(state => state.removeSceneObject);
+  const removeSceneObjects = useEditorStore(state => state.removeSceneObjects);
   const updateSceneObject = useEditorStore(state => state.updateSceneObject);
   const moveMultipleSceneObjects = useEditorStore(state => state.moveMultipleSceneObjects);
   const undo = useEditorStore(state => state.undo);
@@ -332,13 +333,17 @@ export function CanvasPanel() {
 
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
-        removeSceneObject(selectedIds[0]);
+        if (selectedIds.length > 1) {
+          removeSceneObjects(selectedIds);
+        } else {
+          removeSceneObject(selectedIds[0]);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, objects, removeSceneObject, updateSceneObject, moveMultipleSceneObjects, undo, redo]);
+  }, [selectedIds, objects, removeSceneObject, removeSceneObjects, updateSceneObject, moveMultipleSceneObjects, undo, redo]);
   // Space key toggles temporary pan mode.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {

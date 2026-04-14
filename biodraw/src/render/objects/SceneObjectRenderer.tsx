@@ -113,17 +113,19 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
     });
   };
 
+  const isLocked = !!sceneObject.locked;
+
   const commonProps = {
     x: xOverride ?? sceneObject.x,
     y: yOverride ?? sceneObject.y,
     rotation: sceneObject.rotation,
     scaleX: sceneObject.scaleX,
     scaleY: sceneObject.scaleY,
-    draggable: true,
-    onDragStart: handleDragStartEvt,
-    onDragMove: handleDragMoveEvt,
-    onDragEnd: handleDragEnd,
-    onTransformEnd: handleTransformEnd,
+    draggable: !isLocked,
+    onDragStart: isLocked ? undefined : handleDragStartEvt,
+    onDragMove: isLocked ? undefined : handleDragMoveEvt,
+    onDragEnd: isLocked ? undefined : handleDragEnd,
+    onTransformEnd: isLocked ? undefined : handleTransformEnd,
     onClick: (e: Konva.KonvaEventObject<MouseEvent>) => onSelect(e.evt.shiftKey),
     onTap: (e: Konva.KonvaEventObject<TouchEvent>) => onSelect((e.evt as TouchEvent & { shiftKey?: boolean }).shiftKey),
     opacity: sceneObject.opacity,
@@ -1199,8 +1201,8 @@ export function SceneObjectRenderer({ sceneObject, isSelected, onSelect, onEditS
   return (
     <Group>
       {renderContent()}
-      {isSelected && !isEditing && (
-        <Transformer 
+      {isSelected && !isEditing && !isLocked && (
+        <Transformer
           ref={trRef}
           keepRatio={isRatioLocked}
           enabledAnchors={isRatioLocked 

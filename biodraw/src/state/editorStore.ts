@@ -87,6 +87,9 @@ interface EditorState {
   moveObjectToFront: (id: string) => void;
   moveObjectToBack: (id: string) => void;
   setIsRatioLocked: (locked: boolean) => void;
+  toggleObjectLock: (id: string) => void;
+  groupObjects: (ids: string[]) => void;
+  ungroupObjects: (groupId: string) => void;
 
   addAnimationClip: (clip: AnimationClip) => void;
   updateAnimationClip: (id: string, updates: Partial<AnimationClip>) => void;
@@ -301,6 +304,36 @@ export const useEditorStore = create<EditorState>()(
     setIsRatioLocked: (locked) =>
       set((state) => {
         state.isRatioLocked = locked;
+      }),
+
+    toggleObjectLock: (id) =>
+      set((state) => {
+        const obj = state.objects.find((o) => o.id === id);
+        if (obj) {
+          obj.locked = !obj.locked;
+          // 锁定时取消选中
+          if (obj.locked) {
+            state.selectedIds = state.selectedIds.filter((sid) => sid !== id);
+          }
+        }
+      }),
+
+    groupObjects: (ids) =>
+      set((state) => {
+        if (ids.length < 2) return;
+        pushHistory(state);
+        const groupId = crypto.randomUUID();
+        state.objects = state.objects.map((o) =>
+          ids.includes(o.id) ? { ...o, groupId } : o,
+        );
+      }),
+
+    ungroupObjects: (groupId) =>
+      set((state) => {
+        pushHistory(state);
+        state.objects = state.objects.map((o) =>
+          o.groupId === groupId ? { ...o, groupId: undefined } : o,
+        );
       }),
 
     addAnimationClip: (clip) =>
@@ -550,17 +583,40 @@ export const useEditorStore = create<EditorState>()(
         if (id === null) {
           state.selectedIds = [];
         } else {
-          state.selectedIds = [id];
+          const obj = state.objects.find((o) => o.id === id);
+          if (obj?.groupId) {
+            // 选中分组成员时，自动扩展选中整个分组
+            state.selectedIds = state.objects
+              .filter((o) => o.groupId === obj.groupId)
+              .map((o) => o.id);
+          } else {
+            state.selectedIds = [id];
+          }
         }
       }),
 
     toggleSelectObject: (id) =>
       set((state) => {
-        const idx = state.selectedIds.indexOf(id);
-        if (idx === -1) {
-          state.selectedIds.push(id);
+        const obj = state.objects.find((o) => o.id === id);
+        if (obj?.groupId) {
+          // Shift+点击分组成员：整组加入/移出选择
+          const groupIds = state.objects
+            .filter((o) => o.groupId === obj.groupId)
+            .map((o) => o.id);
+          const anySelected = groupIds.some((gid) => state.selectedIds.includes(gid));
+          if (anySelected) {
+            state.selectedIds = state.selectedIds.filter((sid) => !groupIds.includes(sid));
+          } else {
+            const toAdd = groupIds.filter((gid) => !state.selectedIds.includes(gid));
+            state.selectedIds.push(...toAdd);
+          }
         } else {
-          state.selectedIds.splice(idx, 1);
+          const idx = state.selectedIds.indexOf(id);
+          if (idx === -1) {
+            state.selectedIds.push(id);
+          } else {
+            state.selectedIds.splice(idx, 1);
+          }
         }
       }),
 
@@ -572,8 +628,14 @@ export const useEditorStore = create<EditorState>()(
     moveMultipleSceneObjects: (moves) =>
       set((state) => {
         if (moves.length === 0) return;
+        // 过滤掉锁定对象
+        const unlockedMoves = moves.filter((m) => {
+          const obj = state.objects.find((o) => o.id === m.id);
+          return obj && !obj.locked;
+        });
+        if (unlockedMoves.length === 0) return;
         pushHistory(state);
-        const moveMap = new Map(moves.map((m) => [m.id, m]));
+        const moveMap = new Map(unlockedMoves.map((m) => [m.id, m]));
         state.objects = state.objects.map((o) => {
           const m = moveMap.get(o.id);
           if (!m) return o;

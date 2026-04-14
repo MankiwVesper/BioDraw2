@@ -44,6 +44,9 @@ export function InspectorPanel() {
   const removeSceneObject = useEditorStore((state) => state.removeSceneObject);
   const moveMultipleSceneObjects = useEditorStore((state) => state.moveMultipleSceneObjects);
   const removeSceneObjects = useEditorStore((state) => state.removeSceneObjects);
+  const toggleObjectLock = useEditorStore((state) => state.toggleObjectLock);
+  const groupObjects = useEditorStore((state) => state.groupObjects);
+  const ungroupObjects = useEditorStore((state) => state.ungroupObjects);
 
   const selectedObj =
     selectedIds.length > 0
@@ -214,6 +217,34 @@ export function InspectorPanel() {
                   </button>
                 ))}
               </div>
+
+              {/* 分组 / 解组 */}
+              {(() => {
+                const groupIds = selectedObjects.map((o) => o.groupId).filter(Boolean) as string[];
+                const uniqueGroups = Array.from(new Set(groupIds));
+                const allSameGroup = uniqueGroups.length === 1 && groupIds.length === selectedObjects.length;
+                return (
+                  <div className="property-row" style={{ gap: 4, marginBottom: 8 }}>
+                    {allSameGroup ? (
+                      <button
+                        title="解散分组，恢复为独立对象"
+                        onClick={() => ungroupObjects(uniqueGroups[0])}
+                        style={{ flex: 1, height: 28, border: '1px solid var(--primary-color)', background: 'rgba(59,130,246,0.08)', color: 'var(--primary-color)', borderRadius: 5, cursor: 'pointer', fontSize: 11 }}
+                      >
+                        🔓 解组
+                      </button>
+                    ) : (
+                      <button
+                        title="将选中对象组合为一个分组（点击任意成员即选中整组）"
+                        onClick={() => groupObjects(selectedIds)}
+                        style={{ flex: 1, height: 28, border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-main)', borderRadius: 5, cursor: 'pointer', fontSize: 11 }}
+                      >
+                        🔗 组合
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* 删除多选 */}
               <div className="property-row" style={{ gap: 4 }}>
@@ -1012,23 +1043,39 @@ export function InspectorPanel() {
           </div>
           <div className="property-row" style={{ gap: 4, marginTop: 0 }}>
             <button
+              title={selectedObj?.locked ? '解锁对象（可移动）' : '锁定对象（防止误移）'}
+              onClick={() => selectedObj && toggleObjectLock(selectedObj.id)}
+              style={{
+                flex: 1, height: 26, border: `1px solid ${selectedObj?.locked ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                background: selectedObj?.locked ? 'rgba(59,130,246,0.08)' : 'transparent',
+                color: selectedObj?.locked ? 'var(--primary-color)' : 'var(--text-muted)',
+                borderRadius: 5, cursor: 'pointer', fontSize: 11,
+              }}
+            >
+              {selectedObj?.locked ? '🔒 已锁定' : '🔓 锁定'}
+            </button>
+            <button
               title="复制对象 (Ctrl+D)"
               onClick={() => selectedObj && duplicateObject(selectedObj.id)}
+              disabled={!!selectedObj?.locked}
               style={{
                 flex: 1, height: 26, border: '1px solid var(--border-color)',
                 background: 'transparent', color: 'var(--text-muted)',
-                borderRadius: 5, cursor: 'pointer', fontSize: 11,
+                borderRadius: 5, cursor: selectedObj?.locked ? 'not-allowed' : 'pointer', fontSize: 11,
+                opacity: selectedObj?.locked ? 0.4 : 1,
               }}
             >
               复制
             </button>
             <button
               title="删除对象 (Delete)"
-              onClick={() => selectedObj && removeSceneObject(selectedObj.id)}
+              onClick={() => selectedObj && !selectedObj.locked && removeSceneObject(selectedObj.id)}
+              disabled={!!selectedObj?.locked}
               style={{
                 flex: 1, height: 26, border: '1px solid rgba(239,68,68,0.4)',
                 background: 'transparent', color: '#ef4444',
-                borderRadius: 5, cursor: 'pointer', fontSize: 11,
+                borderRadius: 5, cursor: selectedObj?.locked ? 'not-allowed' : 'pointer', fontSize: 11,
+                opacity: selectedObj?.locked ? 0.4 : 1,
               }}
             >
               删除

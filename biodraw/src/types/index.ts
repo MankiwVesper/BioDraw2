@@ -134,6 +134,7 @@ export type SceneObject = {
 
   visible: boolean;
   locked?: boolean;
+  groupId?: string;
 
   zIndex: number;
 
