@@ -44,6 +44,7 @@ export function ToolbarPanel() {
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
+  const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
   const currentFileName   = useEditorStore((s) => s.currentFileName);
   const markSaved   = useEditorStore((s) => s.markSaved);
   const resetScene  = useEditorStore((s) => s.resetScene);
@@ -292,6 +293,16 @@ export function ToolbarPanel() {
             ))}
           </select>
         </label>
+
+        <div className="tb-divider" />
+
+        <button
+          className="tb-btn"
+          onClick={() => setPreviewMode(true)}
+          title="全屏预览 (F)"
+        >
+          ⛶ 预览
+        </button>
 
         <div className="tb-divider" />
 

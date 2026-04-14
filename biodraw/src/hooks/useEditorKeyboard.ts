@@ -23,17 +23,21 @@ export function useEditorKeyboard() {
   const undo                     = useEditorStore((s) => s.undo);
   const redo                     = useEditorStore((s) => s.redo);
   const markSaved                = useEditorStore((s) => s.markSaved);
+  const isPreviewMode            = useEditorStore((s) => s.isPreviewMode);
+  const setPreviewMode           = useEditorStore((s) => s.setPreviewMode);
 
   // Refs 避免 stale closure
   const selectedIdsRef              = useRef(selectedIds);
   const objectsRef                  = useRef(objects);
   const playbackRef                 = useRef(playbackStatus);
   const moveMultipleSceneObjectsRef = useRef(moveMultipleSceneObjects);
+  const isPreviewModeRef            = useRef(isPreviewMode);
 
   useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useEffect(() => { objectsRef.current = objects; }, [objects]);
   useEffect(() => { playbackRef.current = playbackStatus; }, [playbackStatus]);
   useEffect(() => { moveMultipleSceneObjectsRef.current = moveMultipleSceneObjects; }, [moveMultipleSceneObjects]);
+  useEffect(() => { isPreviewModeRef.current = isPreviewMode; }, [isPreviewMode]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -63,8 +67,9 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Escape：取消选中
+      // Escape：优先退出预览模式，否则取消选中
       if (e.key === 'Escape') {
+        if (isPreviewModeRef.current) { setPreviewMode(false); return; }
         selectObject(null);
         return;
       }
@@ -152,6 +157,13 @@ export function useEditorKeyboard() {
         return;
       }
 
+      // F 键：切换全屏预览模式
+      if (e.key === 'f' && !ctrl) {
+        e.preventDefault();
+        setPreviewMode(!isPreviewModeRef.current);
+        return;
+      }
+
       // 方向键微移选中对象（1px；Shift 时 10px）
       if (
         (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'ArrowUp' || e.key === 'ArrowDown') &&
@@ -175,6 +187,6 @@ export function useEditorKeyboard() {
   }, [
     removeSceneObjects, addSceneObject, selectObject,
     selectAllObjects, duplicateObject, groupObjects, ungroupObjects,
-    play, pause, undo, redo, markSaved,
+    play, pause, undo, redo, markSaved, setPreviewMode,
   ]);
 }

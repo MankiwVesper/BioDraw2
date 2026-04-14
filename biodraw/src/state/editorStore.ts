@@ -131,6 +131,9 @@ interface EditorState {
   markSaved: (fileName?: string) => void;
   resetScene: () => void;
   setCurrentFileName: (name: string | null) => void;
+
+  isPreviewMode: boolean;
+  setPreviewMode: (v: boolean) => void;
 }
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -214,6 +217,7 @@ export const useEditorStore = create<EditorState>()(
     expandedAnimationClipId: null,
     hasUnsavedChanges: false,
     currentFileName: null,
+    isPreviewMode: false,
 
     addSceneObject: (obj) =>
       set((state) => {
@@ -744,6 +748,11 @@ export const useEditorStore = create<EditorState>()(
         if (idx !== -1) {
           state.animations[idx] = { ...state.animations[idx], ...updates } as AnimationClip;
         }
+      }),
+
+    setPreviewMode: (v) =>
+      set((state) => {
+        state.isPreviewMode = v;
       }),
 
     undo: () =>
