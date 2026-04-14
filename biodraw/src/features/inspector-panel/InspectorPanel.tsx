@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useEditorStore } from "../../state/editorStore";
 import { LayerPanel } from "./LayerPanel";
+import { buildAnimationClip, CLIP_TYPE_OPTIONS } from "../../domain/clipFactory";
+import type { ClipCreatableType } from "../../domain/clipFactory";
 import "./InspectorPanel.css";
 
 const CLIP_TYPE_LABELS: Record<string, string> = {
@@ -25,6 +27,19 @@ const CLIP_TYPE_COLORS: Record<string, string> = {
 
 export function InspectorPanel() {
   const [activeTab, setActiveTab] = useState<'properties' | 'layers'>('properties');
+  const [showAddAnimMenu, setShowAddAnimMenu] = useState(false);
+  const addAnimMenuRef = useRef<HTMLDivElement>(null);
+
+  // 点击外部关闭"添加动画"下拉菜单
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (addAnimMenuRef.current && !addAnimMenuRef.current.contains(e.target as Node)) {
+        setShowAddAnimMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const isRatioLocked = useEditorStore((state) => state.isRatioLocked);
   const setIsRatioLocked = useEditorStore((state) => state.setIsRatioLocked);
@@ -41,6 +56,10 @@ export function InspectorPanel() {
 
   const animations = useEditorStore((state) => state.animations);
   const setExpandedAnimationClipId = useEditorStore((state) => state.setExpandedAnimationClipId);
+  const addAnimationClip = useEditorStore((state) => state.addAnimationClip);
+  const setGlobalDurationMs = useEditorStore((state) => state.setGlobalDurationMs);
+  const globalDurationMs = useEditorStore((state) => state.globalDurationMs);
+  const currentTimeMs = useEditorStore((state) => state.currentTimeMs);
   const canvasWidth  = useEditorStore((state) => state.canvasWidth);
   const canvasHeight = useEditorStore((state) => state.canvasHeight);
   const duplicateObject = useEditorStore((state) => state.duplicateObject);
@@ -1876,14 +1895,65 @@ export function InspectorPanel() {
           )}
         </div>
 
+        {/* ── 动画片段区 ────────────────────────────────────────── */}
         <div className="property-group">
-          <h4 className="group-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h4 className="group-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <span>动画片段</span>
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 400 }}>
-              {(selectedObj?.animationIds || []).length > 0
-                ? `共 ${(selectedObj?.animationIds || []).length} 个`
-                : '无'}
-            </span>
+            {/* ＋ 添加动画 按钮 */}
+            <div ref={addAnimMenuRef} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowAddAnimMenu((p) => !p)}
+                style={{
+                  fontSize: 11, padding: '2px 8px', height: 22,
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 4, background: showAddAnimMenu ? 'rgba(59,130,246,0.08)' : 'transparent',
+                  color: showAddAnimMenu ? 'var(--primary-color)' : 'var(--text-muted)',
+                  cursor: 'pointer', lineHeight: 1,
+                }}
+                title="为此对象添加动画片段"
+              >
+                ＋ 添加
+              </button>
+              {showAddAnimMenu && selectedObj && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, zIndex: 300, marginTop: 4,
+                  background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
+                  borderRadius: 8, padding: '6px 0', minWidth: 140,
+                  boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+                }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', padding: '2px 10px 6px', fontWeight: 600, letterSpacing: '0.05em' }}>
+                    选择动画类型
+                  </div>
+                  {CLIP_TYPE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.type}
+                      onClick={() => {
+                        const clip = buildAnimationClip(opt.type as ClipCreatableType, selectedObj, currentTimeMs);
+                        addAnimationClip(clip);
+                        if (clip.startTimeMs + clip.durationMs > globalDurationMs) {
+                          setGlobalDurationMs(clip.startTimeMs + clip.durationMs + 1000);
+                        }
+                        setExpandedAnimationClipId(clip.id);
+                        setShowAddAnimMenu(false);
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        width: '100%', padding: '5px 10px',
+                        border: 'none', background: 'transparent',
+                        color: 'var(--text-main)', fontSize: 12,
+                        cursor: 'pointer', textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.07)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: CLIP_TYPE_COLORS[opt.type] || '#64748b', flexShrink: 0 }} />
+                      <span style={{ flex: 1 }}>{opt.label}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>{opt.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </h4>
           {(() => {
             const clips = animations
@@ -1891,32 +1961,29 @@ export function InspectorPanel() {
               .sort((a, b) => a.startTimeMs - b.startTimeMs);
             if (clips.length === 0) {
               return (
-                <div className="property-row">
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                    在下方时间线面板中添加动画片段
-                  </span>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '6px 0' }}>
+                  暂无动画片段 — 点击右上角「＋ 添加」快速创建
                 </div>
               );
             }
             return clips.map((clip) => {
               const startS = (clip.startTimeMs / 1000).toFixed(1);
               const endS = ((clip.startTimeMs + clip.durationMs) / 1000).toFixed(1);
-              const canActivate = clip.type === 'move' || clip.type === 'moveAlongPath';
               const dotColor = CLIP_TYPE_COLORS[clip.type] || '#64748b';
               return (
                 <div
                   key={clip.id}
                   className="property-row"
-                  onClick={() => canActivate && setExpandedAnimationClipId(clip.id)}
+                  onClick={() => setExpandedAnimationClipId(clip.id)}
                   style={{
-                    cursor: canActivate ? 'pointer' : 'default',
+                    cursor: 'pointer',
                     borderRadius: '4px',
                     padding: '3px 4px',
                     transition: 'background 0.1s',
                   }}
-                  onMouseEnter={(e) => { if (canActivate) e.currentTarget.style.background = 'rgba(59,130,246,0.06)'; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  title={canActivate ? '点击在画布上显示路径手柄' : undefined}
+                  title="点击在时间线面板中展开此片段"
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, overflow: 'hidden' }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
@@ -1925,7 +1992,7 @@ export function InspectorPanel() {
                     </span>
                   </span>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    {startS}s → {endS}s
+                    {startS}s – {endS}s
                   </span>
                   {clip.enabled === false && (
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: 4 }}>已禁用</span>

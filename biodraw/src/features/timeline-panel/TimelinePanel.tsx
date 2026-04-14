@@ -825,7 +825,7 @@ export function TimelinePanel() {
 
       {/* ── 主体 ── */}
       {!selectedObject ? (
-        <div className="tl-placeholder">在画布中选中一个对象，然后为它添加动画片段</div>
+        <div className="tl-placeholder">选中画布上的对象，即可在此处管理动画片段<br/><span style={{fontSize:11,opacity:0.6}}>也可在右侧检查器「动画片段」区域快速添加</span></div>
       ) : (
         <div className="tl-body">
 
@@ -1033,7 +1033,7 @@ export function TimelinePanel() {
           <div className="tl-clip-list">
             {selectedObjectClips.length === 0 ? (
               <div className="tl-placeholder tl-placeholder-sm">
-                点击上方「添加动画」为此对象添加第一个动画片段
+                点击上方「＋ 添加动画」，或在右侧检查器快速添加
               </div>
             ) : (
               displayObjectClips.map((clip) => {
