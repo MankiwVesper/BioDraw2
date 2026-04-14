@@ -559,6 +559,11 @@ export const useEditorStore = create<EditorState>()(
         state.singleFrameExportId += 1;
       }),
 
+    setPreviewMode: (v) =>
+      set((state) => {
+        state.isPreviewMode = v;
+      }),
+
     requestSequenceExport: (options) =>
       set((state) => {
         state.sequenceExportRequestId += 1;

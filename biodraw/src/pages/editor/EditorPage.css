@@ -1,3 +1,31 @@
+.editor-preview-fullscreen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  background: #000;
+  z-index: 9999;
+}
+
+.editor-preview-fullscreen > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.preview-exit-hint {
+  position: fixed;
+  top: 16px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 10000;
+}
+
 .editor-layout {
   display: flex;
   flex-direction: column;

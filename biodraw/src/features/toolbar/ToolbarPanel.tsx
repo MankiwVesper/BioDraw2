@@ -48,6 +48,8 @@ export function ToolbarPanel() {
   const markSaved   = useEditorStore((s) => s.markSaved);
   const resetScene  = useEditorStore((s) => s.resetScene);
   const loadSnapshot = useEditorStore((s) => s.loadSnapshot);
+  const isPreviewMode  = useEditorStore((s) => s.isPreviewMode);
+  const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -323,8 +325,16 @@ export function ToolbarPanel() {
         )}
       </div>
 
-      {/* ── 右区：画布设置 + 导出 + 状态 */}
+      {/* ── 右区：预览 + 画布设置 + 导出 + 状态 */}
       <div className="tb-right">
+        <button
+          className={`tb-btn${isPreviewMode ? ' is-active' : ''}`}
+          onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
+          title="全屏预览（F）"
+        >
+          {isPreviewMode ? '退出预览' : '预览 F'}
+        </button>
+        <div className="tb-divider" />
         {/* 画布设置按钮 + 面板 */}
         <div className="tb-export-wrap" ref={canvasPanelRef}>
           <button

@@ -23,6 +23,8 @@ export function useEditorKeyboard() {
   const undo                     = useEditorStore((s) => s.undo);
   const redo                     = useEditorStore((s) => s.redo);
   const markSaved                = useEditorStore((s) => s.markSaved);
+  const isPreviewMode            = useEditorStore((s) => s.isPreviewMode);
+  const setPreviewMode           = useEditorStore((s) => s.setPreviewMode);
 
   // Refs 避免 stale closure
   const selectedIdsRef              = useRef(selectedIds);
@@ -63,9 +65,21 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Escape：取消选中
+      // F：进入 / 退出全屏预览
+      if (e.key === 'f' || e.key === 'F') {
+        const preview = useEditorStore.getState().isPreviewMode;
+        useEditorStore.getState().setPreviewMode(!preview);
+        if (!preview) useEditorStore.getState().play();
+        return;
+      }
+
+      // Escape：退出预览 > 取消选中
       if (e.key === 'Escape') {
-        selectObject(null);
+        if (useEditorStore.getState().isPreviewMode) {
+          useEditorStore.getState().setPreviewMode(false);
+        } else {
+          selectObject(null);
+        }
         return;
       }
 
@@ -176,5 +190,6 @@ export function useEditorKeyboard() {
     removeSceneObjects, addSceneObject, selectObject,
     selectAllObjects, duplicateObject, groupObjects, ungroupObjects,
     play, pause, undo, redo, markSaved,
+    isPreviewMode, setPreviewMode,
   ]);
 }
