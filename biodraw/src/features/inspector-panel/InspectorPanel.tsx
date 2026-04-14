@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useEditorStore } from "../../state/editorStore";
+import { LayerPanel } from "./LayerPanel";
 import "./InspectorPanel.css";
 
 const CLIP_TYPE_LABELS: Record<string, string> = {
@@ -23,6 +24,8 @@ const CLIP_TYPE_COLORS: Record<string, string> = {
 };
 
 export function InspectorPanel() {
+  const [activeTab, setActiveTab] = useState<'properties' | 'layers'>('properties');
+
   const isRatioLocked = useEditorStore((state) => state.isRatioLocked);
   const setIsRatioLocked = useEditorStore((state) => state.setIsRatioLocked);
   const selectedIds = useEditorStore((state) => state.selectedIds);
@@ -134,7 +137,10 @@ export function InspectorPanel() {
       };
       return (
         <aside className="inspector-panel">
-          <div className="panel-header"><h3>属性控制</h3></div>
+          <InspectorTabHeader activeTab={activeTab} onTabChange={setActiveTab} />
+          {activeTab === 'layers' ? (
+            <LayerPanel />
+          ) : (
           <div className="inspector-content">
             <div className="property-group">
               <h4 className="group-title">已选中 {selectedIds.length} 个对象</h4>
@@ -258,21 +264,29 @@ export function InspectorPanel() {
               </div>
             </div>
           </div>
+          )}
         </aside>
       );
     }
 
     return (
       <aside className="inspector-panel">
-        <div className="panel-header">
-          <h3>属性控制</h3>
-        </div>
-        <div className="inspector-content">
-          <div className="empty-state">
-            未选中任何对象
-            <span className="hint">请在画板中点击对象以加载其属性</span>
-          </div>
-        </div>
+        <InspectorTabHeader activeTab={activeTab} onTabChange={setActiveTab} />
+        {activeTab === 'layers' ? (
+          <LayerPanel />
+        ) : (
+          <>
+            <div className="panel-header">
+              <h3>属性控制</h3>
+            </div>
+            <div className="inspector-content">
+              <div className="empty-state">
+                未选中任何对象
+                <span className="hint">请在画板中点击对象以加载其属性</span>
+              </div>
+            </div>
+          </>
+        )}
       </aside>
     );
   }
@@ -561,6 +575,11 @@ export function InspectorPanel() {
 
   return (
     <aside className="inspector-panel">
+      <InspectorTabHeader activeTab={activeTab} onTabChange={setActiveTab} />
+      {activeTab === 'layers' ? (
+        <LayerPanel />
+      ) : (
+      <>
       <div className="panel-header">
         <h3>属性控制</h3>
       </div>
@@ -1917,6 +1936,40 @@ export function InspectorPanel() {
           })()}
         </div>
       </div>
+      </>
+      )}
     </aside>
+  );
+}
+
+// ── 共用 Tab 标题栏 ──────────────────────────────────────────────────────────
+function InspectorTabHeader({
+  activeTab,
+  onTabChange,
+}: {
+  activeTab: 'properties' | 'layers';
+  onTabChange: (tab: 'properties' | 'layers') => void;
+}) {
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    flex: 1,
+    padding: '8px 0',
+    border: 'none',
+    borderBottom: active ? '2px solid var(--primary-color)' : '2px solid transparent',
+    background: 'transparent',
+    color: active ? 'var(--primary-color)' : 'var(--text-muted)',
+    fontSize: 12,
+    fontWeight: active ? 600 : 400,
+    cursor: 'pointer',
+    transition: 'color 0.15s, border-color 0.15s',
+  });
+  return (
+    <div style={{ display: 'flex', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
+      <button style={tabStyle(activeTab === 'properties')} onClick={() => onTabChange('properties')}>
+        属性
+      </button>
+      <button style={tabStyle(activeTab === 'layers')} onClick={() => onTabChange('layers')}>
+        图层
+      </button>
+    </div>
   );
 }
