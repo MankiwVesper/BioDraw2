@@ -521,7 +521,7 @@ export function CanvasPanel() {
     if (lastHandledVideoExportRequestRef.current === videoExportRequestId) return;
     lastHandledVideoExportRequestRef.current = videoExportRequestId;
 
-    let cancelled = false;
+    const cancelSnapshot = exportCancelCountRef.current;
 
     const runVideoExport = async () => {
       const stage = stageRef.current;
@@ -615,9 +615,10 @@ export function CanvasPanel() {
         recorder.start(Math.max(100, Math.round(stepMs)));
 
         for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
-          if (cancelled) {
+          if (exportCancelCountRef.current !== cancelSnapshot) {
             if (recorder.state !== 'inactive') recorder.stop();
             stream.getTracks().forEach((track) => track.stop());
+            setVideoExportStatus('idle');
             return;
           }
 
@@ -639,7 +640,7 @@ export function CanvasPanel() {
         if (recorderError) {
           throw recorderError;
         }
-        if (cancelled) return;
+        if (exportCancelCountRef.current !== cancelSnapshot) return;
 
         const url = URL.createObjectURL(videoBlob);
         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -671,9 +672,6 @@ export function CanvasPanel() {
 
     runVideoExport();
 
-    return () => {
-      cancelled = true;
-    };
   }, [
     globalDurationMs,
     pausePlayback,

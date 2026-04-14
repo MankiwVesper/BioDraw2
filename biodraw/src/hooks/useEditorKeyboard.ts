@@ -3,8 +3,8 @@ import { useEditorStore } from '../state/editorStore';
 import { downloadDocument } from '../infrastructure/documentSerializer';
 import type { SceneObject } from '../types';
 
-// 模块级剪贴板，跨渲染保持
-let clipboard: SceneObject | null = null;
+// 模块级剪贴板，跨渲染保持（支持多选）
+let clipboard: SceneObject[] = [];
 
 export function useEditorKeyboard() {
   const selectedIds              = useEditorStore((s) => s.selectedIds);
@@ -18,6 +18,8 @@ export function useEditorKeyboard() {
   const groupObjects             = useEditorStore((s) => s.groupObjects);
   const ungroupObjects           = useEditorStore((s) => s.ungroupObjects);
   const moveMultipleSceneObjects = useEditorStore((s) => s.moveMultipleSceneObjects);
+  const play                     = useEditorStore((s) => s.play);
+  const pause                    = useEditorStore((s) => s.pause);
   const undo                     = useEditorStore((s) => s.undo);
   const redo                     = useEditorStore((s) => s.redo);
   const markSaved                = useEditorStore((s) => s.markSaved);
@@ -43,9 +45,16 @@ export function useEditorKeyboard() {
         target.isContentEditable
       ) return;
 
-      const selectedId  = selectedIdsRef.current[0];
       const selectedAll = selectedIdsRef.current;
       const ctrl = e.ctrlKey || e.metaKey;
+
+      // Space：播放 / 暂停
+      if (e.key === ' ') {
+        e.preventDefault();
+        if (playbackRef.current === 'playing') pause();
+        else play();
+        return;
+      }
 
       // Delete / Backspace：删除所有选中对象
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedAll.length > 0) {
@@ -74,38 +83,41 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Ctrl+Shift+Z / Ctrl+Y：重做（Shift 时 e.key 为大写 'Z'，统一 toLowerCase）
+      // Ctrl+Shift+Z / Ctrl+Y：重做
       if ((ctrl && e.shiftKey && e.key.toLowerCase() === 'z') || (ctrl && e.key === 'y')) {
         e.preventDefault();
         redo();
         return;
       }
 
-      // Ctrl+C：复制
-      if (ctrl && e.key === 'c' && selectedId) {
-        const obj = objectsRef.current.find((o) => o.id === selectedId);
-        if (obj) clipboard = JSON.parse(JSON.stringify(obj));
+      // Ctrl+C：复制所有选中对象
+      if (ctrl && e.key === 'c' && selectedAll.length > 0) {
+        clipboard = objectsRef.current
+          .filter((o) => selectedAll.includes(o.id))
+          .map((o) => JSON.parse(JSON.stringify(o)));
         return;
       }
 
-      // Ctrl+V：粘贴（偏移 +20px）
-      if (ctrl && e.key === 'v' && clipboard) {
+      // Ctrl+V：粘贴（每个偏移 +20px）
+      if (ctrl && e.key === 'v' && clipboard.length > 0) {
         e.preventDefault();
-        const newObj: SceneObject = {
-          ...JSON.parse(JSON.stringify(clipboard)),
-          id: crypto.randomUUID(),
-          x: clipboard.x + 20,
-          y: clipboard.y + 20,
-          animationIds: [],
-        };
-        addSceneObject(newObj);
+        clipboard.forEach((src) => {
+          const newObj: SceneObject = {
+            ...JSON.parse(JSON.stringify(src)),
+            id: crypto.randomUUID(),
+            x: src.x + 20,
+            y: src.y + 20,
+            animationIds: [],
+          };
+          addSceneObject(newObj);
+        });
         return;
       }
 
-      // Ctrl+D：就地复制选中对象
-      if (ctrl && e.key === 'd' && selectedId) {
+      // Ctrl+D：就地复制所有选中对象
+      if (ctrl && e.key === 'd' && selectedAll.length > 0) {
         e.preventDefault();
-        duplicateObject(selectedId);
+        selectedAll.forEach((id) => duplicateObject(id));
         return;
       }
 
@@ -116,7 +128,7 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Ctrl+Shift+G：取消组合（选中对象有 groupId 时）
+      // Ctrl+Shift+G：取消组合
       if (ctrl && e.shiftKey && e.key.toLowerCase() === 'g' && selectedAll.length > 0) {
         e.preventDefault();
         const obj = objectsRef.current.find((o) => selectedAll.includes(o.id) && o.groupId);
@@ -162,6 +174,7 @@ export function useEditorKeyboard() {
     return () => window.removeEventListener('keydown', handler);
   }, [
     removeSceneObjects, addSceneObject, selectObject,
-    selectAllObjects, duplicateObject, moveMultipleSceneObjects, undo, redo, markSaved,
+    selectAllObjects, duplicateObject, groupObjects, ungroupObjects,
+    play, pause, undo, redo, markSaved,
   ]);
 }

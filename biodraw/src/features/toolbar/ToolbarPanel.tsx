@@ -15,6 +15,7 @@ export function ToolbarPanel() {
   const sequenceExportStatus  = useEditorStore((s) => s.sequenceExportStatus);
   const sequenceExportMessage = useEditorStore((s) => s.sequenceExportMessage);
   const videoExportStatus     = useEditorStore((s) => s.videoExportStatus);
+  const setVideoExportStatus  = useEditorStore((s) => s.setVideoExportStatus);
   const videoExportMessage    = useEditorStore((s) => s.videoExportMessage);
   const past   = useEditorStore((s) => s.past);
   const future = useEditorStore((s) => s.future);
@@ -194,6 +195,13 @@ export function ToolbarPanel() {
       return () => clearTimeout(timer);
     }
   }, [sequenceExportStatus, setSequenceExportStatus]);
+
+  useEffect(() => {
+    if (videoExportStatus === 'done' || videoExportStatus === 'error') {
+      const timer = setTimeout(() => setVideoExportStatus('idle'), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [videoExportStatus, setVideoExportStatus]);
 
   // 解析序列帧导出进度
   let exportProgress = 0;
@@ -387,18 +395,20 @@ export function ToolbarPanel() {
           </span>
         )}
 
-        {/* 序列帧导出进度条 */}
-        {sequenceExportStatus === 'running' && (
+        {/* 导出进度条 + 取消按钮（序列帧或视频导出时显示） */}
+        {isExporting && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 2 }}>
-              <div style={{
-                height: '100%',
-                width: `${Math.round(exportProgress * 100)}%`,
-                background: 'var(--primary-color, #3b82f6)',
-                borderRadius: 2,
-                transition: 'width 0.1s linear',
-              }} />
-            </div>
+            {sequenceExportStatus === 'running' && (
+              <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 2 }}>
+                <div style={{
+                  height: '100%',
+                  width: `${Math.round(exportProgress * 100)}%`,
+                  background: 'var(--primary-color, #3b82f6)',
+                  borderRadius: 2,
+                  transition: 'width 0.1s linear',
+                }} />
+              </div>
+            )}
             <button
               className="tb-btn"
               style={{ fontSize: 11, padding: '1px 6px', color: 'var(--error-color, #ef4444)' }}
