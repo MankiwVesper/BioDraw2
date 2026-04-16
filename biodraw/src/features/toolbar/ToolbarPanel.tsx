@@ -72,7 +72,7 @@ export function ToolbarPanel() {
         const [handle] = await (window as typeof window & {
           showOpenFilePicker: (opts: object) => Promise<FileSystemFileHandle[]>;
         }).showOpenFilePicker({
-          types: [{ description: '.biodraw', accept: { 'application/octet-stream': ['.biodraw'] } }],
+          types: [{ description: '动画文件(*.biodraw)', accept: { 'application/x-biodraw': ['.biodraw'] } }],
           excludeAcceptAllOption: true,
           multiple: false,
         });
