@@ -206,8 +206,6 @@ export function CanvasPanel() {
   const moveMultipleSceneObjects = useEditorStore(state => state.moveMultipleSceneObjects);
   const undo = useEditorStore(state => state.undo);
   const redo = useEditorStore(state => state.redo);
-  const past = useEditorStore(state => state.past);
-  const future = useEditorStore(state => state.future);
   const animations = useEditorStore(state => state.animations);
   const playbackStatus = useEditorStore(state => state.playbackStatus);
   const currentTimeMs = useEditorStore(state => state.currentTimeMs);
@@ -1304,47 +1302,6 @@ export function CanvasPanel() {
           </div>
         )}
 
-        <div style={{
-          position: 'absolute', top: '12px', right: '12px',
-          display: 'flex', alignItems: 'center', gap: '2px',
-          backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)',
-          borderRadius: '8px', padding: '4px 6px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          zIndex: 100, userSelect: 'none',
-        }}>
-          <button
-            onClick={undo}
-            disabled={past.length === 0}
-            title="鎾ら攢 (Ctrl+Z)"
-            style={{
-              background: 'none', border: 'none', cursor: past.length === 0 ? 'not-allowed' : 'pointer',
-              color: 'var(--text-muted)', fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-              opacity: past.length === 0 ? 0.3 : 1, display: 'flex', alignItems: 'center', gap: '4px',
-              transition: 'background 0.15s, color 0.15s',
-            }}
-            onMouseEnter={e => { if (past.length > 0) { e.currentTarget.style.backgroundColor = 'var(--bg-color)'; e.currentTarget.style.color = 'var(--text-main)'; } }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-          >
-            <span style={{ fontSize: '14px', lineHeight: 1 }}>↶</span>
-            <span>撤销</span>
-          </button>
-          <div style={{ width: '1px', height: '14px', backgroundColor: 'var(--border-color)' }} />
-          <button
-            onClick={redo}
-            disabled={future.length === 0}
-            title="閲嶅仛 (Ctrl+Y)"
-            style={{
-              background: 'none', border: 'none', cursor: future.length === 0 ? 'not-allowed' : 'pointer',
-              color: 'var(--text-muted)', fontSize: '12px', padding: '2px 8px', borderRadius: '4px',
-              opacity: future.length === 0 ? 0.3 : 1, display: 'flex', alignItems: 'center', gap: '4px',
-              transition: 'background 0.15s, color 0.15s',
-            }}
-            onMouseEnter={e => { if (future.length > 0) { e.currentTarget.style.backgroundColor = 'var(--bg-color)'; e.currentTarget.style.color = 'var(--text-main)'; } }}
-            onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-          >
-            <span style={{ fontSize: '14px', lineHeight: 1 }}>↷</span>
-            <span>重做</span>
-          </button>
-        </div>
 
         {/* 閸欏厖绗呯憴鎺撳亾濞搭喚缂夐弨鐐付閸掕埖娼?*/}
         <div style={{
