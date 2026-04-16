@@ -1,4 +1,4 @@
-.inspector-panel {
+.ip-inspector-panel {
   width: 280px;
   background-color: var(--panel-bg);
   border-left: 1px solid var(--border-color);
@@ -6,61 +6,61 @@
   flex-direction: column;
 }
 
-.inspector-content {
+.ip-inspector-content {
   flex: 1;
   overflow-y: auto;
   padding: 20px 16px;
 }
 
-.empty-state {
+.ip-empty-state {
   text-align: center;
   color: var(--text-main);
   padding: 40px 0;
   font-size: 0.9rem;
 }
 
-.empty-state .hint {
+.ip-empty-state .ip-hint {
   font-size: 0.8rem;
   color: var(--text-muted);
   display: block;
   margin-top: 8px;
 }
 
-.property-group {
+.ip-property-group {
   margin-bottom: 24px;
 }
 
-.group-title {
+.ip-group-title {
   margin: 0 0 16px 0;
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-main);
 }
 
-.property-row {
+.ip-property-row {
   display: flex;
   gap: 12px;
   margin-bottom: 12px;
 }
 
-.property-field {
+.ip-property-field {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.property-field label {
+.ip-property-field label {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
 
-.input-group {
+.ip-input-group {
   display: flex;
   width: 100%;
 }
 
-.input-group input {
+.ip-input-group input {
   width: 100%;
   padding: 6px 8px;
   font-size: 0.85rem;
@@ -72,7 +72,7 @@
   transition: border-color 0.2s;
 }
 
-.input-group input:focus {
+.ip-input-group input:focus {
   border-color: var(--primary-color);
 }
 
@@ -90,12 +90,12 @@ input[type="color"]::-moz-color-swatch {
 }
 
 /* --- Custom Select Styles --- */
-.custom-select-container {
+.ip-custom-select-container {
   position: relative;
   user-select: none;
 }
 
-.custom-select-trigger {
+.ip-custom-select-trigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -108,24 +108,24 @@ input[type="color"]::-moz-color-swatch {
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.custom-select-trigger:hover {
+.ip-custom-select-trigger:hover {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-.custom-select-trigger.is-open {
+.ip-custom-select-trigger.ip-is-open {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
-.trigger-main {
+.ip-trigger-main {
   display: flex;
   align-items: center;
   justify-content: center;
   flex: 1;
 }
 
-.preview-wrap {
+.ip-preview-wrap {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,21 +136,21 @@ input[type="color"]::-moz-color-swatch {
 }
 
 /* 移除不再需要的 label-text 样式，增加图标居中逻辑 */
-.custom-select-trigger {
+.ip-custom-select-trigger {
   padding: 0 4px 0 8px; /* 给右侧 chevron 留一点空，左侧图标居中 */
 }
 
-.chevron-icon {
+.ip-chevron-icon {
   flex-shrink: 0;
   color: var(--text-muted);
   transition: transform 0.3s ease;
 }
 
-.custom-select-trigger.is-open .chevron-icon {
+.ip-custom-select-trigger.ip-is-open .ip-chevron-icon {
   transform: rotate(180deg);
 }
 
-.custom-select-dropdown {
+.ip-custom-select-dropdown {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
@@ -162,15 +162,15 @@ input[type="color"]::-moz-color-swatch {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   z-index: 100;
   overflow: hidden;
-  animation: dropdownFadeIn 0.2s ease-out;
+  animation: ip-dropdownFadeIn 0.2s ease-out;
 }
 
-@keyframes dropdownFadeIn {
+@keyframes ip-dropdownFadeIn {
   from { opacity: 0; transform: translateY(-10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.custom-select-item {
+.ip-custom-select-item {
   display: flex;
   align-items: center;
   justify-content: center; /* 居中对齐图标 */
@@ -181,15 +181,15 @@ input[type="color"]::-moz-color-swatch {
   position: relative;
 }
 
-.custom-select-item:hover {
+.ip-custom-select-item:hover {
   background: rgba(59, 130, 246, 0.08);
 }
 
-.custom-select-item.is-selected {
+.ip-custom-select-item.ip-is-selected {
   background: rgba(59, 130, 246, 0.05);
 }
 
-.item-preview {
+.ip-item-preview {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -199,7 +199,7 @@ input[type="color"]::-moz-color-swatch {
   opacity: 0.7;
 }
 
-.check-icon {
+.ip-check-icon {
   position: absolute;
   right: 6px;
   color: var(--primary-color);

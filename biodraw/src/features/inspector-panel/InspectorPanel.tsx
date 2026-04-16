@@ -155,18 +155,18 @@ export function InspectorPanel() {
         e.currentTarget.style.background = 'transparent';
       };
       return (
-        <aside className="inspector-panel">
+        <aside className="ip-inspector-panel">
           <InspectorTabHeader activeTab={activeTab} onTabChange={setActiveTab} />
           {activeTab === 'layers' ? (
             <LayerPanel />
           ) : (
-          <div className="inspector-content">
-            <div className="property-group">
-              <h4 className="group-title">已选中 {selectedIds.length} 个对象</h4>
+          <div className="ip-inspector-content">
+            <div className="ip-property-group">
+              <h4 className="ip-group-title">已选中 {selectedIds.length} 个对象</h4>
 
               {/* 对齐到彼此 */}
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>对齐到彼此</div>
-              <div className="property-row" style={{ gap: 4, marginBottom: 4 }}>
+              <div className="ip-property-row" style={{ gap: 4, marginBottom: 4 }}>
                 <button style={btnStyle} title="左边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                   onClick={() => alignToEdge('left', null)}>
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="2" height="14"/><rect x="2" y="3" width="5" height="4" opacity="0.55"/><rect x="2" y="8" width="8" height="3" opacity="0.35"/></svg>
@@ -183,7 +183,7 @@ export function InspectorPanel() {
                   <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>右对齐</span>
                 </button>
               </div>
-              <div className="property-row" style={{ gap: 4, marginBottom: 8 }}>
+              <div className="ip-property-row" style={{ gap: 4, marginBottom: 8 }}>
                 <button style={btnStyle} title="顶边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                   onClick={() => alignToEdge(null, 'top')}>
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="14" height="2"/><rect x="2" y="2" width="4" height="6" opacity="0.55"/><rect x="8" y="2" width="4" height="9" opacity="0.35"/></svg>
@@ -205,7 +205,7 @@ export function InspectorPanel() {
               {selectedIds.length >= 3 && (
                 <>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>等间距分布</div>
-                  <div className="property-row" style={{ gap: 4, marginBottom: 8 }}>
+                  <div className="ip-property-row" style={{ gap: 4, marginBottom: 8 }}>
                     <button style={btnStyle} title="水平等间距" onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={distributeH}>
                       <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="1" height="14" opacity="0.4"/><rect x="13" y="0" width="1" height="14" opacity="0.4"/><rect x="3" y="3" width="3" height="8" opacity="0.55"/><rect x="8" y="3" width="3" height="8" opacity="0.55"/></svg>
                       <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>水平分布</span>
@@ -220,7 +220,7 @@ export function InspectorPanel() {
 
               {/* 对齐到画布 */}
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>对齐到画布</div>
-              <div className="property-row" style={{ gap: 4, marginBottom: 4 }}>
+              <div className="ip-property-row" style={{ gap: 4, marginBottom: 4 }}>
                 {[
                   { label: '左', title: '所有对象左边缘贴画布左边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: w/2, y: o.y }; })) },
                   { label: '水平中', title: '所有对象水平居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: canvasWidth/2, y: o.y }))) },
@@ -231,7 +231,7 @@ export function InspectorPanel() {
                   </button>
                 ))}
               </div>
-              <div className="property-row" style={{ gap: 4, marginBottom: 8 }}>
+              <div className="ip-property-row" style={{ gap: 4, marginBottom: 8 }}>
                 {[
                   { label: '顶', title: '所有对象顶边缘贴画布顶部', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: h/2 }; })) },
                   { label: '垂直中', title: '所有对象垂直居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: o.x, y: canvasHeight/2 }))) },
@@ -249,7 +249,7 @@ export function InspectorPanel() {
                 const uniqueGroups = Array.from(new Set(groupIds));
                 const allSameGroup = uniqueGroups.length === 1 && groupIds.length === selectedObjects.length;
                 return (
-                  <div className="property-row" style={{ gap: 4, marginBottom: 8 }}>
+                  <div className="ip-property-row" style={{ gap: 4, marginBottom: 8 }}>
                     {allSameGroup ? (
                       <button
                         title="解散分组，恢复为独立对象"
@@ -272,7 +272,7 @@ export function InspectorPanel() {
               })()}
 
               {/* 删除多选 */}
-              <div className="property-row" style={{ gap: 4 }}>
+              <div className="ip-property-row" style={{ gap: 4 }}>
                 <button
                   title="删除所有选中对象 (Delete)"
                   onClick={() => removeSceneObjects(selectedIds)}
@@ -289,19 +289,19 @@ export function InspectorPanel() {
     }
 
     return (
-      <aside className="inspector-panel">
+      <aside className="ip-inspector-panel">
         <InspectorTabHeader activeTab={activeTab} onTabChange={setActiveTab} />
         {activeTab === 'layers' ? (
           <LayerPanel />
         ) : (
           <>
-            <div className="panel-header">
+            <div className="ip-panel-header">
               <h3>属性控制</h3>
             </div>
-            <div className="inspector-content">
-              <div className="empty-state">
+            <div className="ip-inspector-content">
+              <div className="ip-empty-state">
                 未选中任何对象
-                <span className="hint">请在画板中点击对象以加载其属性</span>
+                <span className="ip-hint">请在画板中点击对象以加载其属性</span>
               </div>
             </div>
           </>
@@ -428,19 +428,19 @@ export function InspectorPanel() {
 
     return (
       <div
-        className="custom-select-container"
+        className="ip-custom-select-container"
         ref={containerRef}
         style={{ width }}
       >
         <div
-          className={`custom-select-trigger ${isOpen ? "is-open" : ""}`}
+          className={`ip-custom-select-trigger ${isOpen ? "ip-is-open" : ""}`}
           onClick={() => setIsOpen(!isOpen)}
         >
-          <div className="trigger-main">
-            <span className="preview-wrap">{selectedOption.preview}</span>
+          <div className="ip-trigger-main">
+            <span className="ip-preview-wrap">{selectedOption.preview}</span>
           </div>
           <svg
-            className="chevron-icon"
+            className="ip-chevron-icon"
             width="10"
             height="6"
             viewBox="0 0 10 6"
@@ -457,20 +457,20 @@ export function InspectorPanel() {
         </div>
 
         {isOpen && (
-          <div className="custom-select-dropdown">
+          <div className="ip-custom-select-dropdown">
             {options.map((opt) => (
               <div
                 key={opt.value}
-                className={`custom-select-item ${opt.value === value ? "is-selected" : ""}`}
+                className={`ip-custom-select-item ${opt.value === value ? "ip-is-selected" : ""}`}
                 onClick={() => {
                   onChange(opt.value);
                   setIsOpen(false);
                 }}
               >
-                <span className="item-preview">{opt.preview}</span>
+                <span className="ip-item-preview">{opt.preview}</span>
                 {opt.value === value && (
                   <svg
-                    className="check-icon"
+                    className="ip-check-icon"
                     width="10"
                     height="8"
                     viewBox="0 0 10 8"
@@ -593,22 +593,22 @@ export function InspectorPanel() {
   ];
 
   return (
-    <aside className="inspector-panel">
+    <aside className="ip-inspector-panel">
       <InspectorTabHeader activeTab={activeTab} onTabChange={setActiveTab} />
       {activeTab === 'layers' ? (
         <LayerPanel />
       ) : (
       <>
-      <div className="panel-header">
+      <div className="ip-panel-header">
         <h3>属性控制</h3>
       </div>
 
-      <div className="inspector-content">
-        <div className="property-group">
-          <h4 className="group-title">基础参数</h4>
+      <div className="ip-inspector-content">
+        <div className="ip-property-group">
+          <h4 className="ip-group-title">基础参数</h4>
 
           <div
-            className="property-field"
+            className="ip-property-field"
             style={{
               marginBottom: "16px",
               flexDirection: "row",
@@ -634,7 +634,7 @@ export function InspectorPanel() {
                 minWidth: 0,
               }}
             >
-              <div className="input-group" style={{ flex: 1, minWidth: 0 }}>
+              <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
                 <input
                   type="number"
                   value={Math.round(selectedObj.x)}
@@ -643,7 +643,7 @@ export function InspectorPanel() {
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
-              <div className="input-group" style={{ flex: 1, minWidth: 0 }}>
+              <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
                 <input
                   type="number"
                   value={Math.round(selectedObj.y)}
@@ -658,7 +658,7 @@ export function InspectorPanel() {
           </div>
 
           <div
-            className="property-field"
+            className="ip-property-field"
             style={{
               marginBottom: "16px",
               flexDirection: "row",
@@ -684,7 +684,7 @@ export function InspectorPanel() {
                 minWidth: 0,
               }}
             >
-              <div className="input-group" style={{ flex: 1, minWidth: 0 }}>
+              <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
                 <input
                   type="number"
                   value={Math.round(selectedObj.width * selectedObj.scaleX)}
@@ -695,7 +695,7 @@ export function InspectorPanel() {
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
-              <div className="input-group" style={{ flex: 1, minWidth: 0 }}>
+              <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
                 <input
                   type="number"
                   value={Math.round(selectedObj.height * selectedObj.scaleY)}
@@ -731,7 +731,7 @@ export function InspectorPanel() {
           </div>
 
           <div
-            className="property-field"
+            className="ip-property-field"
             style={{
               marginBottom: "16px",
               flexDirection: "row",
@@ -757,7 +757,7 @@ export function InspectorPanel() {
                 minWidth: 0,
               }}
             >
-              <div className="input-group" style={{ flex: 1, minWidth: 0 }}>
+              <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
                 <input
                   type="number"
                   value={Math.round(selectedObj.rotation || 0)}
@@ -797,7 +797,7 @@ export function InspectorPanel() {
           </div>
 
           <div
-            className="property-field"
+            className="ip-property-field"
             style={{
               marginBottom: "16px",
               flexDirection: "row",
@@ -953,10 +953,10 @@ export function InspectorPanel() {
         </div>
 
         {/* 对齐工具 */}
-        <div className="property-group">
-          <h4 className="group-title">对齐到画布</h4>
+        <div className="ip-property-group">
+          <h4 className="ip-group-title">对齐到画布</h4>
           {/* 水平对齐：左对齐 / 水平居中 / 右对齐 */}
-          <div className="property-row" style={{ gap: 4, marginBottom: 4 }}>
+          <div className="ip-property-row" style={{ gap: 4, marginBottom: 4 }}>
             {([
               {
                 title: '左对齐（左边缘贴画布左边）',
@@ -1018,7 +1018,7 @@ export function InspectorPanel() {
             ))}
           </div>
           {/* 垂直对齐：顶对齐 / 垂直居中 / 底对齐 */}
-          <div className="property-row" style={{ gap: 4 }}>
+          <div className="ip-property-row" style={{ gap: 4 }}>
             {([
               {
                 title: '顶对齐（上边缘贴画布顶部）',
@@ -1079,7 +1079,7 @@ export function InspectorPanel() {
               </button>
             ))}
           </div>
-          <div className="property-row" style={{ gap: 4, marginTop: 0 }}>
+          <div className="ip-property-row" style={{ gap: 4, marginTop: 0 }}>
             <button
               title={selectedObj?.locked ? '解锁对象（可移动）' : '锁定对象（防止误移）'}
               onClick={() => selectedObj && toggleObjectLock(selectedObj.id)}
@@ -1122,12 +1122,12 @@ export function InspectorPanel() {
         </div>
 
         {/* 样式设置 - 根据类型动态显示 */}
-        <div className="property-group">
-          <h4 className="group-title">样式设置</h4>
+        <div className="ip-property-group">
+          <h4 className="ip-group-title">样式设置</h4>
 
           {/* 第 1 行：核心颜色与基础属性 (描边颜色/文字颜色 | 填充颜色/线型/字号) */}
           <div
-            className="property-field"
+            className="ip-property-field"
             style={{ flexDirection: "row", gap: "28px", marginBottom: "12px" }}
           >
             {/* 左侧：描边颜色 (形状/路径) 或 文字颜色 (文本) */}
@@ -1161,7 +1161,7 @@ export function InspectorPanel() {
                   >
                     描边颜色：
                   </label>
-                  <div className="input-group" style={{ width: "38px" }}>
+                  <div className="ip-input-group" style={{ width: "38px" }}>
                     <input
                       type="color"
                       value={selectedObj.style?.stroke || "#000000"}
@@ -1195,7 +1195,7 @@ export function InspectorPanel() {
                   >
                     文字颜色：
                   </label>
-                  <div className="input-group" style={{ width: "38px" }}>
+                  <div className="ip-input-group" style={{ width: "38px" }}>
                     <input
                       type="color"
                       value={selectedObj.style?.fill || "#000000"}
@@ -1241,7 +1241,7 @@ export function InspectorPanel() {
                   >
                     填充颜色：
                   </label>
-                  <div className="input-group" style={{ width: "38px" }}>
+                  <div className="ip-input-group" style={{ width: "38px" }}>
                     <input
                       type="color"
                       value={selectedObj.style?.fill || "#000000"}
@@ -1296,7 +1296,7 @@ export function InspectorPanel() {
                   >
                     文字大小：
                   </label>
-                  <div className="input-group" style={{ width: "44px" }}>
+                  <div className="ip-input-group" style={{ width: "44px" }}>
                     <input
                       type="number"
                       min="5"
@@ -1324,7 +1324,7 @@ export function InspectorPanel() {
 
           {/* 第 2 行：数值与高级样式 (描边粗细/对齐方式 | 圆角/样式) */}
           <div
-            className="property-field"
+            className="ip-property-field"
             style={{ flexDirection: "row", gap: "28px", marginBottom: "12px" }}
           >
             {/* 左侧：描边粗细 (形状/路径) 或 对齐方式 (文本-独占) */}
@@ -1358,7 +1358,7 @@ export function InspectorPanel() {
                   >
                     描边粗细：
                   </label>
-                  <div className="input-group" style={{ width: "38px" }}>
+                  <div className="ip-input-group" style={{ width: "38px" }}>
                     <input
                       type="number"
                       min="1"
@@ -1529,7 +1529,7 @@ export function InspectorPanel() {
                       )}
                       {selectedObj.type === "rect" ? "角：" : "径："}
                     </label>
-                    <div className="input-group" style={{ width: "38px" }}>
+                    <div className="ip-input-group" style={{ width: "38px" }}>
                       <input
                         type="number"
                         min={selectedObj.type === "rect" ? 0 : 1}
@@ -1596,7 +1596,7 @@ export function InspectorPanel() {
           {basicNamedTypes.includes(selectedObj.type) && (
             <>
               <div
-                className="property-field"
+                className="ip-property-field"
                 style={{
                   flexDirection: "row",
                   gap: "28px",
@@ -1623,7 +1623,7 @@ export function InspectorPanel() {
                   >
                     文字颜色：
                   </label>
-                  <div className="input-group" style={{ width: "38px" }}>
+                  <div className="ip-input-group" style={{ width: "38px" }}>
                     <input
                       type="color"
                       value={selectedObj.style?.textColor || "#334155"}
@@ -1662,7 +1662,7 @@ export function InspectorPanel() {
                   >
                     字体大小：
                   </label>
-                  <div className="input-group" style={{ width: "44px" }}>
+                  <div className="ip-input-group" style={{ width: "44px" }}>
                     <input
                       type="number"
                       min="5"
@@ -1686,7 +1686,7 @@ export function InspectorPanel() {
               </div>
 
               <div
-                className="property-field"
+                className="ip-property-field"
                 style={{
                   flexDirection: "row",
                   gap: "28px",
@@ -1815,7 +1815,7 @@ export function InspectorPanel() {
 
           {(selectedObj.type === "text" || isNameDirectionTarget) && (
             <div
-              className="property-field"
+              className="ip-property-field"
               style={{
                 flexDirection: "row",
                 gap: "28px",
@@ -1896,8 +1896,8 @@ export function InspectorPanel() {
         </div>
 
         {/* ── 动画片段区 ────────────────────────────────────────── */}
-        <div className="property-group">
-          <h4 className="group-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div className="ip-property-group">
+          <h4 className="ip-group-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
             <span>动画片段</span>
             {/* ＋ 添加动画 按钮 */}
             <div ref={addAnimMenuRef} style={{ position: 'relative' }}>
@@ -1973,7 +1973,7 @@ export function InspectorPanel() {
               return (
                 <div
                   key={clip.id}
-                  className="property-row"
+                  className="ip-property-row"
                   onClick={() => setExpandedAnimationClipId(clip.id)}
                   style={{
                     cursor: 'pointer',
