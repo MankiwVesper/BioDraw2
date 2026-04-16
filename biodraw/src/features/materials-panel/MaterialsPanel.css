@@ -13,7 +13,7 @@
 
 .mp-panel-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -32,7 +32,7 @@
   padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  font-size: 0.85rem;
+  font-size: 13px;
   background-color: var(--panel-bg);
   color: var(--text-main);
   outline: none;
@@ -48,7 +48,7 @@
   padding: 6px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  font-size: 0.85rem;
+  font-size: 13px;
   min-width: 0;
   outline: none;
 }
@@ -93,7 +93,7 @@
 }
 
 .mp-accordion-title {
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
 }
@@ -137,7 +137,7 @@
 }
 
 .mp-material-name {
-  font-size: 0.8rem;
+  font-size: 12px;
   text-align: center;
   color: var(--text-main);
 }
@@ -145,7 +145,7 @@
 .mp-empty-message {
   padding: 20px;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 13px;
   text-align: center;
 }
 
