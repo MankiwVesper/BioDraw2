@@ -212,20 +212,7 @@
 }
 
 .tb-export-btn {
-  height: 28px;
-  border: 1px solid var(--border-color);
   background: var(--panel-bg);
-  color: var(--text-main);
-  border-radius: 5px;
-  padding: 0 10px;
-  cursor: pointer;
-  font-size: 12px;
-  white-space: nowrap;
-  transition: border-color 0.12s, background 0.12s;
-}
-
-.tb-export-btn:hover:not(:disabled) {
-  border-color: var(--primary-color);
 }
 
 .tb-export-btn.is-open {
@@ -236,7 +223,6 @@
 
 .tb-export-btn:disabled {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* 导出面板 */

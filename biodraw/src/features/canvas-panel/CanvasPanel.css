@@ -23,6 +23,6 @@
 
 .canvas-placeholder {
   color: var(--text-muted);
-  font-size: 1.1rem;
+  font-size: 18px;
   user-select: none;
 }

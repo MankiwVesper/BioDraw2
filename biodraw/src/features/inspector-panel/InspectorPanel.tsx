@@ -295,9 +295,6 @@ export function InspectorPanel() {
           <LayerPanel />
         ) : (
           <>
-            <div className="ip-panel-header">
-              <h3>属性控制</h3>
-            </div>
             <div className="ip-inspector-content">
               <div className="ip-empty-state">
                 未选中任何对象
@@ -599,10 +596,6 @@ export function InspectorPanel() {
         <LayerPanel />
       ) : (
       <>
-      <div className="ip-panel-header">
-        <h3>属性控制</h3>
-      </div>
-
       <div className="ip-inspector-content">
         <div className="ip-property-group">
           <h4 className="ip-group-title">基础参数</h4>

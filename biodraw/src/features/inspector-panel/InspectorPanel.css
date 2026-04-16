@@ -16,11 +16,11 @@
   text-align: center;
   color: var(--text-main);
   padding: 40px 0;
-  font-size: 0.9rem;
+  font-size: 14px;
 }
 
 .ip-empty-state .ip-hint {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--text-muted);
   display: block;
   margin-top: 8px;
@@ -32,7 +32,7 @@
 
 .ip-group-title {
   margin: 0 0 16px 0;
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
 }
@@ -51,7 +51,7 @@
 }
 
 .ip-property-field label {
-  font-size: 0.8rem;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -63,7 +63,7 @@
 .ip-input-group input {
   width: 100%;
   padding: 6px 8px;
-  font-size: 0.85rem;
+  font-size: 13px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   color: var(--text-main);
