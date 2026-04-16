@@ -315,7 +315,7 @@ export function CanvasPanel() {
         undo();
         return;
       }
-      if ((e.key === 'y' && (e.ctrlKey || e.metaKey)) || (e.key === 'z' && (e.ctrlKey || e.metaKey) && e.shiftKey)) {
+      if (e.key === 'y' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
         redo();
         return;

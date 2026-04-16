@@ -159,7 +159,6 @@ export function ToolbarPanel() {
     setShowExportPanel(false);
   };
 
-  const timeLabel = `${(currentTimeMs / 1000).toFixed(2)}s / ${(globalDurationMs / 1000).toFixed(2)}s`;
   const playbackRateOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
   const exportFpsOptions    = [12, 24, 30, 60];
 
@@ -234,7 +233,7 @@ export function ToolbarPanel() {
         <button className="tb-btn tb-undo-btn" onClick={undo} disabled={past.length === 0} title="撤销 (Ctrl+Z)">
           ↩ 撤销
         </button>
-        <button className="tb-btn tb-undo-btn" onClick={redo} disabled={future.length === 0} title="重做 (Ctrl+Shift+Z)">
+        <button className="tb-btn tb-undo-btn" onClick={redo} disabled={future.length === 0} title="重做 (Ctrl+Y)">
           ↪ 重做
         </button>
       </div>
@@ -260,9 +259,6 @@ export function ToolbarPanel() {
             ⏭
           </button>
         </div>
-
-        {/* 时间显示 */}
-        <span className="tb-time">{timeLabel}</span>
 
         <div className="tb-divider" />
 
@@ -296,7 +292,6 @@ export function ToolbarPanel() {
         <button
           className={`tb-btn${playbackLoopEnabled ? ' is-active' : ''}`}
           onClick={() => setPlaybackLoopEnabled(!playbackLoopEnabled)}
-          title="全局循环"
         >
           循环
         </button>
