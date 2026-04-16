@@ -85,6 +85,7 @@
 }
 
 .tb-btn-sm {
+  height: 22px;
   padding: 0 7px;
   font-size: 11px;
 }
@@ -318,7 +319,7 @@
 }
 
 .tb-export-action-btn {
-  height: 30px;
+  height: 28px;
   border: 1px solid var(--border-color);
   background: var(--bg-color);
   color: var(--text-main);

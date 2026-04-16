@@ -160,7 +160,7 @@
 
 /* ── 通用按钮 ──────────────────────────────────────── */
 .tl-btn {
-  height: 24px;
+  height: 28px;
   border: 1px solid var(--border-color);
   background: var(--panel-bg);
   color: var(--text-main);
@@ -183,14 +183,14 @@
 }
 
 .tl-btn-sm {
-  height: 20px;
+  height: 22px;
   padding: 0 6px;
   font-size: 11px;
 }
 
 /* ── 冲突按钮 ──────────────────────────────────────── */
 .tl-conflict-btn {
-  height: 24px;
+  height: 28px;
   border: 1px solid #fca5a5;
   background: #fff1f2;
   color: #b91c1c;
@@ -207,7 +207,7 @@
 
 /* ── 添加动画下拉 ───────────────────────────────────── */
 .tl-add-btn {
-  height: 24px;
+  height: 28px;
   border: 1px solid var(--primary-color);
   background: var(--primary-color);
   color: #ffffff;
