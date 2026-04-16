@@ -1,4 +1,4 @@
-.materials-panel {
+.mp-materials-panel {
   width: 280px;
   background-color: var(--panel-bg);
   border-right: 1px solid var(--border-color);
@@ -6,19 +6,19 @@
   flex-direction: column;
 }
 
-.panel-header {
+.mp-panel-header {
   padding: 16px;
   border-bottom: 1px solid var(--border-color);
 }
 
-.panel-header h3 {
+.mp-panel-header h3 {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
 }
 
 /* 筛选与搜索的同一水平区 */
-.panel-controls {
+.mp-panel-controls {
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -27,7 +27,7 @@
   background-color: var(--bg-color);
 }
 
-.category-dropdown {
+.mp-category-dropdown {
   width: 100px;
   padding: 6px 8px;
   border: 1px solid var(--border-color);
@@ -39,11 +39,11 @@
   cursor: pointer;
 }
 
-.category-dropdown:focus, .search-input:focus {
+.mp-category-dropdown:focus, .mp-search-input:focus {
   border-color: var(--primary-color);
 }
 
-.search-input {
+.mp-search-input {
   flex: 1;
   padding: 6px 12px;
   border: 1px solid var(--border-color);
@@ -54,16 +54,16 @@
 }
 
 /* 垂直排列手风琴布局区 */
-.accordion-list {
+.mp-accordion-list {
   flex: 1;
   overflow-y: auto;
 }
 
-.accordion-section {
+.mp-accordion-section {
   border-bottom: 1px solid var(--border-color);
 }
 
-.accordion-header {
+.mp-accordion-header {
   padding: 10px 16px;
   display: flex;
   align-items: center;
@@ -74,11 +74,11 @@
   user-select: none;
 }
 
-.accordion-header:hover {
+.mp-accordion-header:hover {
   background-color: var(--bg-color);
 }
 
-.accordion-icon {
+.mp-accordion-icon {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -88,18 +88,18 @@
   transition: transform 0.2s ease;
 }
 
-.accordion-icon.expanded {
+.mp-accordion-icon.mp-expanded {
   transform: rotate(90deg);
 }
 
-.accordion-title {
+.mp-accordion-title {
   font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-main);
 }
 
 /* 素材网格区 */
-.materials-grid {
+.mp-materials-grid {
   padding: 12px 16px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -107,7 +107,7 @@
   background-color: var(--bg-color);
 }
 
-.material-item {
+.mp-material-item {
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   padding: 10px;
@@ -120,13 +120,13 @@
   background-color: var(--panel-bg);
 }
 
-.material-item:hover {
+.mp-material-item:hover {
   border-color: var(--primary-color);
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
 
-.material-preview {
+.mp-material-preview {
   width: 60px;
   height: 60px;
   border-radius: 4px;
@@ -136,25 +136,25 @@
   justify-content: center;
 }
 
-.material-name {
+.mp-material-name {
   font-size: 0.8rem;
   text-align: center;
   color: var(--text-main);
 }
 
-.empty-message {
+.mp-empty-message {
   padding: 20px;
   color: var(--text-muted);
   font-size: 0.85rem;
   text-align: center;
 }
 
-.shape-preview {
+.mp-shape-preview {
   background-color: var(--bg-color);
   color: var(--primary-color);
 }
 
-.shape-icon {
+.mp-shape-icon {
   font-size: 24px;
   font-weight: bold;
   line-height: 1;

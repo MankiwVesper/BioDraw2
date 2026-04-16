@@ -69,14 +69,14 @@ export function MaterialsPanel() {
   }, [categories, filterCategory, searchQuery, materials]);
 
   return (
-    <aside className="materials-panel">
-      <div className="panel-header">
+    <aside className="mp-materials-panel">
+      <div className="mp-panel-header">
         <h3>素材库</h3>
       </div>
 
-      <div className="panel-controls">
+      <div className="mp-panel-controls">
         <select
-          className="category-dropdown"
+          className="mp-category-dropdown"
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
           title="筛选分类"
@@ -92,7 +92,7 @@ export function MaterialsPanel() {
         <input
           type="text"
           placeholder="搜索素材..."
-          className="search-input"
+          className="mp-search-input"
           value={searchQuery}
           onChange={(e) => {
             setSearchQuery(e.target.value);
@@ -101,10 +101,10 @@ export function MaterialsPanel() {
         />
       </div>
 
-      <div className="accordion-list">
-        <div className="accordion-section" key="basic-tools">
-          <div className="accordion-header" onClick={() => toggleCat('basic-tools')}>
-            <span className={`accordion-icon ${isExpanded('basic-tools') ? 'expanded' : ''}`}>
+      <div className="mp-accordion-list">
+        <div className="mp-accordion-section" key="basic-tools">
+          <div className="mp-accordion-header" onClick={() => toggleCat('basic-tools')}>
+            <span className={`mp-accordion-icon ${isExpanded('basic-tools') ? 'mp-expanded' : ''}`}>
               <svg
                 viewBox="0 0 24 24"
                 width="16"
@@ -118,13 +118,13 @@ export function MaterialsPanel() {
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </span>
-            <span className="accordion-title">基础工具</span>
+            <span className="mp-accordion-title">基础工具</span>
           </div>
           {isExpanded('basic-tools') && (
-            <div className="materials-grid">
+            <div className="mp-materials-grid">
               {basicShapes.map((shape) => (
                 <div
-                  className="material-item"
+                  className="mp-material-item"
                   key={shape.type}
                   draggable
                   onDragStart={(e) => {
@@ -141,10 +141,10 @@ export function MaterialsPanel() {
                     );
                   }}
                 >
-                  <div className="material-preview shape-preview">
+                  <div className="mp-material-preview mp-shape-preview">
                     {shape.type === 'trapezoid' ? (
                       <span
-                        className="shape-icon"
+                        className="mp-shape-icon"
                         aria-hidden="true"
                         style={{
                           display: 'inline-block',
@@ -155,10 +155,10 @@ export function MaterialsPanel() {
                         }}
                       />
                     ) : (
-                      <span className="shape-icon">{shape.icon}</span>
+                      <span className="mp-shape-icon">{shape.icon}</span>
                     )}
                   </div>
-                  <span className="material-name">{shape.name}</span>
+                  <span className="mp-material-name">{shape.name}</span>
                 </div>
               ))}
             </div>
@@ -176,9 +176,9 @@ export function MaterialsPanel() {
           if (catMaterials.length === 0) return null;
 
           return (
-            <div className="accordion-section" key={cat}>
-              <div className="accordion-header" onClick={() => toggleCat(cat)}>
-                <span className={`accordion-icon ${expanded ? 'expanded' : ''}`}>
+            <div className="mp-accordion-section" key={cat}>
+              <div className="mp-accordion-header" onClick={() => toggleCat(cat)}>
+                <span className={`mp-accordion-icon ${expanded ? 'mp-expanded' : ''}`}>
                   <svg
                     viewBox="0 0 24 24"
                     width="16"
@@ -192,14 +192,14 @@ export function MaterialsPanel() {
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </span>
-                <span className="accordion-title">{cat}</span>
+                <span className="mp-accordion-title">{cat}</span>
               </div>
 
               {expanded && (
-                <div className="materials-grid">
+                <div className="mp-materials-grid">
                   {catMaterials.map((item) => (
                     <div
-                      className="material-item"
+                      className="mp-material-item"
                       key={item.id}
                       draggable
                       onDragStart={(e) => {
@@ -235,7 +235,7 @@ export function MaterialsPanel() {
                         );
                       }}
                     >
-                      <div className="material-preview">
+                      <div className="mp-material-preview">
                         <img
                           src={item.url}
                           alt={item.name}
@@ -243,7 +243,7 @@ export function MaterialsPanel() {
                           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                       </div>
-                      <span className="material-name" title={item.name}>
+                      <span className="mp-material-name" title={item.name}>
                         {item.name.length > 8 ? `${item.name.substring(0, 8)}...` : item.name}
                       </span>
                     </div>
@@ -254,7 +254,7 @@ export function MaterialsPanel() {
           );
         })}
 
-        {visibleCategories.length === 0 && <div className="empty-message">暂无匹配的素材</div>}
+        {visibleCategories.length === 0 && <div className="mp-empty-message">暂无匹配的素材</div>}
       </div>
     </aside>
   );
