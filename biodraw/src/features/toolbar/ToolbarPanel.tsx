@@ -9,9 +9,6 @@ export function ToolbarPanel() {
   const globalDurationMs = useEditorStore((s) => s.globalDurationMs);
   const playbackRate    = useEditorStore((s) => s.playbackRate);
   const playbackLoopEnabled = useEditorStore((s) => s.playbackLoopEnabled);
-  const playbackRegionLoopEnabled = useEditorStore((s) => s.playbackRegionLoopEnabled);
-  const playbackLoopInMs  = useEditorStore((s) => s.playbackLoopInMs);
-  const playbackLoopOutMs = useEditorStore((s) => s.playbackLoopOutMs);
   const sequenceExportStatus  = useEditorStore((s) => s.sequenceExportStatus);
   const sequenceExportMessage = useEditorStore((s) => s.sequenceExportMessage);
   const videoExportStatus     = useEditorStore((s) => s.videoExportStatus);
@@ -31,10 +28,6 @@ export function ToolbarPanel() {
   const advancePlayback = useEditorStore((s) => s.advancePlayback);
   const setPlaybackRate = useEditorStore((s) => s.setPlaybackRate);
   const setPlaybackLoopEnabled = useEditorStore((s) => s.setPlaybackLoopEnabled);
-  const setPlaybackRegionLoopEnabled = useEditorStore((s) => s.setPlaybackRegionLoopEnabled);
-  const setPlaybackLoopInMs  = useEditorStore((s) => s.setPlaybackLoopInMs);
-  const setPlaybackLoopOutMs = useEditorStore((s) => s.setPlaybackLoopOutMs);
-  const clearPlaybackLoopRegion = useEditorStore((s) => s.clearPlaybackLoopRegion);
   const stepPlaybackFrame  = useEditorStore((s) => s.stepPlaybackFrame);
   const requestSequenceExport = useEditorStore((s) => s.requestSequenceExport);
   const requestVideoExport    = useEditorStore((s) => s.requestVideoExport);
@@ -143,18 +136,10 @@ export function ToolbarPanel() {
     return () => window.removeEventListener('mousedown', handler);
   }, [showExportPanel]);
 
-  const isRegionLoopValid = useMemo(() => {
-    if (playbackLoopInMs === null || playbackLoopOutMs === null) return false;
-    return playbackLoopOutMs > playbackLoopInMs;
-  }, [playbackLoopInMs, playbackLoopOutMs]);
-
-  const exportRange = useMemo(() => {
-    const useRegion = playbackRegionLoopEnabled && isRegionLoopValid;
-    return {
-      startMs: useRegion ? (playbackLoopInMs ?? 0) : 0,
-      endMs:   useRegion ? (playbackLoopOutMs ?? globalDurationMs) : globalDurationMs,
-    };
-  }, [globalDurationMs, isRegionLoopValid, playbackLoopInMs, playbackLoopOutMs, playbackRegionLoopEnabled]);
+  const exportRange = useMemo(() => ({
+    startMs: 0,
+    endMs: globalDurationMs,
+  }), [globalDurationMs]);
 
   const exportSize = useMemo(() => ({
     width:  Math.max(16, Math.round(exportWidth)),
@@ -315,24 +300,6 @@ export function ToolbarPanel() {
         >
           循环
         </button>
-        <button
-          className={`tb-btn${playbackRegionLoopEnabled ? ' is-active' : ''}`}
-          onClick={() => setPlaybackRegionLoopEnabled(!playbackRegionLoopEnabled)}
-          title="区域循环"
-        >
-          区域
-        </button>
-        <button className="tb-btn tb-btn-sm" onClick={() => setPlaybackLoopInMs(currentTimeMs)} title="设置 In 点">
-          设In
-        </button>
-        <button className="tb-btn tb-btn-sm" onClick={() => setPlaybackLoopOutMs(currentTimeMs)} title="设置 Out 点">
-          设Out
-        </button>
-        {(playbackLoopInMs !== null || playbackLoopOutMs !== null) && (
-          <button className="tb-btn tb-btn-sm" onClick={clearPlaybackLoopRegion} title="清除区域">
-            清除
-          </button>
-        )}
       </div>
 
       {/* ── 右区：画布设置 + 导出 + 状态 */}
@@ -340,7 +307,7 @@ export function ToolbarPanel() {
         {/* 画布设置按钮 + 面板 */}
         <div className="tb-export-wrap" ref={canvasPanelRef}>
           <button
-            className={`tb-export-btn${showCanvasPanel ? ' is-open' : ''}`}
+            className={`tb-btn tb-export-btn${showCanvasPanel ? ' is-open' : ''}`}
             onClick={() => {
               setLocalCanvasW(canvasWidth);
               setLocalCanvasH(canvasHeight);
@@ -435,7 +402,7 @@ export function ToolbarPanel() {
         {/* 导出按钮 + 下拉面板 */}
         <div className="tb-export-wrap" ref={exportPanelRef}>
           <button
-            className={`tb-export-btn${showExportPanel ? ' is-open' : ''}`}
+            className={`tb-btn tb-export-btn${showExportPanel ? ' is-open' : ''}`}
             onClick={() => setShowExportPanel((p) => !p)}
             disabled={isExporting}
           >
@@ -472,7 +439,6 @@ export function ToolbarPanel() {
 
               <div className="tb-export-range">
                 导出范围：{(exportRange.startMs / 1000).toFixed(2)}s — {(exportRange.endMs / 1000).toFixed(2)}s
-                {playbackRegionLoopEnabled && isRegionLoopValid && <span className="tb-export-range-badge">区域</span>}
               </div>
 
               <div className="tb-export-actions">

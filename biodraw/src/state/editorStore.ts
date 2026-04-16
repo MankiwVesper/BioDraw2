@@ -43,9 +43,6 @@ interface EditorState {
   currentTimeMs: number;
   playbackRate: number;
   playbackLoopEnabled: boolean;
-  playbackRegionLoopEnabled: boolean;
-  playbackLoopInMs: number | null;
-  playbackLoopOutMs: number | null;
   sequenceExportRequestId: number;
   sequenceExportOptions: SequenceExportOptions;
   sequenceExportStatus: SequenceExportStatus;
@@ -104,10 +101,6 @@ interface EditorState {
   advancePlayback: (deltaMs: number) => void;
   setPlaybackRate: (rate: number) => void;
   setPlaybackLoopEnabled: (enabled: boolean) => void;
-  setPlaybackRegionLoopEnabled: (enabled: boolean) => void;
-  setPlaybackLoopInMs: (timeMs: number | null) => void;
-  setPlaybackLoopOutMs: (timeMs: number | null) => void;
-  clearPlaybackLoopRegion: () => void;
   stepPlaybackFrame: (direction: 1 | -1) => void;
   exportCancelCount: number;
   singleFrameExportId: number;
@@ -148,20 +141,6 @@ const clampTime = (timeMs: number, durationMs: number) =>
 
 const clampPlaybackRate = (rate: number) => Math.max(0.25, Math.min(2, rate));
 
-const resolveLoopRegion = (state: {
-  playbackRegionLoopEnabled: boolean;
-  playbackLoopInMs: number | null;
-  playbackLoopOutMs: number | null;
-  globalDurationMs: number;
-}) => {
-  if (!state.playbackRegionLoopEnabled) return null;
-  if (state.playbackLoopInMs === null || state.playbackLoopOutMs === null) return null;
-  const start = clampTime(state.playbackLoopInMs, state.globalDurationMs);
-  const end = clampTime(state.playbackLoopOutMs, state.globalDurationMs);
-  if (end <= start) return null;
-  return { start, end };
-};
-
 function pushHistory(state: EditorState) {
   state.past.push(toSnapshot(state));
   if (state.past.length > MAX_HISTORY) state.past.shift();
@@ -178,9 +157,6 @@ export const useEditorStore = create<EditorState>()(
     currentTimeMs: 0,
     playbackRate: 1,
     playbackLoopEnabled: false,
-    playbackRegionLoopEnabled: false,
-    playbackLoopInMs: null,
-    playbackLoopOutMs: null,
     sequenceExportRequestId: 0,
     sequenceExportOptions: {
       width: 1280,
@@ -412,12 +388,6 @@ export const useEditorStore = create<EditorState>()(
         pushHistory(state);
         state.globalDurationMs = Math.max(1000, Math.round(durationMs));
         state.currentTimeMs = clampTime(state.currentTimeMs, state.globalDurationMs);
-        if (state.playbackLoopInMs !== null) {
-          state.playbackLoopInMs = clampTime(state.playbackLoopInMs, state.globalDurationMs);
-        }
-        if (state.playbackLoopOutMs !== null) {
-          state.playbackLoopOutMs = clampTime(state.playbackLoopOutMs, state.globalDurationMs);
-        }
       }),
 
     setCurrentTimeMs: (timeMs) =>
@@ -434,14 +404,6 @@ export const useEditorStore = create<EditorState>()(
     play: () =>
       set((state) => {
         if (state.globalDurationMs <= 0) return;
-        const loopRegion = resolveLoopRegion(state);
-        if (loopRegion) {
-          if (state.currentTimeMs < loopRegion.start || state.currentTimeMs >= loopRegion.end) {
-            state.currentTimeMs = loopRegion.start;
-          }
-          state.playbackStatus = 'playing';
-          return;
-        }
         if (state.currentTimeMs >= state.globalDurationMs) {
           state.currentTimeMs = 0;
         }
@@ -465,22 +427,6 @@ export const useEditorStore = create<EditorState>()(
         if (state.playbackStatus !== 'playing') return;
         const delta = Math.max(0, deltaMs) * clampPlaybackRate(state.playbackRate);
         if (delta <= 0) return;
-
-        const loopRegion = resolveLoopRegion(state);
-        if (loopRegion) {
-          const range = Math.max(1, loopRegion.end - loopRegion.start);
-          const baseTime =
-            state.currentTimeMs < loopRegion.start || state.currentTimeMs > loopRegion.end
-              ? loopRegion.start
-              : state.currentTimeMs;
-          const nextTime = baseTime + delta;
-          if (nextTime > loopRegion.end) {
-            state.currentTimeMs = loopRegion.start + ((nextTime - loopRegion.start) % range);
-          } else {
-            state.currentTimeMs = nextTime;
-          }
-          return;
-        }
 
         const nextTime = state.currentTimeMs + delta;
         if (nextTime >= state.globalDurationMs) {
@@ -506,43 +452,11 @@ export const useEditorStore = create<EditorState>()(
         state.playbackLoopEnabled = enabled;
       }),
 
-    setPlaybackRegionLoopEnabled: (enabled) =>
-      set((state) => {
-        state.playbackRegionLoopEnabled = enabled;
-      }),
-
-    setPlaybackLoopInMs: (timeMs) =>
-      set((state) => {
-        state.playbackLoopInMs =
-          timeMs === null ? null : clampTime(Math.round(timeMs), state.globalDurationMs);
-      }),
-
-    setPlaybackLoopOutMs: (timeMs) =>
-      set((state) => {
-        state.playbackLoopOutMs =
-          timeMs === null ? null : clampTime(Math.round(timeMs), state.globalDurationMs);
-      }),
-
-    clearPlaybackLoopRegion: () =>
-      set((state) => {
-        state.playbackLoopInMs = null;
-        state.playbackLoopOutMs = null;
-      }),
-
     stepPlaybackFrame: (direction) =>
       set((state) => {
         const frameMs = 1000 / 60;
         const delta = direction >= 0 ? frameMs : -frameMs;
-        const loopRegion = resolveLoopRegion(state);
         state.playbackStatus = 'paused';
-        if (loopRegion) {
-          const nextTime = clampTime(state.currentTimeMs + delta, state.globalDurationMs);
-          state.currentTimeMs = Math.max(loopRegion.start, Math.min(loopRegion.end, nextTime));
-          if (state.currentTimeMs === 0) {
-            state.playbackStatus = 'stopped';
-          }
-          return;
-        }
         state.currentTimeMs = clampTime(state.currentTimeMs + delta, state.globalDurationMs);
         if (state.currentTimeMs === 0) {
           state.playbackStatus = 'stopped';
