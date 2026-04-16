@@ -66,10 +66,32 @@ export function ToolbarPanel() {
     markSaved(fileName);
   };
 
-  const handleOpenClick = () => {
-    fileInputRef.current?.click();
+  const handleOpenClick = async () => {
+    if ('showOpenFilePicker' in window) {
+      try {
+        const [handle] = await (window as typeof window & {
+          showOpenFilePicker: (opts: object) => Promise<FileSystemFileHandle[]>;
+        }).showOpenFilePicker({
+          types: [{ description: '.biodraw', accept: { 'application/octet-stream': ['.biodraw'] } }],
+          excludeAcceptAllOption: true,
+          multiple: false,
+        });
+        const file = await handle.getFile();
+        const snapshot = await parseDocumentFile(file);
+        loadSnapshot(snapshot);
+        markSaved(file.name);
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          alert(err instanceof Error ? err.message : '打开文件失败');
+        }
+      }
+    } else {
+      // 降级：旧浏览器回退到隐藏 input
+      fileInputRef.current?.click();
+    }
   };
 
+  // 仅在旧浏览器降级路径中触发
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -80,7 +102,6 @@ export function ToolbarPanel() {
     } catch (err) {
       alert(err instanceof Error ? err.message : '打开文件失败');
     } finally {
-      // 清空 input 以允许重复打开同一文件
       e.target.value = '';
     }
   };
