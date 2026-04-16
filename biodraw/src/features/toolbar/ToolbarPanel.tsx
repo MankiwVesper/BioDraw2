@@ -201,26 +201,20 @@ export function ToolbarPanel() {
 
       {/* ── 左区：Logo + 文件操作 + 撤销重做 */}
       <div className="tb-left">
-        <span className="tb-logo">BioDraw</span>
-        <div className="tb-divider" />
-        {currentFileName && (
-          <span style={{
-            fontSize: 12,
-            color: 'var(--text-muted)',
-            maxWidth: 180,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-            userSelect: 'none',
-          }} title={currentFileName}>
-            {currentFileName}{hasUnsavedChanges ? ' *' : ''}
-          </span>
-        )}
-        {currentFileName && <div className="tb-divider" />}
+        {/* 品牌 + 文件名：固定宽度，对齐素材面板左边缘 */}
+        <div className="tb-brand">
+          <span className="tb-logo">BioDraw</span>
+          <div className="tb-divider" />
+          {currentFileName && (
+            <span className="tb-filename" title={currentFileName}>
+              {currentFileName}{hasUnsavedChanges ? ' *' : ''}
+            </span>
+          )}
+        </div>
         <input
           ref={fileInputRef}
           type="file"
-          accept=".biodraw,.json"
+          accept=".biodraw"
           style={{ display: 'none' }}
           onChange={handleFileChange}
         />
