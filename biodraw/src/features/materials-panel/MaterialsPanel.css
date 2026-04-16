@@ -33,7 +33,7 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   font-size: 0.85rem;
-  background-color: white;
+  background-color: var(--panel-bg);
   color: var(--text-main);
   outline: none;
   cursor: pointer;
@@ -104,7 +104,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
-  background-color: #fafafa;
+  background-color: var(--bg-color);
 }
 
 .material-item {
@@ -117,7 +117,7 @@
   gap: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: white;
+  background-color: var(--panel-bg);
 }
 
 .material-item:hover {

@@ -1,8 +1,8 @@
 .canvas-panel {
   flex: 1;
   display: flex;
-  background-color: #e5e5f7;
-  background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+  background-color: var(--bg-color);
+  background-image: radial-gradient(var(--border-color) 1px, transparent 1px);
   background-size: 20px 20px;
   position: relative;
   overflow: hidden;
@@ -11,7 +11,7 @@
 
 .canvas-wrapper {
   flex: 1;
-  background-color: white; /* 纯白画布 */
+  background-color: var(--panel-bg); /* 纯白画布 */
   box-shadow: 0 4px 20px rgba(0,0,0,0.08);
   border-radius: 4px;
   overflow: hidden; 

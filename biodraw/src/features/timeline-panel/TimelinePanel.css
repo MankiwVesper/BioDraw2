@@ -358,7 +358,7 @@
 }
 
 .tl-clip:hover {
-  border-color: #d1d5db;
+  border-color: var(--border-color);
 }
 
 .tl-clip.is-expanded {
@@ -599,7 +599,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  background: rgba(248, 250, 252, 0.6);
+  background: var(--bg-color);
 }
 
 /* 时间行 */
