@@ -36,20 +36,18 @@ export function serializeDocument(state: SerializableState): DocumentSnapshot {
   };
 }
 
-export function downloadDocument(state: SerializableState): string {
+export function downloadDocument(state: SerializableState, fileName: string): void {
   const snapshot = serializeDocument(state);
   const json = JSON.stringify(snapshot, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  const fileName = `biodraw-${Date.now()}.biodraw`;
   a.download = fileName;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  return fileName;
 }
 
 export function parseDocumentFile(file: File): Promise<DocumentSnapshot> {

@@ -37,14 +37,32 @@ export function ToolbarPanel() {
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
-  const currentFileName   = useEditorStore((s) => s.currentFileName);
-  const markSaved   = useEditorStore((s) => s.markSaved);
-  const resetScene  = useEditorStore((s) => s.resetScene);
-  const loadSnapshot = useEditorStore((s) => s.loadSnapshot);
+  const currentFileName   = useEditorStore((s) => s.currentFileName) as string;
+  const markSaved         = useEditorStore((s) => s.markSaved);
+  const resetScene        = useEditorStore((s) => s.resetScene);
+  const loadSnapshot      = useEditorStore((s) => s.loadSnapshot);
+  const setCurrentFileName = useEditorStore((s) => s.setCurrentFileName);
   const isPreviewMode  = useEditorStore((s) => s.isPreviewMode);
   const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 文件名内联编辑状态
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState('');
+
+  const startEditingName = () => {
+    setEditNameValue(currentFileName.replace(/\.biodraw$/, ''));
+    setIsEditingName(true);
+  };
+
+  const confirmNameEdit = () => {
+    const trimmed = editNameValue.trim();
+    if (trimmed) {
+      setCurrentFileName(trimmed + '.biodraw');
+    }
+    setIsEditingName(false);
+  };
 
   const handleNew = () => {
     if (window.confirm('将清空当前场景，确认新建？')) {
@@ -55,15 +73,15 @@ export function ToolbarPanel() {
 
   const handleSave = () => {
     const state = useEditorStore.getState();
-    const fileName = downloadDocument({
+    downloadDocument({
       objects: state.objects,
       animations: state.animations,
       globalDurationMs: state.globalDurationMs,
       canvasWidth: state.canvasWidth,
       canvasHeight: state.canvasHeight,
       canvasBgColor: state.canvasBgColor,
-    });
-    markSaved(fileName);
+    }, currentFileName);
+    markSaved();
   };
 
   const handleOpenClick = async () => {
@@ -222,12 +240,31 @@ export function ToolbarPanel() {
 
       {/* ── 左区：Logo + 文件操作 + 撤销重做 */}
       <div className="tb-left">
-        {/* 品牌 + 文件名：固定宽度，对齐素材面板左边缘 */}
+        {/* 品牌 + 文件名：固定宽度，对齐 konvajs-content 左边缘 */}
         <div className="tb-brand">
           <span className="tb-logo">BioDraw</span>
           <div className="tb-divider" />
-          {currentFileName && (
-            <span className="tb-filename" title={currentFileName}>
+          {isEditingName ? (
+            <div className="tb-filename-edit">
+              <input
+                className="tb-filename-input"
+                value={editNameValue}
+                autoFocus
+                onChange={(e) => setEditNameValue(e.target.value)}
+                onBlur={confirmNameEdit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') confirmNameEdit();
+                  if (e.key === 'Escape') setIsEditingName(false);
+                }}
+              />
+              <span className="tb-filename-ext">.biodraw</span>
+            </div>
+          ) : (
+            <span
+              className="tb-filename"
+              title="点击重命名"
+              onClick={startEditingName}
+            >
               {currentFileName}{hasUnsavedChanges ? ' *' : ''}
             </span>
           )}
@@ -242,7 +279,7 @@ export function ToolbarPanel() {
         <button className="tb-btn" onClick={handleNew}>新建</button>
         <button className="tb-btn" onClick={handleOpenClick}>打开</button>
         <button className="tb-btn" onClick={handleSave} title={hasUnsavedChanges ? '有未保存的修改' : '保存文档 (Ctrl+S)'}>
-          {hasUnsavedChanges && !currentFileName ? '保存 *' : '保存'}
+          保存
         </button>
         <div className="tb-divider" />
         <button className="tb-btn tb-undo-btn" onClick={undo} disabled={past.length === 0} title="撤销 (Ctrl+Z)">

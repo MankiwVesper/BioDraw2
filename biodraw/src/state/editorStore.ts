@@ -128,6 +128,8 @@ interface EditorState {
   setCurrentFileName: (name: string | null) => void;
 }
 
+const generateFileName = () => `biodraw-${Date.now()}.biodraw`;
+
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 const toSnapshot = (state: EditorState): EditorSnapshot => ({
@@ -192,7 +194,7 @@ export const useEditorStore = create<EditorState>()(
     canvasBgColor: '#ffffff',
     expandedAnimationClipId: null,
     hasUnsavedChanges: false,
-    currentFileName: null,
+    currentFileName: generateFileName(),
 
     addSceneObject: (obj) =>
       set((state) => {
@@ -647,7 +649,7 @@ export const useEditorStore = create<EditorState>()(
         state.past = [];
         state.future = [];
         state.hasUnsavedChanges = false;
-        state.currentFileName = null;
+        state.currentFileName = generateFileName();
       }),
 
     setCurrentFileName: (name) =>

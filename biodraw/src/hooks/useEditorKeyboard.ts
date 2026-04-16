@@ -145,15 +145,15 @@ export function useEditorKeyboard() {
       if (ctrl && e.key === 's') {
         e.preventDefault();
         const state = useEditorStore.getState();
-        const fileName = downloadDocument({
+        downloadDocument({
           objects: state.objects,
           animations: state.animations,
           globalDurationMs: state.globalDurationMs,
           canvasWidth: state.canvasWidth,
           canvasHeight: state.canvasHeight,
           canvasBgColor: state.canvasBgColor,
-        });
-        markSaved(fileName);
+        }, state.currentFileName as string);
+        markSaved();
         return;
       }
 
