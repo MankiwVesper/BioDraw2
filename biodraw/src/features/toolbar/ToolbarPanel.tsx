@@ -245,17 +245,19 @@ export function ToolbarPanel() {
           <span className="tb-logo">BioDraw</span>
           <div className="tb-divider" />
           {isEditingName ? (
-            <input
-              className="tb-filename-input"
-              value={editNameValue}
-              autoFocus
-              onChange={(e) => setEditNameValue(e.target.value)}
-              onBlur={confirmNameEdit}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') { e.currentTarget.blur(); }
-                if (e.key === 'Escape') setIsEditingName(false);
-              }}
-            />
+            <div className="tb-filename-wrap">
+              <input
+                className="tb-filename-input"
+                value={editNameValue}
+                autoFocus
+                onChange={(e) => setEditNameValue(e.target.value)}
+                onBlur={confirmNameEdit}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.currentTarget.blur(); }
+                  if (e.key === 'Escape') setIsEditingName(false);
+                }}
+              />
+            </div>
           ) : (
             <span
               className="tb-filename"

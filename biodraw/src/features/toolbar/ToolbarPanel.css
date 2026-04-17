@@ -53,9 +53,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   user-select: none;
-  flex: 1;
   min-width: 0;
-  max-width: 280px;
+  flex: 1 1 0%;
   cursor: text;
 }
 
@@ -63,9 +62,15 @@
   color: var(--text-main);
 }
 
-.tb-filename-input {
-  flex: 1;
+/* 包裹层：用 div 约束 input，解决 input 在 flex 容器里溢出的问题 */
+.tb-filename-wrap {
+  flex: 1 1 0%;
   min-width: 0;
+  overflow: hidden;
+}
+
+.tb-filename-input {
+  width: 100%;
   /* 与 .tb-filename 完全一致，避免切换时跳动 */
   font-size: 12px;
   font-family: inherit;
@@ -79,6 +84,7 @@
   line-height: inherit;
   white-space: nowrap;
   overflow: hidden;
+  display: block;
 }
 
 /* ── Logo ──────────────────────────────────────────── */
