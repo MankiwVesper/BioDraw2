@@ -71,15 +71,10 @@ export function ToolbarPanel() {
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newVal = e.target.value;
-    // 删除操作始终允许
-    if (newVal.length < editNameValue.length) {
-      setEditNameValue(newVal);
-      setNameTooLong(false);
-      return;
-    }
     if (measureTextPx(newVal) > MAX_NAME_PX) {
       setNameTooLong(true);
-      // 不更新 editNameValue，React 受控 input 会回退到旧值
+      // 强制回退 DOM，避免 React 受控 input 不同步导致用户看到"被删字"的假象
+      e.target.value = editNameValue;
     } else {
       setNameTooLong(false);
       setEditNameValue(newVal);
