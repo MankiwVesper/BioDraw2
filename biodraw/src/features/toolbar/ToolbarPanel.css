@@ -157,21 +157,18 @@
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  border: 1px solid var(--border-color);
-  border-radius: 7px;
-  overflow: hidden;
-  background: var(--panel-bg);
+  gap: 4px;
 }
 
 .tb-pb-btn {
-  width: 34px;
+  width: 30px;
   height: 30px;
   border: none;
-  border-right: 1px solid var(--border-color);
+  outline: none;
   background: transparent;
-  color: var(--text-main);
+  color: var(--text-muted);
   cursor: pointer;
-  font-size: 13px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,21 +177,24 @@
   flex-shrink: 0;
 }
 
-.tb-pb-btn:last-child {
-  border-right: none;
-}
-
 .tb-pb-btn:hover {
-  background: rgba(59, 130, 246, 0.07);
-  color: var(--primary-color);
+  background: rgba(15, 23, 42, 0.07);
+  color: var(--text-main);
 }
 
+.tb-pb-btn:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+}
+
+/* 播放/暂停：填充圆形，更突出 */
 .tb-pb-play {
-  width: 40px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   background: var(--primary-color);
   color: #fff;
-  font-size: 14px;
-  border-right-color: var(--primary-color);
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.4);
 }
 
 .tb-pb-play:hover {
@@ -205,7 +205,7 @@
 .tb-pb-playing {
   background: #f59e0b;
   color: #fff;
-  border-right-color: #f59e0b;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
 }
 
 .tb-pb-playing:hover {

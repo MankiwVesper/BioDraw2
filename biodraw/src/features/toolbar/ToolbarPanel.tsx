@@ -294,20 +294,22 @@ export function ToolbarPanel() {
       {/* ── 绝对居中：播放四键，与 konvajs-content 中心对齐 */}
       <div className="tb-playback">
         <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(-1)} title="上一帧">
-          <SkipBack size={14} strokeWidth={2} />
+          <SkipBack size={15} strokeWidth={2} />
         </button>
         <button
           className={`tb-pb-btn tb-pb-play${isPlaying ? ' tb-pb-playing' : ''}`}
           onClick={isPlaying ? pause : play}
           title={isPlaying ? '暂停' : '播放'}
         >
-          {isPlaying ? <Pause size={14} strokeWidth={2} /> : <Play size={14} strokeWidth={2} />}
+          {isPlaying
+            ? <Pause size={14} strokeWidth={2.5} fill="currentColor" />
+            : <Play  size={14} strokeWidth={2.5} fill="currentColor" />}
         </button>
         <button className="tb-pb-btn" onClick={stop} title="停止">
-          <Square size={13} strokeWidth={0} fill="currentColor" />
+          <Square size={12} strokeWidth={0} fill="currentColor" />
         </button>
         <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(1)} title="下一帧">
-          <SkipForward size={14} strokeWidth={2} />
+          <SkipForward size={15} strokeWidth={2} />
         </button>
       </div>
 
