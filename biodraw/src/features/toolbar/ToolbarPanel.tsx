@@ -131,6 +131,20 @@ export function ToolbarPanel() {
   const [localCanvasH, setLocalCanvasH] = useState(canvasHeight);
   const canvasPanelRef = useRef<HTMLDivElement>(null);
 
+  // 预览按钮右边界偏移（对齐 konvajs-content 右边界，动态测量）
+  const [previewRight, setPreviewRight] = useState(304);
+  useEffect(() => {
+    const update = () => {
+      const el = document.querySelector('.konvajs-content') as HTMLElement | null;
+      if (el) {
+        setPreviewRight(window.innerWidth - el.getBoundingClientRect().right);
+      }
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
   // 速率下拉状态
   const [showRateMenu, setShowRateMenu] = useState(false);
   const rateMenuRef = useRef<HTMLDivElement>(null);
@@ -332,6 +346,7 @@ export function ToolbarPanel() {
       {/* ── 预览按钮：绝对定位，右边界对齐 konvajs-content 右边界 */}
       <button
         className={`tb-btn tb-preview-btn${isPreviewMode ? ' is-active' : ''}`}
+        style={{ right: previewRight }}
         onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
         title="全屏预览 (F)"
       >

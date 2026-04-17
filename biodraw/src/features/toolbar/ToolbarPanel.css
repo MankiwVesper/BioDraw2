@@ -223,11 +223,9 @@
   text-align: center;
 }
 
-/* ── 预览按钮：右边界对齐 konvajs-content 右边界 ────── */
-/* inspector-panel 宽 280px，故 right: 280px 精确对齐 */
+/* ── 预览按钮：右边界对齐 konvajs-content 右边界（right 由 JS 动态设置）── */
 .tb-preview-btn {
   position: absolute;
-  right: 280px;
 }
 
 /* ── 速率下拉 ───────────────────────────────────────── */
