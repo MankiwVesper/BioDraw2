@@ -150,63 +150,67 @@
   font-size: 12px;
 }
 
-/* ── 播放区 ─────────────────────────────────────────── */
+/* ── 播放四键（绝对居中，与 konvajs-content 中心对齐）──── */
 .tb-playback {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--panel-bg);
 }
 
-.tb-icon-btn {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border-color);
+.tb-pb-btn {
+  width: 34px;
+  height: 30px;
+  border: none;
+  border-right: 1px solid var(--border-color);
   background: transparent;
   color: var(--text-main);
-  border-radius: 5px;
   cursor: pointer;
   font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
-  transition: border-color 0.12s, background 0.12s;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
 }
 
-.tb-icon-btn:hover {
-  border-color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.04);
+.tb-pb-btn:last-child {
+  border-right: none;
 }
 
-.tb-play-btn {
-  width: 32px;
-  height: 32px;
-  border: none;
+.tb-pb-btn:hover {
+  background: rgba(59, 130, 246, 0.07);
+  color: var(--primary-color);
+}
+
+.tb-pb-play {
+  width: 40px;
   background: var(--primary-color);
   color: #fff;
-  border-radius: 50%;
-  cursor: pointer;
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  transition: background 0.12s, transform 0.1s;
-  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.35);
+  font-size: 14px;
+  border-right-color: var(--primary-color);
 }
 
-.tb-play-btn:hover {
+.tb-pb-play:hover {
   background: var(--primary-hover);
-  transform: scale(1.05);
+  color: #fff;
 }
 
-.tb-play-btn.is-playing {
+.tb-pb-playing {
   background: #f59e0b;
-  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.35);
+  color: #fff;
+  border-right-color: #f59e0b;
 }
 
-.tb-play-btn.is-playing:hover {
+.tb-pb-playing:hover {
   background: #d97706;
+  color: #fff;
 }
 
 /* ── 时间显示 ───────────────────────────────────────── */

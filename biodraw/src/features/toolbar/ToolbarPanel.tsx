@@ -290,30 +290,22 @@ export function ToolbarPanel() {
         </button>
       </div>
 
-      {/* ── 中区：播放控制 */}
+      {/* ── 绝对居中：播放四键，与 konvajs-content 中心对齐 */}
+      <div className="tb-playback">
+        <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(-1)} title="上一帧">⏮</button>
+        <button
+          className={`tb-pb-btn tb-pb-play${isPlaying ? ' tb-pb-playing' : ''}`}
+          onClick={isPlaying ? pause : play}
+          title={isPlaying ? '暂停' : '播放'}
+        >
+          {isPlaying ? '⏸' : '▶'}
+        </button>
+        <button className="tb-pb-btn" onClick={stop} title="停止">⏹</button>
+        <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(1)} title="下一帧">⏭</button>
+      </div>
+
+      {/* ── 中区：辅助播放控制 */}
       <div className="tb-center">
-        {/* 逐帧 / 播放 / 停止 */}
-        <div className="tb-playback">
-          <button className="tb-icon-btn" onClick={() => stepPlaybackFrame(-1)} title="上一帧">
-            ⏮
-          </button>
-          <button
-            className={`tb-play-btn${isPlaying ? ' is-playing' : ''}`}
-            onClick={isPlaying ? pause : play}
-            title={isPlaying ? '暂停' : '播放'}
-          >
-            {isPlaying ? '⏸' : '▶'}
-          </button>
-          <button className="tb-icon-btn" onClick={stop} title="停止">
-            ⏹
-          </button>
-          <button className="tb-icon-btn" onClick={() => stepPlaybackFrame(1)} title="下一帧">
-            ⏭
-          </button>
-        </div>
-
-        <div className="tb-divider" />
-
         {/* 速率 */}
         <label className="tb-field">
           <span className="tb-field-label">速率</span>
