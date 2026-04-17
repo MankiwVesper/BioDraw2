@@ -223,33 +223,70 @@
   text-align: center;
 }
 
-/* ── 下拉字段 ───────────────────────────────────────── */
-.tb-field {
+/* ── 速率下拉 ───────────────────────────────────────── */
+.tb-rate-wrap {
+  position: relative;
+}
+
+.tb-rate-btn {
   display: flex;
   align-items: center;
   gap: 4px;
+  padding: 0 8px;
+  min-width: 52px;
+  justify-content: space-between;
 }
 
-.tb-field-label {
-  font-size: 11px;
+.tb-rate-chevron {
+  transition: transform 0.15s;
+  flex-shrink: 0;
   color: var(--text-muted);
+}
+
+.tb-rate-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.tb-rate-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.10);
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 200;
+  min-width: 64px;
+}
+
+.tb-rate-option {
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 10px;
+  text-align: center;
+  transition: background 0.1s, color 0.1s;
   white-space: nowrap;
 }
 
-.tb-select {
-  height: 26px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--panel-bg);
-  color: var(--text-main);
-  padding: 0 4px;
-  font-size: 12px;
-  cursor: pointer;
+.tb-rate-option:hover {
+  background: rgba(59, 130, 246, 0.07);
+  color: var(--primary-color);
 }
 
-.tb-select:focus {
-  outline: none;
-  border-color: var(--primary-color);
+.tb-rate-option.is-active {
+  background: rgba(59, 130, 246, 0.10);
+  color: var(--primary-color);
+  font-weight: 500;
 }
 
 /* ── 状态文字 ───────────────────────────────────────── */

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SkipBack, SkipForward, Play, Pause, Square } from 'lucide-react';
+import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
 import { downloadDocument, parseDocumentFile, clearAutoSave } from '../../infrastructure/documentSerializer';
 import './ToolbarPanel.css';
@@ -131,6 +131,10 @@ export function ToolbarPanel() {
   const [localCanvasH, setLocalCanvasH] = useState(canvasHeight);
   const canvasPanelRef = useRef<HTMLDivElement>(null);
 
+  // 速率下拉状态
+  const [showRateMenu, setShowRateMenu] = useState(false);
+  const rateMenuRef = useRef<HTMLDivElement>(null);
+
   // 导出面板状态
   const [showExportPanel, setShowExportPanel] = useState(false);
   const [exportWidth,  setExportWidth]  = useState(1280);
@@ -163,6 +167,18 @@ export function ToolbarPanel() {
     window.addEventListener('mousedown', handler);
     return () => window.removeEventListener('mousedown', handler);
   }, [showCanvasPanel]);
+
+  // 点击外部关闭速率菜单
+  useEffect(() => {
+    if (!showRateMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (rateMenuRef.current && !rateMenuRef.current.contains(e.target as Node)) {
+        setShowRateMenu(false);
+      }
+    };
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [showRateMenu]);
 
   // 点击外部关闭导出面板
   useEffect(() => {
@@ -315,19 +331,30 @@ export function ToolbarPanel() {
 
       {/* ── 中区：辅助播放控制 */}
       <div className="tb-center">
-        {/* 速率 */}
-        <label className="tb-field">
-          <span className="tb-field-label">速率</span>
-          <select
-            className="tb-select"
-            value={playbackRate}
-            onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
+        {/* 速率下拉 */}
+        <div className="tb-rate-wrap" ref={rateMenuRef}>
+          <button
+            className={`tb-btn tb-rate-btn${showRateMenu ? ' is-active' : ''}`}
+            onClick={() => setShowRateMenu((p) => !p)}
+            title="播放速率"
           >
-            {playbackRateOptions.map((r) => (
-              <option key={r} value={r}>{r}x</option>
-            ))}
-          </select>
-        </label>
+            {playbackRate}x
+            <ChevronDown size={11} strokeWidth={2.5} className={`tb-rate-chevron${showRateMenu ? ' is-open' : ''}`} />
+          </button>
+          {showRateMenu && (
+            <div className="tb-rate-menu">
+              {playbackRateOptions.map((r) => (
+                <button
+                  key={r}
+                  className={`tb-rate-option${r === playbackRate ? ' is-active' : ''}`}
+                  onClick={() => { setPlaybackRate(r); setShowRateMenu(false); }}
+                >
+                  {r}x
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <div className="tb-divider" />
 
