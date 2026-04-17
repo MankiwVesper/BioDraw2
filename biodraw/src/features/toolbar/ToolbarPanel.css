@@ -43,7 +43,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  overflow: hidden;
+  /* overflow 不设 hidden，避免裁掉绝对定位的警告提示 */
 }
 
 .tb-filename {
