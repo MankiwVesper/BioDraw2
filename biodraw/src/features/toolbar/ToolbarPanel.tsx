@@ -245,27 +245,24 @@ export function ToolbarPanel() {
           <span className="tb-logo">BioDraw</span>
           <div className="tb-divider" />
           {isEditingName ? (
-            <div className="tb-filename-edit">
-              <input
-                className="tb-filename-input"
-                value={editNameValue}
-                autoFocus
-                onChange={(e) => setEditNameValue(e.target.value)}
-                onBlur={confirmNameEdit}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') confirmNameEdit();
-                  if (e.key === 'Escape') setIsEditingName(false);
-                }}
-              />
-              <span className="tb-filename-ext">.biodraw</span>
-            </div>
+            <input
+              className="tb-filename-input"
+              value={editNameValue}
+              autoFocus
+              onChange={(e) => setEditNameValue(e.target.value)}
+              onBlur={confirmNameEdit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.currentTarget.blur(); }
+                if (e.key === 'Escape') setIsEditingName(false);
+              }}
+            />
           ) : (
             <span
               className="tb-filename"
               title="点击重命名"
               onClick={startEditingName}
             >
-              {currentFileName}{hasUnsavedChanges ? ' *' : ''}
+              {currentFileName.replace(/\.biodraw$/, '')}{hasUnsavedChanges ? ' *' : ''}
             </span>
           )}
         </div>

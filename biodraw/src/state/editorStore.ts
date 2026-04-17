@@ -128,7 +128,12 @@ interface EditorState {
   setCurrentFileName: (name: string | null) => void;
 }
 
-const generateFileName = () => `biodraw-${Date.now()}.biodraw`;
+const generateFileName = () => {
+  const now = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  const ts = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
+  return `biodraw_${ts}.biodraw`;
+};
 
 const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 

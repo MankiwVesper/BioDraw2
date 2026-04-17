@@ -62,32 +62,22 @@
   color: var(--text-main);
 }
 
-.tb-filename-edit {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  min-width: 0;
-  gap: 1px;
-}
-
 .tb-filename-input {
   flex: 1;
   min-width: 0;
-  height: 20px;
-  border: 1px solid var(--primary-color);
-  border-radius: 3px;
-  background: var(--panel-bg);
+  /* 与 .tb-filename 完全一致，避免切换时跳动 */
+  font-size: 12px;
+  font-family: inherit;
   color: var(--text-main);
-  font-size: 12px;
-  padding: 0 4px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--primary-color);
   outline: none;
-}
-
-.tb-filename-ext {
-  font-size: 12px;
-  color: var(--text-muted);
+  padding: 0;
+  margin: 0;
+  line-height: inherit;
   white-space: nowrap;
-  flex-shrink: 0;
+  overflow: hidden;
 }
 
 /* ── Logo ──────────────────────────────────────────── */
