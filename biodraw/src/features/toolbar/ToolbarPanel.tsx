@@ -50,10 +50,40 @@ export function ToolbarPanel() {
   // 文件名内联编辑状态
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
+  const [nameTooLong, setNameTooLong] = useState(false);
+
+  // 用 canvas 测量文字像素宽度，与实际渲染宽度接近
+  const measureTextPx = (text: string): number => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return 0;
+    ctx.font = '12px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+    return ctx.measureText(text).width;
+  };
+
+  const MAX_NAME_PX = 260; // 素材面板 280px，留 20px 余量
 
   const startEditingName = () => {
     setEditNameValue(currentFileName.replace(/\.biodraw$/, ''));
+    setNameTooLong(false);
     setIsEditingName(true);
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVal = e.target.value;
+    // 删除操作始终允许
+    if (newVal.length < editNameValue.length) {
+      setEditNameValue(newVal);
+      setNameTooLong(false);
+      return;
+    }
+    if (measureTextPx(newVal) > MAX_NAME_PX) {
+      setNameTooLong(true);
+      // 不更新 editNameValue，React 受控 input 会回退到旧值
+    } else {
+      setNameTooLong(false);
+      setEditNameValue(newVal);
+    }
   };
 
   const confirmNameEdit = () => {
@@ -62,6 +92,7 @@ export function ToolbarPanel() {
       setCurrentFileName(trimmed + '.biodraw');
     }
     setIsEditingName(false);
+    setNameTooLong(false);
   };
 
   const handleNew = () => {
@@ -250,13 +281,16 @@ export function ToolbarPanel() {
                 className="tb-filename-input"
                 value={editNameValue}
                 autoFocus
-                onChange={(e) => setEditNameValue(e.target.value)}
+                onChange={handleNameChange}
                 onBlur={confirmNameEdit}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { e.currentTarget.blur(); }
-                  if (e.key === 'Escape') setIsEditingName(false);
+                  if (e.key === 'Escape') { setIsEditingName(false); setNameTooLong(false); }
                 }}
               />
+              {nameTooLong && (
+                <div className="tb-filename-warning">已达到最大长度</div>
+              )}
             </div>
           ) : (
             <span

@@ -64,9 +64,10 @@
 
 /* 包裹层：用 div 约束 input，解决 input 在 flex 容器里溢出的问题 */
 .tb-filename-wrap {
+  position: relative;
   flex: 1 1 0%;
   min-width: 0;
-  overflow: hidden;
+  overflow: visible; /* 允许警告提示向下溢出显示 */
 }
 
 .tb-filename-input {
@@ -75,16 +76,32 @@
   font-size: 12px;
   font-family: inherit;
   color: var(--text-main);
-  background: transparent;
+  /* 编辑态：去掉下划线，改用浅蓝背景体现 */
+  background: rgba(59, 130, 246, 0.08);
   border: none;
-  border-bottom: 1px solid var(--primary-color);
+  border-radius: 3px;
   outline: none;
-  padding: 0;
+  padding: 1px 3px;
   margin: 0;
   line-height: inherit;
   white-space: nowrap;
   overflow: hidden;
   display: block;
+}
+
+.tb-filename-warning {
+  position: absolute;
+  top: calc(100% + 3px);
+  left: 0;
+  font-size: 10px;
+  color: #ef4444;
+  background: var(--panel-bg);
+  border: 1px solid #fca5a5;
+  border-radius: 3px;
+  padding: 1px 5px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
 }
 
 /* ── Logo ──────────────────────────────────────────── */
