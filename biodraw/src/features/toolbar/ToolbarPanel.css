@@ -55,6 +55,7 @@
   user-select: none;
   flex: 1;
   min-width: 0;
+  max-width: 280px;
   cursor: text;
 }
 
@@ -64,7 +65,9 @@
 
 .tb-filename-input {
   flex: 1;
+  width: 100%;
   min-width: 0;
+  max-width: 280px;
   /* 与 .tb-filename 完全一致，避免切换时跳动 */
   font-size: 12px;
   font-family: inherit;
