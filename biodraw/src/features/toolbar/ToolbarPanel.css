@@ -65,9 +65,7 @@
 
 .tb-filename-input {
   flex: 1;
-  width: 100%;
   min-width: 0;
-  max-width: 280px;
   /* 与 .tb-filename 完全一致，避免切换时跳动 */
   font-size: 12px;
   font-family: inherit;
