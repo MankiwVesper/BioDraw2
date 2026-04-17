@@ -233,7 +233,7 @@
   align-items: center;
   gap: 4px;
   padding: 0 8px;
-  width: 68px;
+  width: 54px;
   justify-content: space-between;
 }
 
@@ -261,7 +261,7 @@
   flex-direction: column;
   gap: 1px;
   z-index: 200;
-  width: 68px;
+  width: 54px;
 }
 
 .tb-rate-option {
