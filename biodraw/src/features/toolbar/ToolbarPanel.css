@@ -78,8 +78,8 @@
   font-size: 12px;
   font-family: inherit;
   color: var(--text-main);
-  /* 编辑态：去掉下划线，改用浅蓝背景体现 */
-  background: rgba(59, 130, 246, 0.08);
+  /* 编辑态：去掉下划线，改用蓝背景体现 */
+  background: rgba(59, 130, 246, 0.18);
   border: none;
   border-radius: 3px;
   outline: none;

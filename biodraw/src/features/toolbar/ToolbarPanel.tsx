@@ -61,7 +61,7 @@ export function ToolbarPanel() {
     return ctx.measureText(text).width;
   };
 
-  const MAX_NAME_PX = 260; // 素材面板 280px，留 20px 余量
+  const MAX_NAME_PX = 186; // tb-filename-wrap 193px - input padding 3px×2 = 187px，再留 1px
 
   const startEditingName = () => {
     setEditNameValue(currentFileName.replace(/\.biodraw$/, ''));
