@@ -50,35 +50,10 @@ export function ToolbarPanel() {
   // 文件名内联编辑状态
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
-  const [nameTooLong, setNameTooLong] = useState(false);
-
-  // 用 canvas 测量文字像素宽度，与实际渲染宽度接近
-  const measureTextPx = (text: string): number => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return 0;
-    ctx.font = '12px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-    return ctx.measureText(text).width;
-  };
-
-  const MAX_NAME_PX = 186; // tb-filename-wrap 193px - input padding 3px×2 = 187px，再留 1px
 
   const startEditingName = () => {
     setEditNameValue(currentFileName.replace(/\.biodraw$/, ''));
-    setNameTooLong(false);
     setIsEditingName(true);
-  };
-
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newVal = e.target.value;
-    if (measureTextPx(newVal) > MAX_NAME_PX) {
-      setNameTooLong(true);
-      // 强制回退 DOM，避免 React 受控 input 不同步导致用户看到"被删字"的假象
-      e.target.value = editNameValue;
-    } else {
-      setNameTooLong(false);
-      setEditNameValue(newVal);
-    }
   };
 
   const confirmNameEdit = () => {
@@ -87,7 +62,6 @@ export function ToolbarPanel() {
       setCurrentFileName(trimmed + '.biodraw');
     }
     setIsEditingName(false);
-    setNameTooLong(false);
   };
 
   const handleNew = () => {
@@ -275,17 +249,15 @@ export function ToolbarPanel() {
               <input
                 className="tb-filename-input"
                 value={editNameValue}
+                maxLength={24}
                 autoFocus
-                onChange={handleNameChange}
+                onChange={(e) => setEditNameValue(e.target.value)}
                 onBlur={confirmNameEdit}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { e.currentTarget.blur(); }
-                  if (e.key === 'Escape') { setIsEditingName(false); setNameTooLong(false); }
+                  if (e.key === 'Escape') { setIsEditingName(false); }
                 }}
               />
-              {nameTooLong && (
-                <div className="tb-filename-warning">已达到最大长度</div>
-              )}
             </div>
           ) : (
             <span
