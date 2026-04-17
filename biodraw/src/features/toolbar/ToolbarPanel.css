@@ -187,10 +187,10 @@
   outline-offset: 1px;
 }
 
-/* 播放/暂停：填充圆形，更突出 */
+/* 播放/暂停：填充圆形，与其他按钮等大 */
 .tb-pb-play {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   background: var(--primary-color);
   color: #fff;
