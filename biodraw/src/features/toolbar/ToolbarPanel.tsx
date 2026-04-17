@@ -343,19 +343,8 @@ export function ToolbarPanel() {
         </button>
       </div>
 
-      {/* ── 预览按钮：绝对定位，右边界对齐 konvajs-content 右边界 */}
-      <button
-        className={`tb-btn tb-preview-btn${isPreviewMode ? ' is-active' : ''}`}
-        style={{ right: previewRight }}
-        onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
-        title="全屏预览 (F)"
-      >
-        {isPreviewMode ? '退出预览' : '⛶ 预览'}
-      </button>
-
-      {/* ── 中区：辅助播放控制 */}
-      <div className="tb-center">
-        {/* 速率下拉 */}
+      {/* ── 右侧控制组：速率 + 循环 + 预览，整组右边界对齐 konvajs-content */}
+      <div className="tb-right-group" style={{ right: previewRight }}>
         <div className="tb-rate-wrap" ref={rateMenuRef}>
           <button
             className={`tb-btn tb-rate-btn${showRateMenu ? ' is-active' : ''}`}
@@ -379,15 +368,18 @@ export function ToolbarPanel() {
             </div>
           )}
         </div>
-
-        <div className="tb-divider" />
-
-        {/* 循环控制 */}
         <button
           className={`tb-btn${playbackLoopEnabled ? ' is-active' : ''}`}
           onClick={() => setPlaybackLoopEnabled(!playbackLoopEnabled)}
         >
           循环
+        </button>
+        <button
+          className={`tb-btn${isPreviewMode ? ' is-active' : ''}`}
+          onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
+          title="全屏预览 (F)"
+        >
+          {isPreviewMode ? '退出预览' : '⛶ 预览'}
         </button>
       </div>
 

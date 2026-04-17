@@ -223,9 +223,12 @@
   text-align: center;
 }
 
-/* ── 预览按钮：右边界对齐 konvajs-content 右边界（right 由 JS 动态设置）── */
-.tb-preview-btn {
+/* ── 右侧控制组：速率 + 循环 + 预览，right 由 JS 动态设置 ── */
+.tb-right-group {
   position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ── 速率下拉 ───────────────────────────────────────── */
