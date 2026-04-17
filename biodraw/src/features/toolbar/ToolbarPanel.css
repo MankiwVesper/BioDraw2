@@ -55,6 +55,7 @@
   user-select: none;
   min-width: 0;
   flex: 1 1 0%;
+  max-width: 193px;
   cursor: text;
 }
 
@@ -67,6 +68,7 @@
   position: relative;
   flex: 1 1 0%;
   min-width: 0;
+  max-width: 193px;
   overflow: visible; /* 允许警告提示向下溢出显示 */
 }
 
