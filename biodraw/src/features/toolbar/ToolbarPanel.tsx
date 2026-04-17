@@ -329,6 +329,15 @@ export function ToolbarPanel() {
         </button>
       </div>
 
+      {/* ── 预览按钮：绝对定位，右边界对齐 konvajs-content 右边界 */}
+      <button
+        className={`tb-btn tb-preview-btn${isPreviewMode ? ' is-active' : ''}`}
+        onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
+        title="全屏预览 (F)"
+      >
+        {isPreviewMode ? '退出预览' : '⛶ 预览'}
+      </button>
+
       {/* ── 中区：辅助播放控制 */}
       <div className="tb-center">
         {/* 速率下拉 */}
@@ -355,16 +364,6 @@ export function ToolbarPanel() {
             </div>
           )}
         </div>
-
-        <div className="tb-divider" />
-
-        <button
-          className={`tb-btn${isPreviewMode ? ' is-active' : ''}`}
-          onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
-          title="全屏预览 (F)"
-        >
-          {isPreviewMode ? '退出预览' : '⛶ 预览'}
-        </button>
 
         <div className="tb-divider" />
 
