@@ -848,13 +848,13 @@ export function TimelinePanel() {
 
           {/* 对象操作栏 */}
           <div className="tl-object-bar">
-            <span className="tl-object-name" title={selectedObject.name || selectedObject.id}>
+            <span className="tl-object-name" data-tooltip={selectedObject.name || selectedObject.id}>
               {selectedObject.name || '未命名对象'}
             </span>
             <div className="tl-object-actions">
               {/* 冲突警告 */}
               {conflictMeta.ids.size > 0 && (
-                <button className="tl-conflict-btn" onClick={autoResolveConflicts} title={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
+                <button className="tl-conflict-btn" onClick={autoResolveConflicts} data-tooltip={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
                   ⚠ {conflictMeta.ids.size} 个冲突 · 修复
                 </button>
               )}
@@ -874,7 +874,7 @@ export function TimelinePanel() {
                 <div style={{ position: 'relative' }} ref={copyDialogRef}>
                   <button
                     className={`tl-btn${showCopyDialog ? ' is-active' : ''}`}
-                    title="将当前对象的所有动画片段复制到其他对象"
+                    data-tooltip="将当前对象的所有动画片段复制到其他对象"
                     onClick={() => {
                       setCopyTargetIds([]);
                       setShowCopyDialog((p) => !p);
@@ -1124,13 +1124,13 @@ export function TimelinePanel() {
                       onClick={() => setExpandedClipId(isExpanded ? null : clip.id)}
                     >
                       {/* 类型色点 */}
-                      <span className={`tl-type-dot tl-type-${clip.type}`} title={getClipTypeLabel(clip.type)} />
+                      <span className={`tl-type-dot tl-type-${clip.type}`} data-tooltip={getClipTypeLabel(clip.type)} />
 
                       {/* 类型名 */}
                       <span className="tl-clip-type-name">
                         {getClipTypeLabel(clip.type)}
                         {isConflict && (
-                          <span className="tl-conflict-tag" title={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
+                          <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
                         )}
                       </span>
 
@@ -1163,7 +1163,7 @@ export function TimelinePanel() {
 
                       {/* 批量选中 */}
                       {showBatchPanel && (
-                        <label className="tl-clip-check" onClick={(e) => e.stopPropagation()} title="批量选中">
+                        <label className="tl-clip-check" onClick={(e) => e.stopPropagation()} data-tooltip="批量选中">
                           <input
                             type="checkbox"
                             checked={isBatchSelected}
@@ -1173,7 +1173,7 @@ export function TimelinePanel() {
                       )}
 
                       {/* 启用开关 */}
-                      <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} title={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
+                      <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
                         <input
                           type="checkbox"
                           checked={clip.enabled !== false}
@@ -1184,7 +1184,7 @@ export function TimelinePanel() {
                       {/* 删除 */}
                       <button
                         className="tl-clip-del"
-                        title="删除片段"
+                        data-tooltip="删除片段"
                         onClick={(e) => { e.stopPropagation(); ensurePausedForEdit(); removeAnimationClip(clip.id); }}
                       >
                         ✕
@@ -1268,7 +1268,7 @@ export function TimelinePanel() {
                               <button
                                 type="button"
                                 className="tl-btn tl-btn-sm"
-                                title="将对象当前位置设为起点"
+                                data-tooltip="将对象当前位置设为起点"
                                 onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}
                               >
                                 取当前位置 → 起点
@@ -1276,7 +1276,7 @@ export function TimelinePanel() {
                               <button
                                 type="button"
                                 className="tl-btn tl-btn-sm"
-                                title="将对象当前位置设为终点"
+                                data-tooltip="将对象当前位置设为终点"
                                 onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}
                               >
                                 取当前位置 → 终点
@@ -1298,9 +1298,9 @@ export function TimelinePanel() {
                               ) : (
                                 (clip.payload.keyframes || []).map((frame, i) => (
                                   <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateMoveKeyframeField(clip, i, 'at', e.target.value)} title="时间(%)" />
-                                    <input type="number" value={frame.x} onChange={(e) => updateMoveKeyframeField(clip, i, 'x', e.target.value)} title="X" />
-                                    <input type="number" value={frame.y} onChange={(e) => updateMoveKeyframeField(clip, i, 'y', e.target.value)} title="Y" />
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateMoveKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
+                                    <input type="number" value={frame.x} onChange={(e) => updateMoveKeyframeField(clip, i, 'x', e.target.value)} data-tooltip="X" />
+                                    <input type="number" value={frame.y} onChange={(e) => updateMoveKeyframeField(clip, i, 'y', e.target.value)} data-tooltip="Y" />
                                     <button type="button" className="tl-kf-del" onClick={() => removeMoveKeyframe(clip, i)}>✕</button>
                                   </div>
                                 ))
@@ -1315,7 +1315,7 @@ export function TimelinePanel() {
                               <button
                                 type="button"
                                 className="tl-btn tl-btn-sm"
-                                title="将对象当前位置设为起点"
+                                data-tooltip="将对象当前位置设为起点"
                                 onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}
                               >
                                 取当前位置 → 起点
@@ -1323,7 +1323,7 @@ export function TimelinePanel() {
                               <button
                                 type="button"
                                 className="tl-btn tl-btn-sm"
-                                title="将对象当前位置设为终点"
+                                data-tooltip="将对象当前位置设为终点"
                                 onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}
                               >
                                 取当前位置 → 终点
@@ -1367,8 +1367,8 @@ export function TimelinePanel() {
                               ) : (
                                 (clip.payload.keyframes || []).map((frame, i) => (
                                   <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateFadeKeyframeField(clip, i, 'at', e.target.value)} title="时间(%)" />
-                                    <input type="number" min={0} max={1} step={0.01} value={frame.value} onChange={(e) => updateFadeKeyframeField(clip, i, 'value', e.target.value)} title="透明度" />
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateFadeKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
+                                    <input type="number" min={0} max={1} step={0.01} value={frame.value} onChange={(e) => updateFadeKeyframeField(clip, i, 'value', e.target.value)} data-tooltip="透明度" />
                                     <button type="button" className="tl-kf-del" onClick={() => removeFadeKeyframe(clip, i)}>✕</button>
                                   </div>
                                 ))
@@ -1395,9 +1395,9 @@ export function TimelinePanel() {
                               ) : (
                                 (clip.payload.keyframes || []).map((frame, i) => (
                                   <div className="tl-kf-row tl-kf-row-wide" key={`${frame.at}-${i}`}>
-                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateScaleKeyframeField(clip, i, 'at', e.target.value)} title="时间(%)" />
-                                    <input type="number" step={0.01} value={frame.scaleX} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleX', e.target.value)} title="缩放X" />
-                                    <input type="number" step={0.01} value={frame.scaleY} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleY', e.target.value)} title="缩放Y" />
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateScaleKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
+                                    <input type="number" step={0.01} value={frame.scaleX} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleX', e.target.value)} data-tooltip="缩放X" />
+                                    <input type="number" step={0.01} value={frame.scaleY} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleY', e.target.value)} data-tooltip="缩放Y" />
                                     <button type="button" className="tl-kf-del" onClick={() => removeScaleKeyframe(clip, i)}>✕</button>
                                   </div>
                                 ))
@@ -1422,8 +1422,8 @@ export function TimelinePanel() {
                               ) : (
                                 (clip.payload.keyframes || []).map((frame, i) => (
                                   <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateRotateKeyframeField(clip, i, 'at', e.target.value)} title="时间(%)" />
-                                    <input type="number" value={frame.value} onChange={(e) => updateRotateKeyframeField(clip, i, 'value', e.target.value)} title="角度" />
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateRotateKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
+                                    <input type="number" value={frame.value} onChange={(e) => updateRotateKeyframeField(clip, i, 'value', e.target.value)} data-tooltip="角度" />
                                     <button type="button" className="tl-kf-del" onClick={() => removeRotateKeyframe(clip, i)}>✕</button>
                                   </div>
                                 ))

@@ -153,7 +153,7 @@ export function LayerPanel() {
             {/* 拖拽把手 */}
             <span
               style={{ color: 'var(--text-muted)', fontSize: 11, cursor: 'grab', flexShrink: 0, opacity: 0.5 }}
-              title="拖拽调整层级"
+              data-tooltip="拖拽调整层级"
             >⠿</span>
 
             {/* 分组缩进线 */}
@@ -203,7 +203,7 @@ export function LayerPanel() {
                     whiteSpace: 'nowrap',
                     textDecoration: obj.visible === false ? 'line-through' : 'none',
                   }}
-                  title={`${obj.name}（双击重命名）`}
+                  data-tooltip={`${obj.name}（双击重命名）`}
                 >
                   {obj.name}
                 </span>
@@ -212,7 +212,7 @@ export function LayerPanel() {
 
             {/* 可见性切换 */}
             <button
-              title={obj.visible === false ? '显示对象' : '隐藏对象'}
+              data-tooltip={obj.visible === false ? '显示对象' : '隐藏对象'}
               onClick={(e) => {
                 e.stopPropagation();
                 updateSceneObject(obj.id, { visible: obj.visible === false ? true : false });
@@ -240,7 +240,7 @@ export function LayerPanel() {
 
             {/* 锁定切换 */}
             <button
-              title={obj.locked ? '解锁对象' : '锁定对象'}
+              data-tooltip={obj.locked ? '解锁对象' : '锁定对象'}
               onClick={(e) => {
                 e.stopPropagation();
                 toggleObjectLock(obj.id);

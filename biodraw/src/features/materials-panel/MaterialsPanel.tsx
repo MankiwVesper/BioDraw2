@@ -79,7 +79,7 @@ export function MaterialsPanel() {
           className="mp-category-dropdown"
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          title="筛选分类"
+          data-tooltip="筛选分类"
         >
           <option value="">全部分类</option>
           {categories.map((cat) => (
@@ -243,7 +243,7 @@ export function MaterialsPanel() {
                           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                         />
                       </div>
-                      <span className="mp-material-name" title={item.name}>
+                      <span className="mp-material-name" data-tooltip={item.name}>
                         {item.name.length > 8 ? `${item.name.substring(0, 8)}...` : item.name}
                       </span>
                     </div>

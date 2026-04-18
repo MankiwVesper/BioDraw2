@@ -1297,26 +1297,26 @@ export function CanvasPanel() {
         {/* 预览模式浮动控制栏（top:12px right:12px，与底部缩放控件对称） */}
         {isPreviewMode && (
           <div className="pv-controls">
-            <button className="pv-btn" onClick={() => stepPlaybackFrame(-1)} title="上一帧">
+            <button className="pv-btn" onClick={() => stepPlaybackFrame(-1)} data-tooltip="上一帧">
               <SkipBack size={14} strokeWidth={2} />
             </button>
             <button
               className={`pv-btn pv-play${playbackStatus === 'playing' ? ' pv-playing' : ''}`}
               onClick={playbackStatus === 'playing' ? pausePlayback : playPlayback}
-              title={playbackStatus === 'playing' ? '暂停' : '播放'}
+              data-tooltip={playbackStatus === 'playing' ? '暂停' : '播放'}
             >
               {playbackStatus === 'playing'
                 ? <Pause size={13} strokeWidth={2.5} fill="currentColor" />
                 : <Play  size={13} strokeWidth={2.5} fill="currentColor" />}
             </button>
-            <button className="pv-btn" onClick={stopPlayback} title="停止">
+            <button className="pv-btn" onClick={stopPlayback} data-tooltip="停止">
               <Square size={11} strokeWidth={0} fill="currentColor" />
             </button>
-            <button className="pv-btn" onClick={() => stepPlaybackFrame(1)} title="下一帧">
+            <button className="pv-btn" onClick={() => stepPlaybackFrame(1)} data-tooltip="下一帧">
               <SkipForward size={14} strokeWidth={2} />
             </button>
             <div className="pv-divider" />
-            <button className="pv-exit" onClick={() => setPreviewMode(false)} title="退出预览 (Esc)">
+            <button className="pv-exit" onClick={() => setPreviewMode(false)} data-tooltip="退出预览 (Esc)">
               ✕ 退出预览
             </button>
           </div>
@@ -1339,19 +1339,19 @@ export function CanvasPanel() {
               setStageScale(newScale);
               setStagePos({ x: cx - pointTo.x * newScale, y: cy - pointTo.y * newScale });
             }}
-            title="缂╁皬"
+            data-tooltip="缩小"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: '16px', lineHeight: 1, padding: '0 2px' }}
           >-</button>
           <button
             onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }}
-            title="重置到 100% (Ctrl+0)"
+            data-tooltip="重置到 100% (Ctrl+0)"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '12px', minWidth: '44px', textAlign: 'center', padding: '0 4px' }}
           >
             {Math.round(stageScale * 100)}%
           </button>
           <button
             onClick={fitCanvas}
-            title="适应画布 (Ctrl+Shift+F)"
+            data-tooltip="适应画布 (Ctrl+Shift+F)"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '11px', padding: '0 4px' }}
           >
             适配
@@ -1365,7 +1365,7 @@ export function CanvasPanel() {
               setStageScale(newScale);
               setStagePos({ x: cx - pointTo.x * newScale, y: cy - pointTo.y * newScale });
             }}
-            title="鏀惧ぇ"
+            data-tooltip="放大"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: '16px', lineHeight: 1, padding: '0 2px' }}
           >+</button>
         </div>

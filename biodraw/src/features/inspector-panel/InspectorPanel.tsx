@@ -167,34 +167,34 @@ export function InspectorPanel() {
               {/* 对齐到彼此 */}
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>对齐到彼此</div>
               <div className="ip-property-row" style={{ gap: 4, marginBottom: 4 }}>
-                <button style={btnStyle} title="左边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                <button style={btnStyle} data-tooltip="左边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                   onClick={() => alignToEdge('left', null)}>
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="2" height="14"/><rect x="2" y="3" width="5" height="4" opacity="0.55"/><rect x="2" y="8" width="8" height="3" opacity="0.35"/></svg>
                   <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>左对齐</span>
                 </button>
-                <button style={btnStyle} title="水平居中对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                <button style={btnStyle} data-tooltip="水平居中对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                   onClick={() => alignToEdge('cx', null)}>
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="6.5" y="0" width="1" height="14"/><rect x="3" y="2" width="8" height="4" opacity="0.35"/><rect x="4" y="7" width="6" height="4" opacity="0.55"/></svg>
                   <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>水平中</span>
                 </button>
-                <button style={btnStyle} title="右边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                <button style={btnStyle} data-tooltip="右边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                   onClick={() => alignToEdge('right', null)}>
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="12" y="0" width="2" height="14"/><rect x="7" y="3" width="5" height="4" opacity="0.55"/><rect x="4" y="8" width="8" height="3" opacity="0.35"/></svg>
                   <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>右对齐</span>
                 </button>
               </div>
               <div className="ip-property-row" style={{ gap: 4, marginBottom: 8 }}>
-                <button style={btnStyle} title="顶边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                <button style={btnStyle} data-tooltip="顶边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                   onClick={() => alignToEdge(null, 'top')}>
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="14" height="2"/><rect x="2" y="2" width="4" height="6" opacity="0.55"/><rect x="8" y="2" width="4" height="9" opacity="0.35"/></svg>
                   <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>顶对齐</span>
                 </button>
-                <button style={btnStyle} title="垂直居中对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                <button style={btnStyle} data-tooltip="垂直居中对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                   onClick={() => alignToEdge(null, 'cy')}>
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="6.5" width="14" height="1"/><rect x="2" y="3" width="4" height="8" opacity="0.35"/><rect x="8" y="4" width="4" height="6" opacity="0.55"/></svg>
                   <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>垂直中</span>
                 </button>
-                <button style={btnStyle} title="底边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
+                <button style={btnStyle} data-tooltip="底边缘对齐" onMouseEnter={hoverOn} onMouseLeave={hoverOff}
                   onClick={() => alignToEdge(null, 'bottom')}>
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="12" width="14" height="2"/><rect x="2" y="5" width="4" height="7" opacity="0.55"/><rect x="8" y="3" width="4" height="9" opacity="0.35"/></svg>
                   <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>底对齐</span>
@@ -206,11 +206,11 @@ export function InspectorPanel() {
                 <>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>等间距分布</div>
                   <div className="ip-property-row" style={{ gap: 4, marginBottom: 8 }}>
-                    <button style={btnStyle} title="水平等间距" onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={distributeH}>
+                    <button style={btnStyle} data-tooltip="水平等间距" onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={distributeH}>
                       <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="1" height="14" opacity="0.4"/><rect x="13" y="0" width="1" height="14" opacity="0.4"/><rect x="3" y="3" width="3" height="8" opacity="0.55"/><rect x="8" y="3" width="3" height="8" opacity="0.55"/></svg>
                       <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>水平分布</span>
                     </button>
-                    <button style={btnStyle} title="垂直等间距" onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={distributeV}>
+                    <button style={btnStyle} data-tooltip="垂直等间距" onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={distributeV}>
                       <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor"><rect x="0" y="0" width="14" height="1" opacity="0.4"/><rect x="0" y="13" width="14" height="1" opacity="0.4"/><rect x="3" y="3" width="8" height="3" opacity="0.55"/><rect x="3" y="8" width="8" height="3" opacity="0.55"/></svg>
                       <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>垂直分布</span>
                     </button>
@@ -226,7 +226,7 @@ export function InspectorPanel() {
                   { label: '水平中', title: '所有对象水平居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: canvasWidth/2, y: o.y }))) },
                   { label: '右', title: '所有对象右边缘贴画布右边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: canvasWidth-w/2, y: o.y }; })) },
                 ].map((b) => (
-                  <button key={b.label} style={btnStyle} title={b.title} onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={b.onClick}>
+                  <button key={b.label} style={btnStyle} data-tooltip={b.title} onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={b.onClick}>
                     <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{b.label}</span>
                   </button>
                 ))}
@@ -237,7 +237,7 @@ export function InspectorPanel() {
                   { label: '垂直中', title: '所有对象垂直居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: o.x, y: canvasHeight/2 }))) },
                   { label: '底', title: '所有对象底边缘贴画布底部', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: canvasHeight-h/2 }; })) },
                 ].map((b) => (
-                  <button key={b.label} style={btnStyle} title={b.title} onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={b.onClick}>
+                  <button key={b.label} style={btnStyle} data-tooltip={b.title} onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={b.onClick}>
                     <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{b.label}</span>
                   </button>
                 ))}
@@ -252,7 +252,7 @@ export function InspectorPanel() {
                   <div className="ip-property-row" style={{ gap: 4, marginBottom: 8 }}>
                     {allSameGroup ? (
                       <button
-                        title="解散分组，恢复为独立对象"
+                        data-tooltip="解散分组，恢复为独立对象"
                         onClick={() => ungroupObjects(uniqueGroups[0])}
                         style={{ flex: 1, height: 28, border: '1px solid var(--primary-color)', background: 'rgba(59,130,246,0.08)', color: 'var(--primary-color)', borderRadius: 5, cursor: 'pointer', fontSize: 11 }}
                       >
@@ -260,7 +260,7 @@ export function InspectorPanel() {
                       </button>
                     ) : (
                       <button
-                        title="将选中对象组合为一个分组（点击任意成员即选中整组）"
+                        data-tooltip="将选中对象组合为一个分组（点击任意成员即选中整组）"
                         onClick={() => groupObjects(selectedIds)}
                         style={{ flex: 1, height: 28, border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-main)', borderRadius: 5, cursor: 'pointer', fontSize: 11 }}
                       >
@@ -274,7 +274,7 @@ export function InspectorPanel() {
               {/* 删除多选 */}
               <div className="ip-property-row" style={{ gap: 4 }}>
                 <button
-                  title="删除所有选中对象 (Delete)"
+                  data-tooltip="删除所有选中对象 (Delete)"
                   onClick={() => removeSceneObjects(selectedIds)}
                   style={{ flex: 1, height: 26, border: '1px solid rgba(239,68,68,0.4)', background: 'transparent', color: '#ef4444', borderRadius: 5, cursor: 'pointer', fontSize: 11 }}
                 >
@@ -632,7 +632,7 @@ export function InspectorPanel() {
                   type="number"
                   value={Math.round(selectedObj.x)}
                   onChange={(e) => handleChange("x", e.target.value)}
-                  title="X坐标"
+                  data-tooltip="X坐标"
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
@@ -641,7 +641,7 @@ export function InspectorPanel() {
                   type="number"
                   value={Math.round(selectedObj.y)}
                   onChange={(e) => handleChange("y", e.target.value)}
-                  title="Y坐标"
+                  data-tooltip="Y坐标"
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
@@ -684,7 +684,7 @@ export function InspectorPanel() {
                   onChange={(e) =>
                     handleDimensionChange("width", e.target.value)
                   }
-                  title="宽度 (px)"
+                  data-tooltip="宽度 (px)"
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
@@ -695,7 +695,7 @@ export function InspectorPanel() {
                   onChange={(e) =>
                     handleDimensionChange("height", e.target.value)
                   }
-                  title="高度 (px)"
+                  data-tooltip="高度 (px)"
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
@@ -716,7 +716,7 @@ export function InspectorPanel() {
                     : "var(--text-muted)",
                 }}
                 onClick={() => setIsRatioLocked(!isRatioLocked)}
-                title="锁定/解锁 长宽比例"
+                data-tooltip="锁定/解锁 长宽比例"
               >
                 {isRatioLocked ? "🔒" : "🔓"}
               </button>
@@ -780,7 +780,7 @@ export function InspectorPanel() {
                     rotation: 0,
                   })
                 }
-                title="一键重置尺寸与旋转"
+                data-tooltip="一键重置尺寸与旋转"
                 onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                 onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
               >
@@ -817,7 +817,7 @@ export function InspectorPanel() {
             >
               <button
                 onClick={() => moveObjectToBack(selectedObj.id)}
-                title="置底"
+                data-tooltip="置底"
                 style={{
                   flex: 1,
                   padding: "4px",
@@ -849,7 +849,7 @@ export function InspectorPanel() {
               </button>
               <button
                 onClick={() => moveObjectBackward(selectedObj.id)}
-                title="下移一层"
+                data-tooltip="下移一层"
                 style={{
                   flex: 1,
                   padding: "4px",
@@ -880,7 +880,7 @@ export function InspectorPanel() {
               </button>
               <button
                 onClick={() => moveObjectForward(selectedObj.id)}
-                title="上移一层"
+                data-tooltip="上移一层"
                 style={{
                   flex: 1,
                   padding: "4px",
@@ -911,7 +911,7 @@ export function InspectorPanel() {
               </button>
               <button
                 onClick={() => moveObjectToFront(selectedObj.id)}
-                title="置顶"
+                data-tooltip="置顶"
                 style={{
                   flex: 1,
                   padding: "4px",
@@ -994,7 +994,7 @@ export function InspectorPanel() {
             ] as const).map((btn) => (
               <button
                 key={btn.label}
-                title={btn.title}
+                data-tooltip={btn.title}
                 onClick={() => selectedObj && updateSceneObject(selectedObj.id, btn.calc())}
                 style={{
                   flex: 1, height: 32, border: '1px solid var(--border-color)',
@@ -1056,7 +1056,7 @@ export function InspectorPanel() {
             ] as const).map((btn) => (
               <button
                 key={btn.label}
-                title={btn.title}
+                data-tooltip={btn.title}
                 onClick={() => selectedObj && updateSceneObject(selectedObj.id, btn.calc())}
                 style={{
                   flex: 1, height: 32, border: '1px solid var(--border-color)',
@@ -1074,7 +1074,7 @@ export function InspectorPanel() {
           </div>
           <div className="ip-property-row" style={{ gap: 4, marginTop: 0 }}>
             <button
-              title={selectedObj?.locked ? '解锁对象（可移动）' : '锁定对象（防止误移）'}
+              data-tooltip={selectedObj?.locked ? '解锁对象（可移动）' : '锁定对象（防止误移）'}
               onClick={() => selectedObj && toggleObjectLock(selectedObj.id)}
               style={{
                 flex: 1, height: 26, border: `1px solid ${selectedObj?.locked ? 'var(--primary-color)' : 'var(--border-color)'}`,
@@ -1086,7 +1086,7 @@ export function InspectorPanel() {
               {selectedObj?.locked ? '🔒 已锁定' : '🔓 锁定'}
             </button>
             <button
-              title="复制对象 (Ctrl+D)"
+              data-tooltip="复制对象 (Ctrl+D)"
               onClick={() => selectedObj && duplicateObject(selectedObj.id)}
               disabled={!!selectedObj?.locked}
               style={{
@@ -1099,7 +1099,7 @@ export function InspectorPanel() {
               复制
             </button>
             <button
-              title="删除对象 (Delete)"
+              data-tooltip="删除对象 (Delete)"
               onClick={() => selectedObj && !selectedObj.locked && removeSceneObject(selectedObj.id)}
               disabled={!!selectedObj?.locked}
               style={{
@@ -1302,7 +1302,7 @@ export function InspectorPanel() {
                         if (val > 120) val = 120;
                         handleFontSizeChange(val);
                       }}
-                      title="字号 (5-120px)"
+                      data-tooltip="字号 (5-120px)"
                       style={{
                         textAlign: "center",
                         padding: "3px 4px",
@@ -1903,7 +1903,7 @@ export function InspectorPanel() {
                   color: showAddAnimMenu ? 'var(--primary-color)' : 'var(--text-muted)',
                   cursor: 'pointer', lineHeight: 1,
                 }}
-                title="为此对象添加动画片段"
+                data-tooltip="为此对象添加动画片段"
               >
                 ＋ 添加
               </button>
@@ -1976,7 +1976,7 @@ export function InspectorPanel() {
                   }}
                   onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(59,130,246,0.06)'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                  title="点击在时间线面板中展开此片段"
+                  data-tooltip="点击在时间线面板中展开此片段"
                 >
                   <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flex: 1, overflow: 'hidden' }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
