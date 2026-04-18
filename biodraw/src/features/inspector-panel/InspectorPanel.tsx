@@ -222,9 +222,9 @@ export function InspectorPanel() {
               <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>对齐到画布</div>
               <div className="ip-property-row" style={{ gap: 4, marginBottom: 4 }}>
                 {[
-                  { label: '左', title: '所有对象左边缘贴画布左边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: w/2, y: o.y }; })) },
-                  { label: '水平中', title: '所有对象水平居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: canvasWidth/2, y: o.y }))) },
-                  { label: '右', title: '所有对象右边缘贴画布右边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: canvasWidth-w/2, y: o.y }; })) },
+                  { label: '左', title: '左边缘贴画布左边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: w/2, y: o.y }; })) },
+                  { label: '水平中', title: '水平居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: canvasWidth/2, y: o.y }))) },
+                  { label: '右', title: '右边缘贴画布右边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: canvasWidth-w/2, y: o.y }; })) },
                 ].map((b) => (
                   <button key={b.label} style={btnStyle} data-tooltip={b.title} onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={b.onClick}>
                     <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{b.label}</span>
@@ -233,9 +233,9 @@ export function InspectorPanel() {
               </div>
               <div className="ip-property-row" style={{ gap: 4, marginBottom: 8 }}>
                 {[
-                  { label: '顶', title: '所有对象顶边缘贴画布顶部', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: h/2 }; })) },
-                  { label: '垂直中', title: '所有对象垂直居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: o.x, y: canvasHeight/2 }))) },
-                  { label: '底', title: '所有对象底边缘贴画布底部', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: canvasHeight-h/2 }; })) },
+                  { label: '顶', title: '顶边缘贴画布顶部', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: h/2 }; })) },
+                  { label: '垂直中', title: '垂直居中于画布', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: o.x, y: canvasHeight/2 }))) },
+                  { label: '底', title: '底边缘贴画布底部', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: canvasHeight-h/2 }; })) },
                 ].map((b) => (
                   <button key={b.label} style={btnStyle} data-tooltip={b.title} onMouseEnter={hoverOn} onMouseLeave={hoverOff} onClick={b.onClick}>
                     <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{b.label}</span>
@@ -948,7 +948,7 @@ export function InspectorPanel() {
           <div className="ip-property-row" style={{ gap: 4, marginBottom: 4 }}>
             {([
               {
-                title: '左对齐（左边缘贴画布左边）',
+                title: '左边缘贴画布左边',
                 calc: () => {
                   const hw = Math.round((selectedObj!.width * (selectedObj!.scaleX ?? 1)) / 2);
                   return { x: hw };
@@ -962,7 +962,7 @@ export function InspectorPanel() {
                 label: '左对齐',
               },
               {
-                title: '水平居中（水平方向居中于画布）',
+                title: '水平方向居中于画布',
                 calc: () => ({ x: Math.round(canvasWidth / 2) }),
                 icon: (
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor">
@@ -974,7 +974,7 @@ export function InspectorPanel() {
                 label: '水平居中',
               },
               {
-                title: '右对齐（右边缘贴画布右边）',
+                title: '右边缘贴画布右边',
                 calc: () => {
                   const hw = Math.round((selectedObj!.width * (selectedObj!.scaleX ?? 1)) / 2);
                   return { x: canvasWidth - hw };
@@ -1010,7 +1010,7 @@ export function InspectorPanel() {
           <div className="ip-property-row" style={{ gap: 4 }}>
             {([
               {
-                title: '顶对齐（上边缘贴画布顶部）',
+                title: '上边缘贴画布顶部',
                 calc: () => {
                   const hh = Math.round((selectedObj!.height * (selectedObj!.scaleY ?? 1)) / 2);
                   return { y: hh };
@@ -1024,7 +1024,7 @@ export function InspectorPanel() {
                 label: '顶对齐',
               },
               {
-                title: '垂直居中（垂直方向居中于画布）',
+                title: '垂直方向居中于画布',
                 calc: () => ({ y: Math.round(canvasHeight / 2) }),
                 icon: (
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="currentColor">
@@ -1036,7 +1036,7 @@ export function InspectorPanel() {
                 label: '垂直居中',
               },
               {
-                title: '底对齐（下边缘贴画布底部）',
+                title: '下边缘贴画布底部',
                 calc: () => {
                   const hh = Math.round((selectedObj!.height * (selectedObj!.scaleY ?? 1)) / 2);
                   return { y: canvasHeight - hh };
