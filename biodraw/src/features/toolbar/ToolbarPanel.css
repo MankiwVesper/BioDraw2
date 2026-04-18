@@ -489,12 +489,10 @@
   background: rgba(59, 130, 246, 0.07);
 }
 
-.tb-export-range {
+.tb-export-range-sep {
   font-size: 11px;
   color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-shrink: 0;
 }
 
 .tb-export-range-badge {

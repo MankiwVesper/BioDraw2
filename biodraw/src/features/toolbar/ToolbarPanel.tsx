@@ -230,10 +230,19 @@ export function ToolbarPanel() {
     return () => window.removeEventListener('mousedown', handler);
   }, [showExportPanel]);
 
-  const exportRange = useMemo(() => ({
-    startMs: 0,
-    endMs: globalDurationMs,
-  }), [globalDurationMs]);
+  const [exportStartSec, setExportStartSec] = useState('0');
+  const [exportEndSec,   setExportEndSec]   = useState(() => (globalDurationMs / 1000).toFixed(2));
+  // globalDurationMs 变化时，若终点超出新时长则自动收缩
+  useEffect(() => {
+    const maxS = globalDurationMs / 1000;
+    setExportEndSec((prev) => {
+      const v = parseFloat(prev);
+      return isNaN(v) || v > maxS ? maxS.toFixed(2) : prev;
+    });
+  }, [globalDurationMs]);
+  const exportStartMs = Math.max(0, Math.round((parseFloat(exportStartSec) || 0) * 1000));
+  const exportEndMs   = Math.min(globalDurationMs, Math.round((parseFloat(exportEndSec) || globalDurationMs / 1000) * 1000));
+  const exportRange   = { startMs: exportStartMs, endMs: exportEndMs };
 
   const exportSize = useMemo(() => ({
     width:  Math.max(16, Math.round(exportWidth)),
@@ -547,8 +556,31 @@ export function ToolbarPanel() {
                     <option value="webm">WebM</option>
                   </select>
                 </div>
-                <div className="tb-export-range">
-                  导出范围：{(exportRange.startMs / 1000).toFixed(2)}s — {(exportRange.endMs / 1000).toFixed(2)}s
+                <div className="tb-canvas-size-row">
+                  <span className="tb-canvas-size-label">导出范围</span>
+                  <input
+                    className="tb-canvas-size-input"
+                    type="number" min={0} step={0.01}
+                    value={exportStartSec}
+                    onChange={(e) => setExportStartSec(e.target.value)}
+                    onBlur={() => {
+                      const v = parseFloat(exportStartSec);
+                      setExportStartSec(isNaN(v) ? '0.00' : Math.max(0, v).toFixed(2));
+                    }}
+                  />
+                  <span className="tb-export-range-sep">—</span>
+                  <input
+                    className="tb-canvas-size-input"
+                    type="number" min={0} step={0.01}
+                    value={exportEndSec}
+                    onChange={(e) => setExportEndSec(e.target.value)}
+                    onBlur={() => {
+                      const v = parseFloat(exportEndSec);
+                      const maxS = globalDurationMs / 1000;
+                      setExportEndSec(isNaN(v) ? maxS.toFixed(2) : Math.min(maxS, Math.max(0, v)).toFixed(2));
+                    }}
+                  />
+                  <span className="tb-export-range-sep">s</span>
                 </div>
                 <div className="tb-export-actions">
                   <div className="tb-export-action-row">
