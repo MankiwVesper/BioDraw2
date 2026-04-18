@@ -487,7 +487,7 @@ export function ToolbarPanel() {
                   </button>
                 </div>
                 <div className="tb-canvas-swatches">
-                  {['#ffffff', '#f8fafc', '#e2e8f0', '#0f172a', '#1e3a5f', '#f0fdf4'].map((c) => (
+                  {['#ffffff', '#f8fafc', '#e2e8f0', '#f0fdf4', '#1e3a5f', '#0f172a'].map((c) => (
                     <button
                       key={c}
                       onClick={() => setCanvasBgColor(c)}

@@ -413,7 +413,7 @@
 
 .tb-canvas-swatches {
   display: flex;
-  gap: 6px;
+  gap: 5px;
   justify-content: flex-end;
 }
 
