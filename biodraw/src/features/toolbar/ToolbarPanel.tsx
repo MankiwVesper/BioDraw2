@@ -183,7 +183,8 @@ export function ToolbarPanel() {
   const [exportFps,    setExportFps]    = useState(24);
   const [videoFormat,  setVideoFormat]  = useState<'mp4' | 'webm'>('mp4');
   const exportPanelRef = useRef<HTMLDivElement>(null);
-  const [exportDropdownWidth, setExportDropdownWidth] = useState(280);
+  const [exportDropdownWidth,   setExportDropdownWidth]   = useState(280);
+  const [exportIsRatioLocked,  setExportIsRatioLocked]  = useState(false);
 
   useEffect(() => {
     if (!showExportPanel) return;
@@ -543,8 +544,31 @@ export function ToolbarPanel() {
                 <div className="tb-export-title">导出设置</div>
                 <div className="tb-canvas-size-row">
                   <span className="tb-canvas-size-label">分辨率</span>
-                  <input className="tb-canvas-size-input" type="number" min={16} value={exportWidth} onChange={(e) => setExportWidth(parseInt(e.target.value || '1280', 10))} />
-                  <input className="tb-canvas-size-input" type="number" min={16} value={exportHeight} onChange={(e) => setExportHeight(parseInt(e.target.value || '720', 10))} />
+                  <input
+                    className="tb-canvas-size-input" type="number" min={16}
+                    value={exportWidth}
+                    onChange={(e) => {
+                      const w = parseInt(e.target.value || '1280', 10);
+                      setExportWidth(w);
+                      if (exportIsRatioLocked) setExportHeight(Math.round(w * canvasHeight / canvasWidth));
+                    }}
+                  />
+                  <input
+                    className="tb-canvas-size-input" type="number" min={16}
+                    value={exportHeight}
+                    onChange={(e) => {
+                      const h = parseInt(e.target.value || '720', 10);
+                      setExportHeight(h);
+                      if (exportIsRatioLocked) setExportWidth(Math.round(h * canvasWidth / canvasHeight));
+                    }}
+                  />
+                  <button
+                    className={`tb-canvas-lock-btn${exportIsRatioLocked ? ' is-locked' : ''}`}
+                    onClick={() => setExportIsRatioLocked((p) => !p)}
+                    title={exportIsRatioLocked ? '解锁宽高比' : '锁定宽高比'}
+                  >
+                    {exportIsRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
+                  </button>
                 </div>
                 <div className="tb-canvas-size-row">
                   <span className="tb-canvas-size-label">FPS/格式</span>
@@ -555,6 +579,15 @@ export function ToolbarPanel() {
                     <option value="mp4">MP4</option>
                     <option value="webm">WebM</option>
                   </select>
+                  <button
+                    className="tb-canvas-lock-btn"
+                    onClick={() => { setExportFps(24); setVideoFormat('mp4'); }}
+                    title="恢复默认值"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                    </svg>
+                  </button>
                 </div>
                 <div className="tb-canvas-size-row">
                   <span className="tb-canvas-size-label">导出范围</span>
@@ -568,7 +601,6 @@ export function ToolbarPanel() {
                       setExportStartSec(isNaN(v) ? '0.00' : Math.max(0, v).toFixed(2));
                     }}
                   />
-                  <span className="tb-export-range-sep">—</span>
                   <input
                     className="tb-canvas-size-input"
                     type="number" min={0} step={0.01}
@@ -580,7 +612,15 @@ export function ToolbarPanel() {
                       setExportEndSec(isNaN(v) ? maxS.toFixed(2) : Math.min(maxS, Math.max(0, v)).toFixed(2));
                     }}
                   />
-                  <span className="tb-export-range-sep">s</span>
+                  <button
+                    className="tb-canvas-lock-btn"
+                    onClick={() => { setExportStartSec('0.00'); setExportEndSec((globalDurationMs / 1000).toFixed(2)); }}
+                    title="恢复默认范围"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+                    </svg>
+                  </button>
                 </div>
                 <div className="tb-export-actions">
                   <div className="tb-export-action-row">
