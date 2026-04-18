@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import { Stage, Layer, Line } from 'react-konva';
+import { SkipBack, SkipForward, Play, Pause, Square } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { Rect } from 'react-konva';
@@ -223,8 +224,12 @@ export function CanvasPanel() {
   const setVideoExportStatus = useEditorStore(state => state.setVideoExportStatus);
   const exportCancelCount = useEditorStore(state => state.exportCancelCount);
   const cancelExport = useEditorStore(state => state.cancelExport);
-  const singleFrameExportId = useEditorStore(state => state.singleFrameExportId);
-  const fitVersion = useEditorStore(state => state.fitVersion);
+  const singleFrameExportId  = useEditorStore(state => state.singleFrameExportId);
+  const fitVersion           = useEditorStore(state => state.fitVersion);
+  const isPreviewMode        = useEditorStore(state => state.isPreviewMode);
+  const setPreviewMode       = useEditorStore(state => state.setPreviewMode);
+  const stopPlayback         = useEditorStore(state => state.stop);
+  const stepPlaybackFrame    = useEditorStore(state => state.stepPlaybackFrame);
   const lastHandledExportRequestRef = useRef(0);
   const lastHandledVideoExportRequestRef = useRef(0);
   const exportCancelCountRef = useRef(exportCancelCount);
@@ -1309,7 +1314,35 @@ export function CanvasPanel() {
         )}
 
 
-        {/* 閸欏厖绗呯憴鎺撳亾濞搭喚缂夐弨鐐付閸掕埖娼?*/}
+        {/* 预览模式浮动控制栏（top:12px right:12px，与底部缩放控件对称） */}
+        {isPreviewMode && (
+          <div className="pv-controls">
+            <button className="pv-btn" onClick={() => stepPlaybackFrame(-1)} title="上一帧">
+              <SkipBack size={14} strokeWidth={2} />
+            </button>
+            <button
+              className={`pv-btn pv-play${playbackStatus === 'playing' ? ' pv-playing' : ''}`}
+              onClick={playbackStatus === 'playing' ? pausePlayback : playPlayback}
+              title={playbackStatus === 'playing' ? '暂停' : '播放'}
+            >
+              {playbackStatus === 'playing'
+                ? <Pause size={13} strokeWidth={2.5} fill="currentColor" />
+                : <Play  size={13} strokeWidth={2.5} fill="currentColor" />}
+            </button>
+            <button className="pv-btn" onClick={stopPlayback} title="停止">
+              <Square size={11} strokeWidth={0} fill="currentColor" />
+            </button>
+            <button className="pv-btn" onClick={() => stepPlaybackFrame(1)} title="下一帧">
+              <SkipForward size={14} strokeWidth={2} />
+            </button>
+            <div className="pv-divider" />
+            <button className="pv-exit" onClick={() => setPreviewMode(false)} title="退出预览 (Esc)">
+              ✕ 退出预览
+            </button>
+          </div>
+        )}
+
+        {/* 缩放控件 */}
         <div style={{
           position: 'absolute', bottom: '12px', right: '12px',
           display: 'flex', alignItems: 'center', gap: '4px',
