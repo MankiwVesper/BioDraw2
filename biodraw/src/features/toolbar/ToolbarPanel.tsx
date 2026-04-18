@@ -140,10 +140,14 @@ export function ToolbarPanel() {
         setPreviewRight(window.innerWidth - el.getBoundingClientRect().right);
       }
     };
-    update();
+    // 用 rAF 等 DOM 重绘完成后再测量（预览模式切换后布局会变）
+    const rafId = requestAnimationFrame(update);
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
+    return () => {
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', update);
+    };
+  }, [isPreviewMode]);
 
   // 速率下拉状态
   const [showRateMenu, setShowRateMenu] = useState(false);
