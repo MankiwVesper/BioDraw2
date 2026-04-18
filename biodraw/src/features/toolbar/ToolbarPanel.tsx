@@ -327,7 +327,7 @@ export function ToolbarPanel() {
           ) : (
             <span
               className="tb-filename"
-              title="点击重命名"
+              data-tooltip="点击重命名"
               onClick={startEditingName}
             >
               {currentFileName.replace(/\.biodraw$/, '')}{hasUnsavedChanges ? ' *' : ''}
@@ -343,36 +343,36 @@ export function ToolbarPanel() {
         />
         <button className="tb-btn" onClick={handleNew}>新建</button>
         <button className="tb-btn" onClick={handleOpenClick}>打开</button>
-        <button className="tb-btn" onClick={handleSave} title={hasUnsavedChanges ? '有未保存的修改' : '保存文档 (Ctrl+S)'}>
+        <button className="tb-btn" onClick={handleSave} data-tooltip={hasUnsavedChanges ? '有未保存的修改' : '保存文档 (Ctrl+S)'}>
           保存
         </button>
         <div className="tb-divider" />
-        <button className="tb-btn tb-undo-btn" onClick={undo} disabled={past.length === 0} title="撤销 (Ctrl+Z)">
+        <button className="tb-btn tb-undo-btn" onClick={undo} disabled={past.length === 0} data-tooltip="撤销 (Ctrl+Z)">
           ↩ 撤销
         </button>
-        <button className="tb-btn tb-undo-btn" onClick={redo} disabled={future.length === 0} title="重做 (Ctrl+Y)">
+        <button className="tb-btn tb-undo-btn" onClick={redo} disabled={future.length === 0} data-tooltip="重做 (Ctrl+Y)">
           ↪ 重做
         </button>
       </div>
 
       {/* ── 绝对居中：播放四键，与 konvajs-content 中心对齐 */}
       <div className="tb-playback">
-        <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(-1)} title="上一帧">
+        <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(-1)} data-tooltip="上一帧">
           <SkipBack size={15} strokeWidth={2} />
         </button>
         <button
           className={`tb-pb-btn tb-pb-play${isPlaying ? ' tb-pb-playing' : ''}`}
           onClick={isPlaying ? pause : play}
-          title={isPlaying ? '暂停' : '播放'}
+          data-tooltip={isPlaying ? '暂停' : '播放'}
         >
           {isPlaying
             ? <Pause size={14} strokeWidth={2.5} fill="currentColor" />
             : <Play  size={14} strokeWidth={2.5} fill="currentColor" />}
         </button>
-        <button className="tb-pb-btn" onClick={stop} title="停止">
+        <button className="tb-pb-btn" onClick={stop} data-tooltip="停止">
           <Square size={12} strokeWidth={0} fill="currentColor" />
         </button>
-        <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(1)} title="下一帧">
+        <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(1)} data-tooltip="下一帧">
           <SkipForward size={15} strokeWidth={2} />
         </button>
       </div>
@@ -384,7 +384,7 @@ export function ToolbarPanel() {
           <button
             className={`tb-btn tb-rate-btn${showRateMenu ? ' is-active' : ''}`}
             onClick={() => setShowRateMenu((p) => !p)}
-            title="播放速率"
+            data-tooltip="播放速率"
           >
             {playbackRate}x
             <ChevronDown size={11} strokeWidth={2.5} className={`tb-rate-chevron${showRateMenu ? ' is-open' : ''}`} />
@@ -460,7 +460,7 @@ export function ToolbarPanel() {
                   <button
                     className={`tb-canvas-lock-btn${isRatioLocked ? ' is-locked' : ''}`}
                     onClick={() => setIsRatioLocked(!isRatioLocked)}
-                    title={isRatioLocked ? '解锁宽高比' : '锁定宽高比'}
+                    data-tooltip={isRatioLocked ? '解锁宽高比' : '锁定宽高比'}
                   >
                     {isRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
                   </button>
@@ -472,7 +472,7 @@ export function ToolbarPanel() {
                     value={canvasBgColor}
                     onChange={(e) => setCanvasBgColor(e.target.value)}
                     className="tb-canvas-color-picker"
-                    title="选取颜色"
+                    data-tooltip="选取颜色"
                   />
                   <input
                     type="text"
@@ -494,7 +494,7 @@ export function ToolbarPanel() {
                       setCanvasSize(1280, 720);
                       setCanvasBgColor('#ffffff');
                     }}
-                    title="恢复默认设置"
+                    data-tooltip="恢复默认设置"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
@@ -507,7 +507,7 @@ export function ToolbarPanel() {
                     <button
                       key={c}
                       onClick={() => setCanvasBgColor(c)}
-                      title={c}
+                      data-tooltip={c}
                       style={{
                         width: 20, height: 20, borderRadius: 4, cursor: 'pointer',
                         background: c, border: canvasBgColor === c ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
@@ -524,7 +524,7 @@ export function ToolbarPanel() {
         <button
           className={`tb-btn${isPreviewMode ? ' is-active' : ''}`}
           onClick={() => setPreviewMode(!isPreviewMode)}
-          title="全屏预览 (F)"
+          data-tooltip="全屏预览 (F)"
         >
           {isPreviewMode ? '退出预览' : '预览 ⛶'}
         </button>
@@ -565,7 +565,7 @@ export function ToolbarPanel() {
                   <button
                     className={`tb-canvas-lock-btn${exportIsRatioLocked ? ' is-locked' : ''}`}
                     onClick={() => setExportIsRatioLocked((p) => !p)}
-                    title={exportIsRatioLocked ? '解锁宽高比' : '锁定宽高比'}
+                    data-tooltip={exportIsRatioLocked ? '解锁宽高比' : '锁定宽高比'}
                   >
                     {exportIsRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
                   </button>
@@ -582,7 +582,7 @@ export function ToolbarPanel() {
                   <button
                     className="tb-canvas-lock-btn"
                     onClick={() => { setExportFps(24); setVideoFormat('mp4'); }}
-                    title="恢复默认值"
+                    data-tooltip="恢复默认值"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
@@ -615,7 +615,7 @@ export function ToolbarPanel() {
                   <button
                     className="tb-canvas-lock-btn"
                     onClick={() => { setExportStartSec('0.00'); setExportEndSec((globalDurationMs / 1000).toFixed(2)); }}
-                    title="恢复默认范围"
+                    data-tooltip="恢复默认范围"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
@@ -628,7 +628,7 @@ export function ToolbarPanel() {
                       className="tb-export-action-btn"
                       onClick={() => { requestSingleFrameExport(); setShowExportPanel(false); }}
                       disabled={isExporting}
-                      title={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
+                      data-tooltip={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
                     >
                       导出当前帧
                     </button>
@@ -671,7 +671,7 @@ export function ToolbarPanel() {
                 className="tb-btn"
                 style={{ fontSize: 11, padding: '1px 6px', color: 'var(--error-color, #ef4444)' }}
                 onClick={cancelExport}
-                title="取消导出"
+                data-tooltip="取消导出"
               >
                 取消
               </button>
