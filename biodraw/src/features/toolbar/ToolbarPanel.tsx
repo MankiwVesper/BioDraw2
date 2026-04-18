@@ -444,7 +444,7 @@ export function ToolbarPanel() {
         {/* 预览 */}
         <button
           className={`tb-btn${isPreviewMode ? ' is-active' : ''}`}
-          onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
+          onClick={() => setPreviewMode(!isPreviewMode)}
           title="全屏预览 (F)"
         >
           {isPreviewMode ? '退出预览' : '预览 ⛶'}
