@@ -632,7 +632,6 @@ export function InspectorPanel() {
                   type="number"
                   value={Math.round(selectedObj.x)}
                   onChange={(e) => handleChange("x", e.target.value)}
-                  data-tooltip="X坐标"
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
@@ -641,7 +640,6 @@ export function InspectorPanel() {
                   type="number"
                   value={Math.round(selectedObj.y)}
                   onChange={(e) => handleChange("y", e.target.value)}
-                  data-tooltip="Y坐标"
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
@@ -684,7 +682,6 @@ export function InspectorPanel() {
                   onChange={(e) =>
                     handleDimensionChange("width", e.target.value)
                   }
-                  data-tooltip="宽度 (px)"
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>
@@ -695,7 +692,6 @@ export function InspectorPanel() {
                   onChange={(e) =>
                     handleDimensionChange("height", e.target.value)
                   }
-                  data-tooltip="高度 (px)"
                   style={{ padding: "3px 4px", height: "24px" }}
                 />
               </div>

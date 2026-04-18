@@ -79,7 +79,6 @@ export function MaterialsPanel() {
           className="mp-category-dropdown"
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          data-tooltip="筛选分类"
         >
           <option value="">全部分类</option>
           {categories.map((cat) => (
