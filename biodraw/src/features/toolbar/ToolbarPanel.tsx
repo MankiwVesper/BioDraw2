@@ -132,6 +132,9 @@ export function ToolbarPanel() {
   const canvasPanelRef = useRef<HTMLDivElement>(null);
 
   // 预览按钮右边界偏移（对齐 konvajs-content 右边界，动态测量）
+  // ToolbarPanel 在预览模式下被卸载，退出时重新挂载。
+  // 用 setTimeout(0) 推迟测量，确保 MaterialsPanel/InspectorPanel
+  // 全部完成布局后再读取坐标，避免拿到过渡期间的错误值。
   const [previewRight, setPreviewRight] = useState(304);
   useEffect(() => {
     const update = () => {
@@ -140,13 +143,13 @@ export function ToolbarPanel() {
         setPreviewRight(window.innerWidth - el.getBoundingClientRect().right);
       }
     };
-    update();
+    const timer = setTimeout(update, 0);
     window.addEventListener('resize', update);
-    // ResizeObserver 监听 canvas-wrapper，退出预览/窗口变化后布局稳定即触发
     const wrapper = document.querySelector('.canvas-wrapper');
     const ro = new ResizeObserver(update);
     if (wrapper) ro.observe(wrapper);
     return () => {
+      clearTimeout(timer);
       window.removeEventListener('resize', update);
       ro.disconnect();
     };
