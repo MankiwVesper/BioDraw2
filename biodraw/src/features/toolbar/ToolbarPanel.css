@@ -414,6 +414,7 @@
   color: var(--text-muted);
   white-space: nowrap;
   flex-shrink: 0;
+  min-width: 62px;
 }
 
 .tb-canvas-size-input {
