@@ -512,6 +512,15 @@
   gap: 6px;
 }
 
+.tb-export-action-row {
+  display: flex;
+  gap: 6px;
+}
+
+.tb-export-action-row .tb-export-action-btn {
+  flex: 1;
+}
+
 .tb-export-action-btn {
   height: 28px;
   border: 1px solid var(--border-color);

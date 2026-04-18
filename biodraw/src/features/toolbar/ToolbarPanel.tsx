@@ -551,17 +551,19 @@ export function ToolbarPanel() {
                   导出范围：{(exportRange.startMs / 1000).toFixed(2)}s — {(exportRange.endMs / 1000).toFixed(2)}s
                 </div>
                 <div className="tb-export-actions">
-                  <button
-                    className="tb-export-action-btn"
-                    onClick={() => { requestSingleFrameExport(); setShowExportPanel(false); }}
-                    disabled={isExporting}
-                    title={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
-                  >
-                    当前帧 PNG
-                  </button>
-                  <button className="tb-export-action-btn" onClick={triggerSequenceExport} disabled={isExporting}>
-                    导出 PNG 序列帧
-                  </button>
+                  <div className="tb-export-action-row">
+                    <button
+                      className="tb-export-action-btn"
+                      onClick={() => { requestSingleFrameExport(); setShowExportPanel(false); }}
+                      disabled={isExporting}
+                      title={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
+                    >
+                      导出当前帧
+                    </button>
+                    <button className="tb-export-action-btn" onClick={triggerSequenceExport} disabled={isExporting}>
+                      导出序列帧
+                    </button>
+                  </div>
                   <button className="tb-export-action-btn tb-export-action-primary" onClick={triggerVideoExport} disabled={isExporting}>
                     导出视频
                   </button>
