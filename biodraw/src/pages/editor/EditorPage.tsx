@@ -34,11 +34,11 @@ export default function EditorPage() {
     return () => cancelAnimationFrame(rafId);
   }, [playbackStatus, advancePlayback]);
 
-  // 进入预览模式：自动适配画布并播放
+  // 进入预览模式：自动适配画布；有动画时自动播放
   useEffect(() => {
     if (isPreviewMode) {
       requestFit();
-      play();
+      if (useEditorStore.getState().animations.length > 0) play();
     }
   }, [isPreviewMode, requestFit, play]);
 
