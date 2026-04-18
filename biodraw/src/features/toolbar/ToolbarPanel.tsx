@@ -430,9 +430,9 @@ export function ToolbarPanel() {
           {showCanvasPanel && (
             <div className="tb-export-panel" style={{ width: canvasDropdownStyle.width, right: canvasDropdownStyle.right }}>
               <div className="tb-canvas-content">
-                <div className="tb-export-title">画布设置</div>
-                <div className="tb-canvas-size-row">
-                  <span className="tb-canvas-size-label">宽/高 (px)</span>
+                <div className="tb-export-title tb-canvas-content-full">画布设置</div>
+                <span className="tb-canvas-size-label">宽/高 (px)</span>
+                <div className="tb-canvas-controls">
                   <input
                     className="tb-canvas-size-input"
                     type="number" min={100}
@@ -465,8 +465,8 @@ export function ToolbarPanel() {
                     {isRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
                   </button>
                 </div>
-                <div className="tb-canvas-size-row">
-                  <span className="tb-canvas-size-label">背景颜色</span>
+                <span className="tb-canvas-size-label">背景颜色</span>
+                <div className="tb-canvas-controls">
                   <input
                     type="color"
                     value={canvasBgColor}
@@ -502,7 +502,7 @@ export function ToolbarPanel() {
                     </svg>
                   </button>
                 </div>
-                <div className="tb-canvas-swatches">
+                <div className="tb-canvas-swatches tb-canvas-content-full">
                   {['#ffffff', '#f8fafc', '#e2e8f0', '#f0fdf4', '#1e3a5f', '#0f172a'].map((c) => (
                     <button
                       key={c}
@@ -541,9 +541,9 @@ export function ToolbarPanel() {
           {showExportPanel && (
             <div className="tb-export-panel" style={{ width: exportDropdownWidth }}>
               <div className="tb-canvas-content">
-                <div className="tb-export-title">导出设置</div>
-                <div className="tb-canvas-size-row">
-                  <span className="tb-canvas-size-label">分辨率</span>
+                <div className="tb-export-title tb-canvas-content-full">导出设置</div>
+                <span className="tb-canvas-size-label">分辨率</span>
+                <div className="tb-canvas-controls">
                   <input
                     className="tb-canvas-size-input" type="number" min={16}
                     value={exportWidth}
@@ -570,8 +570,8 @@ export function ToolbarPanel() {
                     {exportIsRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
                   </button>
                 </div>
-                <div className="tb-canvas-size-row">
-                  <span className="tb-canvas-size-label">FPS/格式</span>
+                <span className="tb-canvas-size-label">FPS/格式</span>
+                <div className="tb-canvas-controls">
                   <select className="tb-canvas-size-input" value={exportFps} onChange={(e) => setExportFps(parseInt(e.target.value, 10))}>
                     {exportFpsOptions.map((f) => <option key={f} value={f}>{f}</option>)}
                   </select>
@@ -589,8 +589,8 @@ export function ToolbarPanel() {
                     </svg>
                   </button>
                 </div>
-                <div className="tb-canvas-size-row">
-                  <span className="tb-canvas-size-label">导出范围</span>
+                <span className="tb-canvas-size-label">导出范围</span>
+                <div className="tb-canvas-controls">
                   <input
                     className="tb-canvas-size-input"
                     type="number" min={0} step={0.01}
@@ -622,7 +622,7 @@ export function ToolbarPanel() {
                     </svg>
                   </button>
                 </div>
-                <div className="tb-export-actions">
+                <div className="tb-export-actions tb-canvas-content-full">
                   <div className="tb-export-action-row">
                     <button
                       className="tb-export-action-btn"
