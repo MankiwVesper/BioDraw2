@@ -533,7 +533,7 @@ export function ToolbarPanel() {
               <div className="tb-canvas-content">
                 <div className="tb-export-title">导出设置</div>
                 <div className="tb-canvas-size-row">
-                  <span className="tb-canvas-size-label">宽/高 (px)</span>
+                  <span className="tb-canvas-size-label">分辨率</span>
                   <input className="tb-canvas-size-input" type="number" min={16} value={exportWidth} onChange={(e) => setExportWidth(parseInt(e.target.value || '1280', 10))} />
                   <input className="tb-canvas-size-input" type="number" min={16} value={exportHeight} onChange={(e) => setExportHeight(parseInt(e.target.value || '720', 10))} />
                 </div>
