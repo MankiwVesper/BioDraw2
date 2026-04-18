@@ -434,6 +434,18 @@
   border-color: var(--primary-color);
 }
 
+.tb-canvas-color-picker {
+  width: 56px;
+  height: 26px;
+  flex-shrink: 0;
+  padding: 1px 2px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  cursor: pointer;
+}
+
 .tb-canvas-lock-btn {
   width: 24px;
   height: 26px;

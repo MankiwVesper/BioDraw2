@@ -130,6 +130,8 @@ export function ToolbarPanel() {
   const [showCanvasPanel, setShowCanvasPanel] = useState(false);
   const [localCanvasW, setLocalCanvasW] = useState(canvasWidth);
   const [localCanvasH, setLocalCanvasH] = useState(canvasHeight);
+  const [localHexColor, setLocalHexColor] = useState(canvasBgColor);
+  useEffect(() => { setLocalHexColor(canvasBgColor); }, [canvasBgColor]);
   const canvasPanelRef = useRef<HTMLDivElement>(null);
 
   // 预览按钮右边界偏移（对齐 konvajs-content 右边界，动态测量）
@@ -428,16 +430,43 @@ export function ToolbarPanel() {
                   {isRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
                 </button>
               </div>
-              <label className="tb-export-label" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                背景颜色
+              <div className="tb-canvas-size-row">
+                <span className="tb-canvas-size-label">背景颜色</span>
                 <input
                   type="color"
                   value={canvasBgColor}
                   onChange={(e) => setCanvasBgColor(e.target.value)}
-                  style={{ width: 32, height: 24, padding: 0, border: '1px solid var(--border-color)', borderRadius: 4, cursor: 'pointer' }}
+                  className="tb-canvas-color-picker"
+                  title="选取颜色"
                 />
-                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{canvasBgColor}</span>
-              </label>
+                <input
+                  type="text"
+                  className="tb-canvas-size-input"
+                  value={localHexColor}
+                  onChange={(e) => {
+                    setLocalHexColor(e.target.value);
+                    if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setCanvasBgColor(e.target.value);
+                  }}
+                  onBlur={() => setLocalHexColor(canvasBgColor)}
+                  maxLength={7}
+                  spellCheck={false}
+                />
+                <button
+                  className="tb-canvas-lock-btn"
+                  onClick={() => {
+                    setLocalCanvasW(1280);
+                    setLocalCanvasH(720);
+                    setCanvasSize(1280, 720);
+                    setCanvasBgColor('#ffffff');
+                  }}
+                  title="恢复默认设置"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                  </svg>
+                </button>
+              </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {['#ffffff', '#f8fafc', '#0f172a', '#1e3a5f', '#f0fdf4'].map((c) => (
                   <button
