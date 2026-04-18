@@ -403,6 +403,65 @@
   border-color: var(--primary-color);
 }
 
+.tb-canvas-size-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.tb-canvas-size-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tb-canvas-size-input {
+  width: 56px;
+  flex-shrink: 0;
+  height: 26px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-main);
+  padding: 0 4px;
+  font-size: 12px;
+}
+
+.tb-canvas-size-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.tb-canvas-lock-btn {
+  width: 24px;
+  height: 26px;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.tb-canvas-lock-btn:hover {
+  background: rgba(59, 130, 246, 0.07);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.tb-canvas-lock-btn.is-locked {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+  background: rgba(59, 130, 246, 0.07);
+}
+
 .tb-export-range {
   font-size: 11px;
   color: var(--text-muted);

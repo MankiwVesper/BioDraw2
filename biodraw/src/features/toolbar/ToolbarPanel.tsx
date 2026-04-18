@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown } from 'lucide-react';
+import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
 import { downloadDocument, parseDocumentFile, clearAutoSave } from '../../infrastructure/documentSerializer';
 import './ToolbarPanel.css';
@@ -42,8 +42,10 @@ export function ToolbarPanel() {
   const resetScene        = useEditorStore((s) => s.resetScene);
   const loadSnapshot      = useEditorStore((s) => s.loadSnapshot);
   const setCurrentFileName = useEditorStore((s) => s.setCurrentFileName);
-  const isPreviewMode  = useEditorStore((s) => s.isPreviewMode);
-  const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
+  const isPreviewMode    = useEditorStore((s) => s.isPreviewMode);
+  const setPreviewMode   = useEditorStore((s) => s.setPreviewMode);
+  const isRatioLocked    = useEditorStore((s) => s.isRatioLocked);
+  const setIsRatioLocked = useEditorStore((s) => s.setIsRatioLocked);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -392,27 +394,39 @@ export function ToolbarPanel() {
           {showCanvasPanel && (
             <div className="tb-export-panel" style={{ width: 220 }}>
               <div className="tb-export-title">画布设置</div>
-              <div className="tb-export-fields">
-                <label className="tb-export-label">
-                  宽度 (px)
-                  <input
-                    type="number" min={100}
-                    value={localCanvasW}
-                    onChange={(e) => setLocalCanvasW(parseInt(e.target.value || '1280', 10))}
-                    onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
-                    onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
-                  />
-                </label>
-                <label className="tb-export-label">
-                  高度 (px)
-                  <input
-                    type="number" min={100}
-                    value={localCanvasH}
-                    onChange={(e) => setLocalCanvasH(parseInt(e.target.value || '720', 10))}
-                    onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
-                    onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
-                  />
-                </label>
+              <div className="tb-canvas-size-row">
+                <span className="tb-canvas-size-label">宽/高 (px)</span>
+                <input
+                  className="tb-canvas-size-input"
+                  type="number" min={100}
+                  value={localCanvasW}
+                  onChange={(e) => {
+                    const w = parseInt(e.target.value || '1280', 10);
+                    setLocalCanvasW(w);
+                    if (isRatioLocked) setLocalCanvasH(Math.round(w * canvasHeight / canvasWidth));
+                  }}
+                  onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
+                  onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
+                />
+                <input
+                  className="tb-canvas-size-input"
+                  type="number" min={100}
+                  value={localCanvasH}
+                  onChange={(e) => {
+                    const h = parseInt(e.target.value || '720', 10);
+                    setLocalCanvasH(h);
+                    if (isRatioLocked) setLocalCanvasW(Math.round(h * canvasWidth / canvasHeight));
+                  }}
+                  onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
+                  onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
+                />
+                <button
+                  className={`tb-canvas-lock-btn${isRatioLocked ? ' is-locked' : ''}`}
+                  onClick={() => setIsRatioLocked(!isRatioLocked)}
+                  title={isRatioLocked ? '解锁宽高比' : '锁定宽高比'}
+                >
+                  {isRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
+                </button>
               </div>
               <label className="tb-export-label" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 背景颜色
