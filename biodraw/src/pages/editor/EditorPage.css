@@ -27,19 +27,21 @@
 }
 
 /* ── 预览模式浮动控制栏 ─────────────────────────────── */
+/* 与画布右下角缩放控件样式对称：相同背景/边框/圆角/阴影，位置 top:12px right:12px */
 .preview-controls {
   position: fixed;
-  top: 16px;
-  right: 20px;
+  top: 12px;
+  right: 12px;
   z-index: 9999;
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  padding: 5px 8px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  user-select: none;
 }
 
 .pv-btn {
@@ -48,7 +50,7 @@
   border: none;
   outline: none;
   background: transparent;
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--text-main);
   cursor: pointer;
   border-radius: 5px;
   display: flex;
@@ -59,44 +61,49 @@
 }
 
 .pv-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: rgba(59, 130, 246, 0.07);
+  color: var(--primary-color);
 }
 
+/* 播放/暂停：与工具栏播放键相同颜色 */
 .pv-play {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #38bdf8;
+  background: var(--primary-color);
   color: #fff;
+  box-shadow: 0 1px 4px rgba(59, 130, 246, 0.4);
 }
 
 .pv-play:hover {
-  background: #0ea5e9;
+  background: var(--primary-hover);
   color: #fff;
 }
 
 .pv-playing {
   background: #f59e0b;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
 }
 
 .pv-playing:hover {
   background: #d97706;
+  color: #fff;
 }
 
 .pv-divider {
   width: 1px;
   height: 16px;
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--border-color);
   margin: 0 2px;
   flex-shrink: 0;
 }
 
+/* 退出预览：与播放键相同主色 */
 .pv-exit {
   height: 28px;
   border: none;
   outline: none;
-  background: #38bdf8;
+  background: var(--primary-color);
   color: #fff;
   border-radius: 5px;
   padding: 0 10px;
@@ -107,7 +114,7 @@
 }
 
 .pv-exit:hover {
-  background: #0ea5e9;
+  background: var(--primary-hover);
 }
 
 /* ── 编辑器主布局 ────────────────────────────────────── */
