@@ -133,6 +133,23 @@ export function ToolbarPanel() {
   const [localHexColor, setLocalHexColor] = useState(canvasBgColor);
   useEffect(() => { setLocalHexColor(canvasBgColor); }, [canvasBgColor]);
   const canvasPanelRef = useRef<HTMLDivElement>(null);
+  const loopBtnRef     = useRef<HTMLButtonElement>(null);
+  const [canvasDropdownStyle, setCanvasDropdownStyle] = useState<{ width: number; right: number }>({ width: 220, right: 0 });
+
+  useEffect(() => {
+    if (!showCanvasPanel) return;
+    const loop   = loopBtnRef.current;
+    const exportW = exportPanelRef.current;
+    const wrapper = canvasPanelRef.current;
+    if (!loop || !exportW || !wrapper) return;
+    const loopLeft    = loop.getBoundingClientRect().left;
+    const exportRight = exportW.getBoundingClientRect().right;
+    const wrapperRight = wrapper.getBoundingClientRect().right;
+    setCanvasDropdownStyle({
+      width: exportRight - loopLeft,
+      right: wrapperRight - exportRight,   // 负值：超出 wrapper 右边界延伸到导出右边
+    });
+  }, [showCanvasPanel]);
 
   // 预览按钮右边界偏移（对齐 konvajs-content 右边界，动态测量）
   // ToolbarPanel 在预览模式下被卸载，退出时重新挂载。
@@ -373,6 +390,7 @@ export function ToolbarPanel() {
 
         {/* 循环 */}
         <button
+          ref={loopBtnRef}
           className={`tb-btn${playbackLoopEnabled ? ' is-active' : ''}`}
           onClick={() => setPlaybackLoopEnabled(!playbackLoopEnabled)}
         >
@@ -394,7 +412,7 @@ export function ToolbarPanel() {
             画布 ▾
           </button>
           {showCanvasPanel && (
-            <div className="tb-export-panel" style={{ width: 220 }}>
+            <div className="tb-export-panel" style={{ width: canvasDropdownStyle.width, right: canvasDropdownStyle.right }}>
               <div className="tb-export-title">画布设置</div>
               <div className="tb-canvas-size-row">
                 <span className="tb-canvas-size-label">宽/高 (px)</span>
