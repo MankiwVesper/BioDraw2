@@ -538,7 +538,7 @@ export function ToolbarPanel() {
                   <input className="tb-canvas-size-input" type="number" min={16} value={exportHeight} onChange={(e) => setExportHeight(parseInt(e.target.value || '720', 10))} />
                 </div>
                 <div className="tb-canvas-size-row">
-                  <span className="tb-canvas-size-label">FPS / 格式</span>
+                  <span className="tb-canvas-size-label">FPS/格式</span>
                   <select className="tb-canvas-size-input" value={exportFps} onChange={(e) => setExportFps(parseInt(e.target.value, 10))}>
                     {exportFpsOptions.map((f) => <option key={f} value={f}>{f}</option>)}
                   </select>
