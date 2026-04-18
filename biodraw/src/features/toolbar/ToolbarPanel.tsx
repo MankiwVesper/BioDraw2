@@ -343,7 +343,7 @@ export function ToolbarPanel() {
         />
         <button className="tb-btn" onClick={handleNew}>新建</button>
         <button className="tb-btn" onClick={handleOpenClick}>打开</button>
-        <button className="tb-btn" onClick={handleSave} data-tooltip={hasUnsavedChanges ? '有未保存的修改' : '保存文档 (Ctrl+S)'}>
+        <button className="tb-btn" onClick={handleSave} data-tooltip={hasUnsavedChanges ? '有未保存的修改' : '保存文件 (Ctrl+S)'}>
           保存
         </button>
         <div className="tb-divider" />
