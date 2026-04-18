@@ -140,14 +140,17 @@ export function ToolbarPanel() {
         setPreviewRight(window.innerWidth - el.getBoundingClientRect().right);
       }
     };
-    // 用 rAF 等 DOM 重绘完成后再测量（预览模式切换后布局会变）
-    const rafId = requestAnimationFrame(update);
+    update();
     window.addEventListener('resize', update);
+    // ResizeObserver 监听 canvas-wrapper，退出预览/窗口变化后布局稳定即触发
+    const wrapper = document.querySelector('.canvas-wrapper');
+    const ro = new ResizeObserver(update);
+    if (wrapper) ro.observe(wrapper);
     return () => {
-      cancelAnimationFrame(rafId);
       window.removeEventListener('resize', update);
+      ro.disconnect();
     };
-  }, [isPreviewMode]);
+  }, []);
 
   // 速率下拉状态
   const [showRateMenu, setShowRateMenu] = useState(false);
