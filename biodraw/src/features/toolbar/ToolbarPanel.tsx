@@ -343,8 +343,9 @@ export function ToolbarPanel() {
         </button>
       </div>
 
-      {/* ── 右侧控制组：速率 + 循环 + 预览，整组右边界对齐 konvajs-content */}
+      {/* ── 右侧控制组：[1x][循环] | [画布][预览][导出]，整组右边界对齐 konvajs-content */}
       <div className="tb-right-group" style={{ right: previewRight }}>
+        {/* 速率 */}
         <div className="tb-rate-wrap" ref={rateMenuRef}>
           <button
             className={`tb-btn tb-rate-btn${showRateMenu ? ' is-active' : ''}`}
@@ -368,24 +369,18 @@ export function ToolbarPanel() {
             </div>
           )}
         </div>
+
+        {/* 循环 */}
         <button
           className={`tb-btn${playbackLoopEnabled ? ' is-active' : ''}`}
           onClick={() => setPlaybackLoopEnabled(!playbackLoopEnabled)}
         >
           循环
         </button>
-        <button
-          className={`tb-btn${isPreviewMode ? ' is-active' : ''}`}
-          onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
-          title="全屏预览 (F)"
-        >
-          {isPreviewMode ? '退出预览' : '⛶ 预览'}
-        </button>
-      </div>
 
-      {/* ── 右区：画布设置 + 导出 + 状态 */}
-      <div className="tb-right">
-        {/* 画布设置按钮 + 面板 */}
+        <div className="tb-divider" />
+
+        {/* 画布设置 */}
         <div className="tb-export-wrap" ref={canvasPanelRef}>
           <button
             className={`tb-btn tb-export-btn${showCanvasPanel ? ' is-open' : ''}`}
@@ -449,38 +444,16 @@ export function ToolbarPanel() {
           )}
         </div>
 
-        {exportStatusText && (
-          <span className={`tb-status${isExportError ? ' is-error' : ''}`}>
-            {exportStatusText}
-          </span>
-        )}
+        {/* 预览 */}
+        <button
+          className={`tb-btn${isPreviewMode ? ' is-active' : ''}`}
+          onClick={() => { setPreviewMode(!isPreviewMode); if (!isPreviewMode) play(); }}
+          title="全屏预览 (F)"
+        >
+          {isPreviewMode ? '退出预览' : '⛶ 预览'}
+        </button>
 
-        {/* 导出进度条 + 取消按钮（序列帧或视频导出时显示） */}
-        {isExporting && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {sequenceExportStatus === 'running' && (
-              <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 2 }}>
-                <div style={{
-                  height: '100%',
-                  width: `${Math.round(exportProgress * 100)}%`,
-                  background: 'var(--primary-color, #3b82f6)',
-                  borderRadius: 2,
-                  transition: 'width 0.1s linear',
-                }} />
-              </div>
-            )}
-            <button
-              className="tb-btn"
-              style={{ fontSize: 11, padding: '1px 6px', color: 'var(--error-color, #ef4444)' }}
-              onClick={cancelExport}
-              title="取消导出"
-            >
-              取消
-            </button>
-          </div>
-        )}
-
-        {/* 导出按钮 + 下拉面板 */}
+        {/* 导出（最右，右边界对齐 konvajs-content） */}
         <div className="tb-export-wrap" ref={exportPanelRef}>
           <button
             className={`tb-btn tb-export-btn${showExportPanel ? ' is-open' : ''}`}
@@ -489,11 +462,9 @@ export function ToolbarPanel() {
           >
             {isExporting ? '导出中…' : '导出 ▾'}
           </button>
-
           {showExportPanel && (
             <div className="tb-export-panel">
               <div className="tb-export-title">导出设置</div>
-
               <div className="tb-export-fields">
                 <label className="tb-export-label">
                   宽度
@@ -517,11 +488,9 @@ export function ToolbarPanel() {
                   </select>
                 </label>
               </div>
-
               <div className="tb-export-range">
                 导出范围：{(exportRange.startMs / 1000).toFixed(2)}s — {(exportRange.endMs / 1000).toFixed(2)}s
               </div>
-
               <div className="tb-export-actions">
                 <button
                   className="tb-export-action-btn"
@@ -542,6 +511,40 @@ export function ToolbarPanel() {
           )}
         </div>
       </div>
+
+      {/* 导出状态与进度（浮于中区，不影响布局） */}
+      {(exportStatusText || isExporting) && (
+        <div className="tb-export-status">
+          {exportStatusText && (
+            <span className={`tb-status${isExportError ? ' is-error' : ''}`}>
+              {exportStatusText}
+            </span>
+          )}
+          {isExporting && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {sequenceExportStatus === 'running' && (
+                <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 2 }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${Math.round(exportProgress * 100)}%`,
+                    background: 'var(--primary-color, #3b82f6)',
+                    borderRadius: 2,
+                    transition: 'width 0.1s linear',
+                  }} />
+                </div>
+              )}
+              <button
+                className="tb-btn"
+                style={{ fontSize: 11, padding: '1px 6px', color: 'var(--error-color, #ef4444)' }}
+                onClick={cancelExport}
+                title="取消导出"
+              >
+                取消
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

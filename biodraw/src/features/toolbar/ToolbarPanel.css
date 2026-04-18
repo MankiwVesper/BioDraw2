@@ -223,12 +223,27 @@
   text-align: center;
 }
 
-/* ── 右侧控制组：速率 + 循环 + 预览，right 由 JS 动态设置 ── */
+/* ── 右侧控制组：[1x][循环]|[画布][预览][导出]，right 由 JS 动态设置 ── */
 .tb-right-group {
   position: absolute;
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ── 导出状态浮层（居中显示，不占布局空间） ── */
+.tb-export-status {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.tb-export-status .tb-btn {
+  pointer-events: auto;
 }
 
 /* ── 速率下拉 ───────────────────────────────────────── */
