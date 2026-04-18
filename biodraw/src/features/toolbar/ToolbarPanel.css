@@ -429,6 +429,8 @@
   white-space: nowrap;
   flex: 0 0 76px;
   overflow: hidden;
+  text-align: justify;
+  text-align-last: justify;
 }
 
 .tb-canvas-size-input {
