@@ -108,6 +108,8 @@ interface EditorState {
   requestSingleFrameExport: () => void;
   isPreviewMode: boolean;
   setPreviewMode: (v: boolean) => void;
+  fitVersion: number;
+  requestFit: () => void;
 
   requestSequenceExport: (options: SequenceExportOptions) => void;
   setSequenceExportStatus: (status: SequenceExportStatus, message?: string) => void;
@@ -176,6 +178,7 @@ export const useEditorStore = create<EditorState>()(
     exportCancelCount: 0,
     singleFrameExportId: 0,
     isPreviewMode: false,
+    fitVersion: 0,
     sequenceExportStatus: 'idle',
     sequenceExportMessage: '',
     videoExportRequestId: 0,
@@ -483,6 +486,11 @@ export const useEditorStore = create<EditorState>()(
     setPreviewMode: (v) =>
       set((state) => {
         state.isPreviewMode = v;
+      }),
+
+    requestFit: () =>
+      set((state) => {
+        state.fitVersion += 1;
       }),
 
     requestSequenceExport: (options) =>

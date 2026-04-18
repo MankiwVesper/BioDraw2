@@ -224,6 +224,7 @@ export function CanvasPanel() {
   const exportCancelCount = useEditorStore(state => state.exportCancelCount);
   const cancelExport = useEditorStore(state => state.cancelExport);
   const singleFrameExportId = useEditorStore(state => state.singleFrameExportId);
+  const fitVersion = useEditorStore(state => state.fitVersion);
   const lastHandledExportRequestRef = useRef(0);
   const lastHandledVideoExportRequestRef = useRef(0);
   const exportCancelCountRef = useRef(exportCancelCount);
@@ -778,6 +779,11 @@ export function CanvasPanel() {
       y: (dimensions.height - canvasHeight * newScale) / 2,
     });
   }, [dimensions, canvasWidth, canvasHeight]);
+
+  // store 发出 requestFit 信号时（进入预览等场景）自动适配画布
+  useEffect(() => {
+    if (fitVersion > 0) fitCanvas();
+  }, [fitVersion, fitCanvas]);
 
   // Ctrl+0 → 100%；Ctrl+Shift+0 → fit canvas（独立 effect 以正确依赖 fitCanvas）
   useEffect(() => {
