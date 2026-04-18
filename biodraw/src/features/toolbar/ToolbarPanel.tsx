@@ -413,90 +413,92 @@ export function ToolbarPanel() {
           </button>
           {showCanvasPanel && (
             <div className="tb-export-panel" style={{ width: canvasDropdownStyle.width, right: canvasDropdownStyle.right }}>
-              <div className="tb-export-title">画布设置</div>
-              <div className="tb-canvas-size-row">
-                <span className="tb-canvas-size-label">宽/高 (px)</span>
-                <input
-                  className="tb-canvas-size-input"
-                  type="number" min={100}
-                  value={localCanvasW}
-                  onChange={(e) => {
-                    const w = parseInt(e.target.value || '1280', 10);
-                    setLocalCanvasW(w);
-                    if (isRatioLocked) setLocalCanvasH(Math.round(w * canvasHeight / canvasWidth));
-                  }}
-                  onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
-                  onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
-                />
-                <input
-                  className="tb-canvas-size-input"
-                  type="number" min={100}
-                  value={localCanvasH}
-                  onChange={(e) => {
-                    const h = parseInt(e.target.value || '720', 10);
-                    setLocalCanvasH(h);
-                    if (isRatioLocked) setLocalCanvasW(Math.round(h * canvasWidth / canvasHeight));
-                  }}
-                  onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
-                  onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
-                />
-                <button
-                  className={`tb-canvas-lock-btn${isRatioLocked ? ' is-locked' : ''}`}
-                  onClick={() => setIsRatioLocked(!isRatioLocked)}
-                  title={isRatioLocked ? '解锁宽高比' : '锁定宽高比'}
-                >
-                  {isRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
-                </button>
-              </div>
-              <div className="tb-canvas-size-row">
-                <span className="tb-canvas-size-label">背景颜色</span>
-                <input
-                  type="color"
-                  value={canvasBgColor}
-                  onChange={(e) => setCanvasBgColor(e.target.value)}
-                  className="tb-canvas-color-picker"
-                  title="选取颜色"
-                />
-                <input
-                  type="text"
-                  className="tb-canvas-size-input"
-                  value={localHexColor}
-                  onChange={(e) => {
-                    setLocalHexColor(e.target.value);
-                    if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setCanvasBgColor(e.target.value);
-                  }}
-                  onBlur={() => setLocalHexColor(canvasBgColor)}
-                  maxLength={7}
-                  spellCheck={false}
-                />
-                <button
-                  className="tb-canvas-lock-btn"
-                  onClick={() => {
-                    setLocalCanvasW(1280);
-                    setLocalCanvasH(720);
-                    setCanvasSize(1280, 720);
-                    setCanvasBgColor('#ffffff');
-                  }}
-                  title="恢复默认设置"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                    <path d="M3 3v5h5"/>
-                  </svg>
-                </button>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {['#ffffff', '#f8fafc', '#0f172a', '#1e3a5f', '#f0fdf4'].map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setCanvasBgColor(c)}
-                    title={c}
-                    style={{
-                      width: 20, height: 20, borderRadius: 4, cursor: 'pointer',
-                      background: c, border: canvasBgColor === c ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+              <div className="tb-canvas-content">
+                <div className="tb-export-title">画布设置</div>
+                <div className="tb-canvas-size-row">
+                  <span className="tb-canvas-size-label">宽/高 (px)</span>
+                  <input
+                    className="tb-canvas-size-input"
+                    type="number" min={100}
+                    value={localCanvasW}
+                    onChange={(e) => {
+                      const w = parseInt(e.target.value || '1280', 10);
+                      setLocalCanvasW(w);
+                      if (isRatioLocked) setLocalCanvasH(Math.round(w * canvasHeight / canvasWidth));
                     }}
+                    onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
+                    onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
                   />
-                ))}
+                  <input
+                    className="tb-canvas-size-input"
+                    type="number" min={100}
+                    value={localCanvasH}
+                    onChange={(e) => {
+                      const h = parseInt(e.target.value || '720', 10);
+                      setLocalCanvasH(h);
+                      if (isRatioLocked) setLocalCanvasW(Math.round(h * canvasWidth / canvasHeight));
+                    }}
+                    onBlur={() => setCanvasSize(localCanvasW, localCanvasH)}
+                    onKeyDown={(e) => e.key === 'Enter' && setCanvasSize(localCanvasW, localCanvasH)}
+                  />
+                  <button
+                    className={`tb-canvas-lock-btn${isRatioLocked ? ' is-locked' : ''}`}
+                    onClick={() => setIsRatioLocked(!isRatioLocked)}
+                    title={isRatioLocked ? '解锁宽高比' : '锁定宽高比'}
+                  >
+                    {isRatioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
+                  </button>
+                </div>
+                <div className="tb-canvas-size-row">
+                  <span className="tb-canvas-size-label">背景颜色</span>
+                  <input
+                    type="color"
+                    value={canvasBgColor}
+                    onChange={(e) => setCanvasBgColor(e.target.value)}
+                    className="tb-canvas-color-picker"
+                    title="选取颜色"
+                  />
+                  <input
+                    type="text"
+                    className="tb-canvas-size-input"
+                    value={localHexColor}
+                    onChange={(e) => {
+                      setLocalHexColor(e.target.value);
+                      if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setCanvasBgColor(e.target.value);
+                    }}
+                    onBlur={() => setLocalHexColor(canvasBgColor)}
+                    maxLength={7}
+                    spellCheck={false}
+                  />
+                  <button
+                    className="tb-canvas-lock-btn"
+                    onClick={() => {
+                      setLocalCanvasW(1280);
+                      setLocalCanvasH(720);
+                      setCanvasSize(1280, 720);
+                      setCanvasBgColor('#ffffff');
+                    }}
+                    title="恢复默认设置"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                      <path d="M3 3v5h5"/>
+                    </svg>
+                  </button>
+                </div>
+                <div className="tb-canvas-swatches">
+                  {['#ffffff', '#f8fafc', '#e2e8f0', '#0f172a', '#1e3a5f', '#f0fdf4'].map((c) => (
+                    <button
+                      key={c}
+                      onClick={() => setCanvasBgColor(c)}
+                      title={c}
+                      style={{
+                        width: 20, height: 20, borderRadius: 4, cursor: 'pointer',
+                        background: c, border: canvasBgColor === c ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
           )}
