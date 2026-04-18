@@ -15,7 +15,6 @@ export default function EditorPage() {
   useAutoSave();
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
   const isPreviewMode     = useEditorStore((s) => s.isPreviewMode);
-  const play              = useEditorStore((s) => s.play);
   const requestFit        = useEditorStore((s) => s.requestFit);
   const playbackStatus    = useEditorStore((s) => s.playbackStatus);
   const advancePlayback   = useEditorStore((s) => s.advancePlayback);
@@ -34,13 +33,10 @@ export default function EditorPage() {
     return () => cancelAnimationFrame(rafId);
   }, [playbackStatus, advancePlayback]);
 
-  // 进入预览模式：自动适配画布；有动画时自动播放
+  // 进入预览模式：自动适配画布（播放状态已在 setPreviewMode 中设置）
   useEffect(() => {
-    if (isPreviewMode) {
-      requestFit();
-      if (useEditorStore.getState().animations.length > 0) play();
-    }
-  }, [isPreviewMode, requestFit, play]);
+    if (isPreviewMode) requestFit();
+  }, [isPreviewMode, requestFit]);
 
   return (
     <div className="editor-layout">

@@ -488,6 +488,7 @@ export const useEditorStore = create<EditorState>()(
         state.isPreviewMode = v;
         if (v) {
           state.currentTimeMs = 0;
+          state.playbackStatus = state.animations.length > 0 ? 'playing' : 'stopped';
         } else if (state.playbackStatus === 'playing') {
           state.playbackStatus = 'paused';
         }
