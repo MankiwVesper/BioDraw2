@@ -414,6 +414,7 @@ export const useEditorStore = create<EditorState>()(
     play: () =>
       set((state) => {
         if (state.globalDurationMs <= 0) return;
+        if (state.animations.length === 0) return;
         if (state.currentTimeMs >= state.globalDurationMs) {
           state.currentTimeMs = 0;
         }
