@@ -486,7 +486,9 @@ export const useEditorStore = create<EditorState>()(
     setPreviewMode: (v) =>
       set((state) => {
         state.isPreviewMode = v;
-        if (!v && state.playbackStatus === 'playing') {
+        if (v) {
+          state.currentTimeMs = 0;
+        } else if (state.playbackStatus === 'playing') {
           state.playbackStatus = 'paused';
         }
       }),
