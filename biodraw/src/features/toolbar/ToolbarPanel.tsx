@@ -26,7 +26,6 @@ export function ToolbarPanel() {
   const play      = useEditorStore((s) => s.play);
   const pause     = useEditorStore((s) => s.pause);
   const stop      = useEditorStore((s) => s.stop);
-  const advancePlayback = useEditorStore((s) => s.advancePlayback);
   const setPlaybackRate = useEditorStore((s) => s.setPlaybackRate);
   const setPlaybackLoopEnabled = useEditorStore((s) => s.setPlaybackLoopEnabled);
   const stepPlaybackFrame  = useEditorStore((s) => s.stepPlaybackFrame);
@@ -167,18 +166,6 @@ export function ToolbarPanel() {
   const [videoFormat,  setVideoFormat]  = useState<'mp4' | 'webm'>('mp4');
   const exportPanelRef = useRef<HTMLDivElement>(null);
 
-  // RAF 驱动播放
-  useEffect(() => {
-    if (playbackStatus !== 'playing') return;
-    let rafId = 0, last = performance.now();
-    const tick = (now: number) => {
-      advancePlayback(now - last);
-      last = now;
-      rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [playbackStatus, advancePlayback]);
 
   // 点击外部关闭画布设置面板
   useEffect(() => {

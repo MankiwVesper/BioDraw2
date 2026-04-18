@@ -17,7 +17,22 @@ export default function EditorPage() {
   const isPreviewMode     = useEditorStore((s) => s.isPreviewMode);
   const play              = useEditorStore((s) => s.play);
   const requestFit        = useEditorStore((s) => s.requestFit);
+  const playbackStatus    = useEditorStore((s) => s.playbackStatus);
+  const advancePlayback   = useEditorStore((s) => s.advancePlayback);
   useBeforeUnload(hasUnsavedChanges);
+
+  // RAF 驱动播放（始终挂载，预览/非预览模式均有效）
+  useEffect(() => {
+    if (playbackStatus !== 'playing') return;
+    let rafId = 0, last = performance.now();
+    const tick = (now: number) => {
+      advancePlayback(now - last);
+      last = now;
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [playbackStatus, advancePlayback]);
 
   // 进入预览模式：自动适配画布并播放
   useEffect(() => {
