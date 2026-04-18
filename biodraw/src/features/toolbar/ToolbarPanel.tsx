@@ -138,17 +138,14 @@ export function ToolbarPanel() {
 
   useEffect(() => {
     if (!showCanvasPanel) return;
-    const loop   = loopBtnRef.current;
+    const loop    = loopBtnRef.current;
     const exportW = exportPanelRef.current;
     const wrapper = canvasPanelRef.current;
     if (!loop || !exportW || !wrapper) return;
-    const loopLeft    = loop.getBoundingClientRect().left;
-    const exportRight = exportW.getBoundingClientRect().right;
+    const loopLeft     = loop.getBoundingClientRect().left;
+    const exportRight  = exportW.getBoundingClientRect().right;
     const wrapperRight = wrapper.getBoundingClientRect().right;
-    setCanvasDropdownStyle({
-      width: exportRight - loopLeft,
-      right: wrapperRight - exportRight,   // 负值：超出 wrapper 右边界延伸到导出右边
-    });
+    setCanvasDropdownStyle({ width: exportRight - loopLeft, right: wrapperRight - exportRight });
   }, [showCanvasPanel]);
 
   // 预览按钮右边界偏移（对齐 konvajs-content 右边界，动态测量）
@@ -186,6 +183,15 @@ export function ToolbarPanel() {
   const [exportFps,    setExportFps]    = useState(24);
   const [videoFormat,  setVideoFormat]  = useState<'mp4' | 'webm'>('mp4');
   const exportPanelRef = useRef<HTMLDivElement>(null);
+  const [exportDropdownWidth, setExportDropdownWidth] = useState(280);
+
+  useEffect(() => {
+    if (!showExportPanel) return;
+    const loop    = loopBtnRef.current;
+    const exportW = exportPanelRef.current;
+    if (!loop || !exportW) return;
+    setExportDropdownWidth(exportW.getBoundingClientRect().right - loop.getBoundingClientRect().left);
+  }, [showExportPanel]);
 
 
   // 点击外部关闭画布设置面板
@@ -523,49 +529,43 @@ export function ToolbarPanel() {
             {isExporting ? '导出中…' : '导出 ▾'}
           </button>
           {showExportPanel && (
-            <div className="tb-export-panel">
-              <div className="tb-export-title">导出设置</div>
-              <div className="tb-export-fields">
-                <label className="tb-export-label">
-                  宽度
-                  <input type="number" min={16} value={exportWidth} onChange={(e) => setExportWidth(parseInt(e.target.value || '1280', 10))} />
-                </label>
-                <label className="tb-export-label">
-                  高度
-                  <input type="number" min={16} value={exportHeight} onChange={(e) => setExportHeight(parseInt(e.target.value || '720', 10))} />
-                </label>
-                <label className="tb-export-label">
-                  FPS
-                  <select value={exportFps} onChange={(e) => setExportFps(parseInt(e.target.value, 10))}>
+            <div className="tb-export-panel" style={{ width: exportDropdownWidth }}>
+              <div className="tb-canvas-content">
+                <div className="tb-export-title">导出设置</div>
+                <div className="tb-canvas-size-row">
+                  <span className="tb-canvas-size-label">宽/高 (px)</span>
+                  <input className="tb-canvas-size-input" type="number" min={16} value={exportWidth} onChange={(e) => setExportWidth(parseInt(e.target.value || '1280', 10))} />
+                  <input className="tb-canvas-size-input" type="number" min={16} value={exportHeight} onChange={(e) => setExportHeight(parseInt(e.target.value || '720', 10))} />
+                </div>
+                <div className="tb-canvas-size-row">
+                  <span className="tb-canvas-size-label">FPS / 格式</span>
+                  <select className="tb-canvas-size-input" value={exportFps} onChange={(e) => setExportFps(parseInt(e.target.value, 10))}>
                     {exportFpsOptions.map((f) => <option key={f} value={f}>{f}</option>)}
                   </select>
-                </label>
-                <label className="tb-export-label">
-                  视频格式
-                  <select value={videoFormat} onChange={(e) => setVideoFormat(e.target.value as 'mp4' | 'webm')}>
+                  <select className="tb-canvas-size-input" value={videoFormat} onChange={(e) => setVideoFormat(e.target.value as 'mp4' | 'webm')}>
                     <option value="mp4">MP4</option>
                     <option value="webm">WebM</option>
                   </select>
-                </label>
-              </div>
-              <div className="tb-export-range">
-                导出范围：{(exportRange.startMs / 1000).toFixed(2)}s — {(exportRange.endMs / 1000).toFixed(2)}s
-              </div>
-              <div className="tb-export-actions">
-                <button
-                  className="tb-export-action-btn"
-                  onClick={() => { requestSingleFrameExport(); setShowExportPanel(false); }}
-                  disabled={isExporting}
-                  title={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
-                >
-                  当前帧 PNG
-                </button>
-                <button className="tb-export-action-btn" onClick={triggerSequenceExport} disabled={isExporting}>
-                  导出 PNG 序列帧
-                </button>
-                <button className="tb-export-action-btn tb-export-action-primary" onClick={triggerVideoExport} disabled={isExporting}>
-                  导出视频
-                </button>
+                </div>
+                <div className="tb-export-range">
+                  导出范围：{(exportRange.startMs / 1000).toFixed(2)}s — {(exportRange.endMs / 1000).toFixed(2)}s
+                </div>
+                <div className="tb-export-actions">
+                  <button
+                    className="tb-export-action-btn"
+                    onClick={() => { requestSingleFrameExport(); setShowExportPanel(false); }}
+                    disabled={isExporting}
+                    title={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
+                  >
+                    当前帧 PNG
+                  </button>
+                  <button className="tb-export-action-btn" onClick={triggerSequenceExport} disabled={isExporting}>
+                    导出 PNG 序列帧
+                  </button>
+                  <button className="tb-export-action-btn tb-export-action-primary" onClick={triggerVideoExport} disabled={isExporting}>
+                    导出视频
+                  </button>
+                </div>
               </div>
             </div>
           )}
