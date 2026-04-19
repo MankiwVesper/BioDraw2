@@ -33,31 +33,112 @@
   background-color: var(--bg-color);
 }
 
-.mp-category-dropdown {
+/* ── 自定义分类下拉 ─────────────────────────────────── */
+.mp-dropdown-wrap {
   flex: 1;
   min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  font-size: 13px;
-  background-color: var(--panel-bg);
-  color: var(--text-main);
-  outline: none;
-  cursor: pointer;
+  position: relative;
 }
 
-.mp-category-dropdown:focus, .mp-search-input:focus {
+.mp-dropdown-btn {
+  width: 100%;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 0 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--panel-bg);
+  color: var(--text-main);
+  font-size: 13px;
+  cursor: pointer;
+  transition: border-color 0.12s;
+  box-sizing: border-box;
+}
+
+.mp-dropdown-btn:hover,
+.mp-dropdown-btn.is-open {
   border-color: var(--primary-color);
 }
 
+.mp-dropdown-btn-label {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-dropdown-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.15s;
+}
+
+.mp-dropdown-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.mp-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 7px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.10);
+  padding: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 200;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.mp-dropdown-option {
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-main);
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0 10px;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+}
+
+.mp-dropdown-option:hover {
+  background: rgba(59, 130, 246, 0.07);
+  color: var(--primary-color);
+}
+
+.mp-dropdown-option.is-active {
+  background: rgba(59, 130, 246, 0.10);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+/* ── 搜索输入框 ─────────────────────────────────────── */
 .mp-search-input {
   flex: 1;
-  padding: 6px 12px;
+  height: 28px;
+  padding: 0 10px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   font-size: 13px;
   min-width: 0;
   outline: none;
+  box-sizing: border-box;
+}
+
+.mp-search-input:focus {
+  border-color: var(--primary-color);
 }
 
 /* 垂直排列手风琴布局区 */

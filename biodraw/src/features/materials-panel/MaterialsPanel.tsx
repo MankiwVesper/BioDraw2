@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import './MaterialsPanel.css';
 
 const svgModules = import.meta.glob<{ default: string }>('/src/assets/svgs/**/*.svg', { eager: true });
@@ -75,18 +76,11 @@ export function MaterialsPanel() {
       </div>
 
       <div className="mp-panel-controls">
-        <select
-          className="mp-category-dropdown"
+        <CategoryDropdown
+          categories={categories}
           value={filterCategory}
-          onChange={(e) => setFilterCategory(e.target.value)}
-        >
-          <option value="">全部分类</option>
-          {categories.map((cat) => (
-            <option key={cat} value={cat}>
-              {cat}
-            </option>
-          ))}
-        </select>
+          onChange={setFilterCategory}
+        />
 
         <input
           type="text"
@@ -256,5 +250,63 @@ export function MaterialsPanel() {
         {visibleCategories.length === 0 && <div className="mp-empty-message">暂无匹配的素材</div>}
       </div>
     </aside>
+  );
+}
+
+function CategoryDropdown({
+  categories,
+  value,
+  onChange,
+}: {
+  categories: string[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const selectedLabel = value === '' ? '全部分类' : value;
+
+  return (
+    <div className="mp-dropdown-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`mp-dropdown-btn${open ? ' is-open' : ''}`}
+        onClick={() => setOpen((p) => !p)}
+      >
+        <span className="mp-dropdown-btn-label">{selectedLabel}</span>
+        <ChevronDown
+          size={12}
+          strokeWidth={2.5}
+          className={`mp-dropdown-chevron${open ? ' is-open' : ''}`}
+        />
+      </button>
+      {open && (
+        <div className="mp-dropdown-menu">
+          {(['', ...categories] as string[]).map((cat) => {
+            const label = cat === '' ? '全部分类' : cat;
+            return (
+              <button
+                key={cat}
+                type="button"
+                className={`mp-dropdown-option${cat === value ? ' is-active' : ''}`}
+                onClick={() => { onChange(cat); setOpen(false); }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
