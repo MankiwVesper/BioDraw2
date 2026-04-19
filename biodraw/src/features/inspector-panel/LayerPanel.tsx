@@ -185,7 +185,7 @@ export function LayerPanel() {
                     fontSize: 12,
                     padding: '1px 4px',
                     border: '1px solid var(--primary-color)',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     background: 'var(--bg-color)',
                     color: 'var(--text-main)',
                     outline: 'none',
@@ -229,7 +229,7 @@ export function LayerPanel() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 4,
+                borderRadius: 6,
                 padding: 0,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'var(--border-color)'; }}
@@ -258,7 +258,7 @@ export function LayerPanel() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 4,
+                borderRadius: 6,
                 padding: 0,
               }}
               onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'var(--border-color)'; }}

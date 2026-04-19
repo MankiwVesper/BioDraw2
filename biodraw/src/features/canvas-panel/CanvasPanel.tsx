@@ -1327,7 +1327,7 @@ export function CanvasPanel() {
           position: 'absolute', bottom: '12px', right: '12px',
           display: 'flex', alignItems: 'center', gap: '4px',
           backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)',
-          borderRadius: '4px', padding: '4px 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+          borderRadius: '6px', padding: '4px 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
           zIndex: 100, userSelect: 'none',
         }}>
           <button

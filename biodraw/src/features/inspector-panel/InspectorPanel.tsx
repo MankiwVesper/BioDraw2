@@ -200,7 +200,7 @@ export function InspectorPanel() {
         border: "1px solid var(--border-color)",
         background: "transparent",
         color: "var(--text-main)",
-        borderRadius: 4,
+        borderRadius: 6,
         cursor: "pointer",
         fontSize: 10,
         display: "flex",
@@ -698,7 +698,7 @@ export function InspectorPanel() {
                             border: "1px solid var(--primary-color)",
                             background: "rgba(59,130,246,0.08)",
                             color: "var(--primary-color)",
-                            borderRadius: 4,
+                            borderRadius: 6,
                             cursor: "pointer",
                             fontSize: 11,
                           }}
@@ -715,7 +715,7 @@ export function InspectorPanel() {
                             border: "1px solid var(--border-color)",
                             background: "transparent",
                             color: "var(--text-main)",
-                            borderRadius: 4,
+                            borderRadius: 6,
                             cursor: "pointer",
                             fontSize: 11,
                           }}
@@ -738,7 +738,7 @@ export function InspectorPanel() {
                       border: "1px solid rgba(239,68,68,0.4)",
                       background: "transparent",
                       color: "#ef4444",
-                      borderRadius: 4,
+                      borderRadius: 6,
                       cursor: "pointer",
                       fontSize: 11,
                     }}
@@ -1330,7 +1330,7 @@ export function InspectorPanel() {
                       padding: "4px",
                       backgroundColor: "var(--bg-color)",
                       border: "1px solid var(--border-color)",
-                      borderRadius: "4px",
+                      borderRadius: "6px",
                       cursor: "pointer",
                       color: "var(--text-main)",
                       display: "flex",
@@ -1362,7 +1362,7 @@ export function InspectorPanel() {
                       padding: "4px",
                       backgroundColor: "var(--bg-color)",
                       border: "1px solid var(--border-color)",
-                      borderRadius: "4px",
+                      borderRadius: "6px",
                       cursor: "pointer",
                       color: "var(--text-main)",
                       display: "flex",
@@ -1393,7 +1393,7 @@ export function InspectorPanel() {
                       padding: "4px",
                       backgroundColor: "var(--bg-color)",
                       border: "1px solid var(--border-color)",
-                      borderRadius: "4px",
+                      borderRadius: "6px",
                       cursor: "pointer",
                       color: "var(--text-main)",
                       display: "flex",
@@ -1424,7 +1424,7 @@ export function InspectorPanel() {
                       padding: "4px",
                       backgroundColor: "var(--bg-color)",
                       border: "1px solid var(--border-color)",
-                      borderRadius: "4px",
+                      borderRadius: "6px",
                       cursor: "pointer",
                       color: "var(--text-main)",
                       display: "flex",
@@ -1475,7 +1475,7 @@ export function InspectorPanel() {
                     color: selectedObj?.locked
                       ? "var(--primary-color)"
                       : "var(--text-muted)",
-                    borderRadius: 4,
+                    borderRadius: 6,
                     cursor: "pointer",
                     fontSize: 11,
                   }}
@@ -1492,7 +1492,7 @@ export function InspectorPanel() {
                     border: "1px solid var(--border-color)",
                     background: "transparent",
                     color: "var(--text-muted)",
-                    borderRadius: 4,
+                    borderRadius: 6,
                     cursor: selectedObj?.locked ? "not-allowed" : "pointer",
                     fontSize: 11,
                     opacity: selectedObj?.locked ? 0.4 : 1,
@@ -1514,7 +1514,7 @@ export function InspectorPanel() {
                     border: "1px solid rgba(239,68,68,0.4)",
                     background: "transparent",
                     color: "#ef4444",
-                    borderRadius: 4,
+                    borderRadius: 6,
                     cursor: selectedObj?.locked ? "not-allowed" : "pointer",
                     fontSize: 11,
                     opacity: selectedObj?.locked ? 0.4 : 1,
@@ -1633,7 +1633,7 @@ export function InspectorPanel() {
                       border: "1px solid var(--border-color)",
                       background: "transparent",
                       color: "var(--text-main)",
-                      borderRadius: 4,
+                      borderRadius: 6,
                       cursor: "pointer",
                       fontSize: 10,
                       display: "flex",
@@ -1770,7 +1770,7 @@ export function InspectorPanel() {
                       border: "1px solid var(--border-color)",
                       background: "transparent",
                       color: "var(--text-main)",
-                      borderRadius: 4,
+                      borderRadius: 6,
                       cursor: "pointer",
                       fontSize: 10,
                       display: "flex",
@@ -2113,7 +2113,7 @@ export function InspectorPanel() {
                           gap: "1px",
                           backgroundColor: "rgba(0,0,0,0.05)",
                           padding: "2px",
-                          borderRadius: "4px",
+                          borderRadius: "6px",
                           border: "1px solid var(--border-color)",
                         }}
                       >
@@ -2195,7 +2195,7 @@ export function InspectorPanel() {
                                 btn.id
                                   ? "var(--primary-color)"
                                   : "var(--text-muted)",
-                              borderRadius: "4px",
+                              borderRadius: "6px",
                               cursor: "pointer",
                               transition: "all 0.2s",
                             }}
@@ -2495,7 +2495,7 @@ export function InspectorPanel() {
                           gap: "1px",
                           backgroundColor: "rgba(0,0,0,0.05)",
                           padding: "2px",
-                          borderRadius: "4px",
+                          borderRadius: "6px",
                           border: "1px solid var(--border-color)",
                         }}
                       >
@@ -2577,7 +2577,7 @@ export function InspectorPanel() {
                                 btn.id
                                   ? "var(--primary-color)"
                                   : "var(--text-muted)",
-                              borderRadius: "4px",
+                              borderRadius: "6px",
                               cursor: "pointer",
                               transition: "all 0.2s",
                             }}
@@ -2626,7 +2626,7 @@ export function InspectorPanel() {
                         gap: "1px",
                         backgroundColor: "rgba(0,0,0,0.05)",
                         padding: "2px",
-                        borderRadius: "4px",
+                        borderRadius: "6px",
                         border: "1px solid var(--border-color)",
                       }}
                     >
@@ -2658,7 +2658,7 @@ export function InspectorPanel() {
                                 "horizontal") === btn.id
                                 ? "var(--primary-color)"
                                 : "var(--text-muted)",
-                            borderRadius: "4px",
+                            borderRadius: "6px",
                             cursor: "pointer",
                             transition: "all 0.2s",
                             fontSize: "0.9rem",
@@ -2694,7 +2694,7 @@ export function InspectorPanel() {
                       padding: "2px 8px",
                       height: 22,
                       border: "1px solid var(--border-color)",
-                      borderRadius: 4,
+                      borderRadius: 6,
                       background: showAddAnimMenu
                         ? "rgba(59,130,246,0.08)"
                         : "transparent",
@@ -2718,7 +2718,7 @@ export function InspectorPanel() {
                         marginTop: 4,
                         background: "var(--panel-bg)",
                         border: "1px solid var(--border-color)",
-                        borderRadius: 4,
+                        borderRadius: 6,
                         padding: "6px 0",
                         minWidth: 140,
                         boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
@@ -2830,7 +2830,7 @@ export function InspectorPanel() {
                       onClick={() => setExpandedAnimationClipId(clip.id)}
                       style={{
                         cursor: "pointer",
-                        borderRadius: "4px",
+                        borderRadius: "6px",
                         padding: "3px 4px",
                         transition: "background 0.1s",
                       }}

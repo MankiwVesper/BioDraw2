@@ -886,7 +886,7 @@ export function TimelinePanel() {
                     <div style={{
                       position: 'absolute', top: '100%', right: 0, zIndex: 200,
                       background: 'var(--bg-panel)', border: '1px solid var(--border-color)',
-                      borderRadius: 4, padding: '8px', minWidth: 180,
+                      borderRadius: 6, padding: '8px', minWidth: 180,
                       boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
                     }}>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>
@@ -896,7 +896,7 @@ export function TimelinePanel() {
                         {objects
                           .filter((o) => o.id !== selectedObject.id)
                           .map((o) => (
-                            <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '3px 4px', borderRadius: 4, fontSize: 12 }}
+                            <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '3px 4px', borderRadius: 6, fontSize: 12 }}
                               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
                               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                             >
@@ -925,7 +925,7 @@ export function TimelinePanel() {
                           marginTop: 8, width: '100%', padding: '5px 0',
                           background: copyTargetIds.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
                           color: copyTargetIds.length === 0 ? 'var(--text-muted)' : '#fff',
-                          border: 'none', borderRadius: 4, cursor: copyTargetIds.length === 0 ? 'not-allowed' : 'pointer',
+                          border: 'none', borderRadius: 6, cursor: copyTargetIds.length === 0 ? 'not-allowed' : 'pointer',
                           fontSize: 12, fontWeight: 600,
                         }}
                       >

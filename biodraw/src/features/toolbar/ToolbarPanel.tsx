@@ -509,7 +509,7 @@ export function ToolbarPanel() {
                       onClick={() => setCanvasBgColor(c)}
                       data-tooltip={c}
                       style={{
-                        width: 20, height: 20, borderRadius: 4, cursor: 'pointer',
+                        width: 20, height: 20, borderRadius: 6, cursor: 'pointer',
                         background: c, border: canvasBgColor === c ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
                       }}
                     />
@@ -657,12 +657,12 @@ export function ToolbarPanel() {
           {isExporting && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {sequenceExportStatus === 'running' && (
-                <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 4 }}>
+                <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 6 }}>
                   <div style={{
                     height: '100%',
                     width: `${Math.round(exportProgress * 100)}%`,
                     background: 'var(--primary-color, #3b82f6)',
-                    borderRadius: 4,
+                    borderRadius: 6,
                     transition: 'width 0.1s linear',
                   }} />
                 </div>
