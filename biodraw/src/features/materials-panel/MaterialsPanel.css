@@ -100,6 +100,8 @@
 }
 
 .mp-dropdown-option {
+  display: flex;
+  align-items: center;
   height: 20px;
   border: none;
   background: transparent;
@@ -108,9 +110,9 @@
   cursor: pointer;
   border-radius: 4px;
   padding: 0 10px;
-  text-align: left;
   white-space: nowrap;
   transition: background 0.1s, color 0.1s;
+  box-sizing: border-box;
 }
 
 .mp-dropdown-option:hover {
