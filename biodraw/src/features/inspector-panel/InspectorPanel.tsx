@@ -2013,7 +2013,7 @@ function InspectorTabHeader({
     borderBottom: active ? '2px solid var(--primary-color)' : '2px solid transparent',
     background: 'transparent',
     color: active ? 'var(--primary-color)' : 'var(--text-muted)',
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: active ? 600 : 400,
     cursor: 'pointer',
     transition: 'color 0.15s, border-color 0.15s',
