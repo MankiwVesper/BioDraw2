@@ -93,7 +93,7 @@
   padding: 3px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 3px;
   z-index: 200;
   max-height: 220px;
   overflow-y: auto;
