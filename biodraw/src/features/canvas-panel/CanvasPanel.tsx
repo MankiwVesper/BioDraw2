@@ -1094,8 +1094,8 @@ export function CanvasPanel() {
         onDrop={handleDrop}
       >
         {dimensions.width > 0 && dimensions.height > 0 ? (
-        <Stage 
-            width={dimensions.width} 
+        <Stage
+            width={dimensions.width}
             height={dimensions.height}
             ref={stageRef}
             scaleX={stageScale}
