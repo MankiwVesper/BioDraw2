@@ -2008,7 +2008,8 @@ function InspectorTabHeader({
 }) {
   const tabStyle = (active: boolean): React.CSSProperties => ({
     flex: 1,
-    padding: '8px 0',
+    height: 40,
+    padding: 0,
     border: 'none',
     borderBottom: active ? '2px solid var(--primary-color)' : '2px solid transparent',
     background: 'transparent',
