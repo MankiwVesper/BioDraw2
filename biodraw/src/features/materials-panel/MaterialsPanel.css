@@ -100,20 +100,21 @@
 }
 
 .mp-dropdown-option {
+  -webkit-appearance: none;
+  appearance: none;
   display: block;
   width: 100%;
   height: 20px;
   line-height: 20px;
+  padding: 0 10px;
+  margin: 0;
   border: none;
   background: transparent;
   color: var(--text-main);
   font-size: 12px;
   cursor: pointer;
   border-radius: 4px;
-  padding: 0 10px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   text-align: left;
   transition: background 0.1s, color 0.1s;
   box-sizing: border-box;
