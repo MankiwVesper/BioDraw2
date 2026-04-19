@@ -23,16 +23,19 @@
 
 /* 筛选与搜索的同一水平区 */
 .mp-panel-controls {
-  padding: 12px 16px;
+  height: 40px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
   background-color: var(--bg-color);
 }
 
 .mp-category-dropdown {
-  width: 100px;
+  flex: 1;
+  min-width: 0;
   padding: 6px 8px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
