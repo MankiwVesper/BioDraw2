@@ -218,8 +218,8 @@ export function InspectorPanel() {
                 </>
               )}
 
-              {/* 对齐到画布 */}
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>对齐到画布</div>
+              {/* 对齐方式 */}
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6 }}>对齐方式</div>
               <div className="ip-property-row" style={{ gap: 4, marginBottom: 4 }}>
                 {[
                   { label: '左', title: '左边缘贴画布左边', onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: w/2, y: o.y }; })) },
@@ -496,35 +496,27 @@ export function InspectorPanel() {
       value: "solid",
       label: "实线",
       preview: (
-        <div
-          style={{ width: "24px", height: "2px", background: "currentColor" }}
-        />
+        <svg width="100%" height="12" viewBox="0 0 100 12">
+          <line x1="0" y1="6" x2="100" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
       ),
     },
     {
       value: "dashed",
       label: "虚线",
       preview: (
-        <div
-          style={{
-            width: "24px",
-            height: "2px",
-            borderTop: "2px dashed currentColor",
-          }}
-        />
+        <svg width="100%" height="12" viewBox="0 0 100 12">
+          <line x1="0" y1="6" x2="100" y2="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="10 5" strokeLinecap="round" />
+        </svg>
       ),
     },
     {
       value: "dotted",
       label: "点线",
       preview: (
-        <div
-          style={{
-            width: "24px",
-            height: "2px",
-            borderTop: "2px dotted currentColor",
-          }}
-        />
+        <svg width="100%" height="12" viewBox="0 0 100 12">
+          <line x1="0" y1="6" x2="100" y2="6" stroke="currentColor" strokeWidth="1.5" strokeDasharray="2 5" strokeLinecap="round" />
+        </svg>
       ),
     },
   ];
@@ -534,15 +526,9 @@ export function InspectorPanel() {
       value: "single",
       label: "单向",
       preview: (
-        <svg width="24" height="12" viewBox="0 0 24 12" fill="currentColor">
-          <path
-            d="M0 6h18"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <path d="M24 6l-7-4v8z" />
+        <svg width="100%" height="12" viewBox="0 0 100 12" fill="currentColor">
+          <path d="M0 6h93" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M100 6l-7-4v8z" />
         </svg>
       ),
     },
@@ -550,15 +536,9 @@ export function InspectorPanel() {
       value: "double",
       label: "双向",
       preview: (
-        <svg width="24" height="12" viewBox="0 0 24 12" fill="currentColor">
-          <path
-            d="M6 6h12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          <path d="M0 6l7-4v8z M24 6l-7-4v8z" />
+        <svg width="100%" height="12" viewBox="0 0 100 12" fill="currentColor">
+          <path d="M7 6h86" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M0 6l7-4v8z M100 6l-7-4v8z" />
         </svg>
       ),
     },
@@ -566,14 +546,8 @@ export function InspectorPanel() {
       value: "start",
       label: "反向",
       preview: (
-        <svg width="24" height="12" viewBox="0 0 24 12" fill="currentColor">
-          <path
-            d="M6 6h18"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
+        <svg width="100%" height="12" viewBox="0 0 100 12" fill="currentColor">
+          <path d="M7 6h93" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           <path d="M0 6l7-4v8z" />
         </svg>
       ),
@@ -582,9 +556,9 @@ export function InspectorPanel() {
       value: "none",
       label: "无",
       preview: (
-        <div
-          style={{ width: "24px", height: "2px", background: "currentColor" }}
-        />
+        <svg width="100%" height="12" viewBox="0 0 100 12">
+          <line x1="0" y1="6" x2="100" y2="6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
       ),
     },
   ];
@@ -941,9 +915,54 @@ export function InspectorPanel() {
           </div>
         </div>
 
+        {/* 基础操作 */}
+        <div className="ip-property-group">
+          <h4 className="ip-group-title">基础操作</h4>
+          <div className="ip-property-row" style={{ gap: 4 }}>
+            <button
+              data-tooltip={selectedObj?.locked ? '解锁对象（可移动）' : '锁定对象（防止误移）'}
+              onClick={() => selectedObj && toggleObjectLock(selectedObj.id)}
+              style={{
+                flex: 1, height: 26, border: `1px solid ${selectedObj?.locked ? 'var(--primary-color)' : 'var(--border-color)'}`,
+                background: selectedObj?.locked ? 'rgba(59,130,246,0.08)' : 'transparent',
+                color: selectedObj?.locked ? 'var(--primary-color)' : 'var(--text-muted)',
+                borderRadius: 5, cursor: 'pointer', fontSize: 11,
+              }}
+            >
+              {selectedObj?.locked ? '🔒 已锁定' : '🔓 锁定'}
+            </button>
+            <button
+              data-tooltip="复制对象 (Ctrl+D)"
+              onClick={() => selectedObj && duplicateObject(selectedObj.id)}
+              disabled={!!selectedObj?.locked}
+              style={{
+                flex: 1, height: 26, border: '1px solid var(--border-color)',
+                background: 'transparent', color: 'var(--text-muted)',
+                borderRadius: 5, cursor: selectedObj?.locked ? 'not-allowed' : 'pointer', fontSize: 11,
+                opacity: selectedObj?.locked ? 0.4 : 1,
+              }}
+            >
+              复制
+            </button>
+            <button
+              data-tooltip="删除对象 (Delete)"
+              onClick={() => selectedObj && !selectedObj.locked && removeSceneObject(selectedObj.id)}
+              disabled={!!selectedObj?.locked}
+              style={{
+                flex: 1, height: 26, border: '1px solid rgba(239,68,68,0.4)',
+                background: 'transparent', color: '#ef4444',
+                borderRadius: 5, cursor: selectedObj?.locked ? 'not-allowed' : 'pointer', fontSize: 11,
+                opacity: selectedObj?.locked ? 0.4 : 1,
+              }}
+            >
+              删除
+            </button>
+          </div>
+        </div>
+
         {/* 对齐工具 */}
         <div className="ip-property-group">
-          <h4 className="ip-group-title">对齐到画布</h4>
+          <h4 className="ip-group-title">对齐方式</h4>
           {/* 水平对齐：左对齐 / 水平居中 / 右对齐 */}
           <div className="ip-property-row" style={{ gap: 4, marginBottom: 4 }}>
             {([
@@ -1067,46 +1086,6 @@ export function InspectorPanel() {
                 <span style={{ color: 'var(--text-muted)', fontSize: 9, lineHeight: 1 }}>{btn.label}</span>
               </button>
             ))}
-          </div>
-          <div className="ip-property-row" style={{ gap: 4, marginTop: 0 }}>
-            <button
-              data-tooltip={selectedObj?.locked ? '解锁对象（可移动）' : '锁定对象（防止误移）'}
-              onClick={() => selectedObj && toggleObjectLock(selectedObj.id)}
-              style={{
-                flex: 1, height: 26, border: `1px solid ${selectedObj?.locked ? 'var(--primary-color)' : 'var(--border-color)'}`,
-                background: selectedObj?.locked ? 'rgba(59,130,246,0.08)' : 'transparent',
-                color: selectedObj?.locked ? 'var(--primary-color)' : 'var(--text-muted)',
-                borderRadius: 5, cursor: 'pointer', fontSize: 11,
-              }}
-            >
-              {selectedObj?.locked ? '🔒 已锁定' : '🔓 锁定'}
-            </button>
-            <button
-              data-tooltip="复制对象 (Ctrl+D)"
-              onClick={() => selectedObj && duplicateObject(selectedObj.id)}
-              disabled={!!selectedObj?.locked}
-              style={{
-                flex: 1, height: 26, border: '1px solid var(--border-color)',
-                background: 'transparent', color: 'var(--text-muted)',
-                borderRadius: 5, cursor: selectedObj?.locked ? 'not-allowed' : 'pointer', fontSize: 11,
-                opacity: selectedObj?.locked ? 0.4 : 1,
-              }}
-            >
-              复制
-            </button>
-            <button
-              data-tooltip="删除对象 (Delete)"
-              onClick={() => selectedObj && !selectedObj.locked && removeSceneObject(selectedObj.id)}
-              disabled={!!selectedObj?.locked}
-              style={{
-                flex: 1, height: 26, border: '1px solid rgba(239,68,68,0.4)',
-                background: 'transparent', color: '#ef4444',
-                borderRadius: 5, cursor: selectedObj?.locked ? 'not-allowed' : 'pointer', fontSize: 11,
-                opacity: selectedObj?.locked ? 0.4 : 1,
-              }}
-            >
-              删除
-            </button>
           </div>
         </div>
 
@@ -1257,18 +1236,32 @@ export function InspectorPanel() {
                       marginBottom: 0,
                       fontSize: "0.85rem",
                       whiteSpace: "nowrap",
-                      width: "40px",
+                      width: "65px",
                       flexShrink: 0,
                     }}
                   >
-                    线型：
+                    描边粗细：
                   </label>
-                  <CustomSelect
-                    value={(selectedObj.data?.dashStyle as string) || "solid"}
-                    onChange={(val) => handleDataChange("dashStyle", val)}
-                    options={dashOptions}
-                    width="65px"
-                  />
+                  <div className="ip-input-group" style={{ width: "38px" }}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={selectedObj.style?.strokeWidth || 1}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) val = 1;
+                        if (val < 1) val = 1;
+                        if (val > 20) val = 20;
+                        handleStyleChange("strokeWidth", val);
+                      }}
+                      style={{
+                        textAlign: "center",
+                        padding: "3px 4px",
+                        height: "24px",
+                      }}
+                    />
+                  </div>
                 </>
               )}
               {(selectedObj.type === "text" ||
@@ -1314,7 +1307,7 @@ export function InspectorPanel() {
           {/* 第 2 行：数值与高级样式 (描边粗细/对齐方式 | 圆角/样式) */}
           <div
             className="ip-property-field"
-            style={{ flexDirection: "row", gap: "28px", marginBottom: "12px" }}
+            style={{ flexDirection: "row", gap: "28px", marginBottom: ["line", "curve", "arrow"].includes(selectedObj.type) ? 0 : "12px" }}
           >
             {/* 左侧：描边粗细 (形状/路径) 或 对齐方式 (文本-独占) */}
             <div
@@ -1331,9 +1324,6 @@ export function InspectorPanel() {
                 "circle",
                 "triangle",
                 "trapezoid",
-                "line",
-                "arrow",
-                "curve",
               ].includes(selectedObj.type) && (
                 <>
                   <label
@@ -1551,36 +1541,83 @@ export function InspectorPanel() {
                     </div>
                   </>
                 )}
-                {selectedObj.type === "arrow" && (
-                  <>
-                    <label
-                      style={{
-                        marginBottom: 0,
-                        fontSize: "0.85rem",
-                        whiteSpace: "nowrap",
-                        width: "40px",
-                        flexShrink: 0,
-                      }}
-                    >
-                      样式：
-                    </label>
-                    <CustomSelect
-                      value={
-                        (selectedObj.data?.arrowStyle as string) || "single"
-                      }
-                      onChange={(val) => handleDataChange("arrowStyle", val)}
-                      options={arrowOptions}
-                      width="65px"
-                    />
-                  </>
-                )}
                 {/* 占位符避免空列导致的抖动 */}
-                {!["rect", "triangle", "circle", "arrow"].includes(
+                {!["rect", "triangle", "circle"].includes(
                   selectedObj.type,
                 ) && <div style={{ flex: 1 }} />}
               </div>
             )}
           </div>
+
+          {/* 线型（仅路径类元素）*/}
+          {["line", "arrow", "curve"].includes(selectedObj.type) && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: "12px",
+              }}
+            >
+              <label
+                style={{
+                  marginBottom: 0,
+                  fontSize: "0.85rem",
+                  width: "65px",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  color: "var(--text-muted)",
+                }}
+              >
+                <span style={{ flex: 1, display: "flex", justifyContent: "space-between" }}>
+                  <span>线</span><span>型</span>
+                </span>
+                <span>：</span>
+              </label>
+              <CustomSelect
+                value={(selectedObj.data?.dashStyle as string) || "solid"}
+                onChange={(val) => handleDataChange("dashStyle", val)}
+                options={dashOptions}
+                width="100%"
+              />
+            </div>
+          )}
+
+          {/* 样式（仅箭头元素）*/}
+          {selectedObj.type === "arrow" && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                marginBottom: "12px",
+              }}
+            >
+              <label
+                style={{
+                  marginBottom: 0,
+                  fontSize: "0.85rem",
+                  width: "65px",
+                  flexShrink: 0,
+                  display: "flex",
+                  alignItems: "center",
+                  color: "var(--text-muted)",
+                }}
+              >
+                <span style={{ flex: 1, display: "flex", justifyContent: "space-between" }}>
+                  <span>样</span><span>式</span>
+                </span>
+                <span>：</span>
+              </label>
+              <CustomSelect
+                value={(selectedObj.data?.arrowStyle as string) || "single"}
+                onChange={(val) => handleDataChange("arrowStyle", val)}
+                options={arrowOptions}
+                width="100%"
+              />
+            </div>
+          )}
 
           {basicNamedTypes.includes(selectedObj.type) && (
             <>
