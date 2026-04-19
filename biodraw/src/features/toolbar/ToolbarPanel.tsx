@@ -657,12 +657,12 @@ export function ToolbarPanel() {
           {isExporting && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {sequenceExportStatus === 'running' && (
-                <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 2 }}>
+                <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 4 }}>
                   <div style={{
                     height: '100%',
                     width: `${Math.round(exportProgress * 100)}%`,
                     background: 'var(--primary-color, #3b82f6)',
-                    borderRadius: 2,
+                    borderRadius: 4,
                     transition: 'width 0.1s linear',
                   }} />
                 </div>
