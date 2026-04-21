@@ -31,11 +31,44 @@
   margin-bottom: 16px;
 }
 
+.ip-property-group:not(:last-child) {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 8px;
+}
+
 .ip-group-title {
   margin: 0 0 10px 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  user-select: none;
+}
+
+.ip-group-title:hover {
+  color: var(--primary-color);
+}
+
+.ip-group-title.is-collapsed {
+  margin-bottom: 0;
+}
+
+.ip-section-chevron {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  transform: rotate(90deg);
+  flex-shrink: 0;
+}
+
+.ip-section-chevron.is-collapsed {
+  transform: rotate(0deg);
 }
 
 .ip-property-row {

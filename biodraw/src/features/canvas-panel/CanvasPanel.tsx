@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
-import { Stage, Layer, Line } from 'react-konva';
+import { Stage, Layer, Line, Transformer } from 'react-konva';
 import { SkipBack, SkipForward, Play, Pause, Square } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
@@ -183,6 +183,8 @@ export function CanvasPanel() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
+  const layerRef = useRef<Konva.Layer>(null);
+  const transformerRef = useRef<Konva.Transformer>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
@@ -230,6 +232,7 @@ export function CanvasPanel() {
   const setPreviewMode       = useEditorStore(state => state.setPreviewMode);
   const stopPlayback         = useEditorStore(state => state.stop);
   const stepPlaybackFrame    = useEditorStore(state => state.stepPlaybackFrame);
+  const isRatioLocked        = useEditorStore(state => state.isRatioLocked);
   const lastHandledExportRequestRef = useRef(0);
   const lastHandledVideoExportRequestRef = useRef(0);
   const exportCancelCountRef = useRef(exportCancelCount);

@@ -66,7 +66,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
   const selectObject       = useEditorStore(state => state.selectObject);
   const toggleSelectObject = useEditorStore(state => state.toggleSelectObject);
 
-  // 处理选中状态框的绑定
   useEffect(() => {
     if (isSelected && trRef.current && shapeRef.current) {
       trRef.current.nodes([shapeRef.current]);
@@ -1213,7 +1212,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
         <Transformer
           ref={trRef}
           keepRatio={isRatioLocked}
-          enabledAnchors={isRatioLocked 
+          enabledAnchors={isRatioLocked
             ? ['top-left', 'top-right', 'bottom-left', 'bottom-right']
             : ['top-left', 'top-center', 'top-right', 'middle-right', 'bottom-right', 'bottom-center', 'bottom-left', 'middle-left']
           }

@@ -3,7 +3,6 @@ import { useEditorStore } from "../../state/editorStore";
 import { LayerPanel } from "./LayerPanel";
 import {
   buildAnimationClip,
-  CLIP_TYPE_OPTIONS,
 } from "../../domain/clipFactory";
 import type { ClipCreatableType } from "../../domain/clipFactory";
 import "./InspectorPanel.css";
@@ -32,22 +31,30 @@ export function InspectorPanel() {
   const [activeTab, setActiveTab] = useState<"properties" | "layers">(
     "properties",
   );
-  const [showAddAnimMenu, setShowAddAnimMenu] = useState(false);
-  const addAnimMenuRef = useRef<HTMLDivElement>(null);
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<string, boolean>
+  >({});
+  const toggleSection = (key: string) =>
+    setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
-  // 点击外部关闭"添加动画"下拉菜单
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (
-        addAnimMenuRef.current &&
-        !addAnimMenuRef.current.contains(e.target as Node)
-      ) {
-        setShowAddAnimMenu(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  const sectionChevron = (key: string) => (
+    <span
+      className={`ip-section-chevron${collapsedSections[key] ? " is-collapsed" : ""}`}
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="12"
+        height="12"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </span>
+  );
 
   const isRatioLocked = useEditorStore((state) => state.isRatioLocked);
   const setIsRatioLocked = useEditorStore((state) => state.setIsRatioLocked);
@@ -1090,12 +1097,19 @@ export function InspectorPanel() {
         <>
           <div className="ip-inspector-content">
             <div className="ip-property-group">
-              <h4 className="ip-group-title">基础参数</h4>
+              <h4
+                className={`ip-group-title${collapsedSections["params"] ? " is-collapsed" : ""}`}
+                onClick={() => toggleSection("params")}
+              >
+                基础参数
+                {sectionChevron("params")}
+              </h4>
+              {!collapsedSections["params"] && (<>
 
               <div
                 className="ip-property-field"
                 style={{
-                  marginBottom: "16px",
+                  marginBottom: "8px",
                   flexDirection: "row",
                   alignItems: "center",
                 }}
@@ -1105,7 +1119,7 @@ export function InspectorPanel() {
                     width: "70px",
                     flexShrink: 0,
                     marginBottom: 0,
-                    fontSize: "0.85rem",
+                    fontSize: "13px",
                   }}
                 >
                   X轴 / Y轴：
@@ -1149,7 +1163,7 @@ export function InspectorPanel() {
               <div
                 className="ip-property-field"
                 style={{
-                  marginBottom: "16px",
+                  marginBottom: "8px",
                   flexDirection: "row",
                   alignItems: "center",
                 }}
@@ -1159,7 +1173,7 @@ export function InspectorPanel() {
                     width: "70px",
                     flexShrink: 0,
                     marginBottom: 0,
-                    fontSize: "0.85rem",
+                    fontSize: "13px",
                   }}
                 >
                   宽/高(px)：
@@ -1228,7 +1242,7 @@ export function InspectorPanel() {
               <div
                 className="ip-property-field"
                 style={{
-                  marginBottom: "16px",
+                  marginBottom: "8px",
                   flexDirection: "row",
                   alignItems: "center",
                 }}
@@ -1238,7 +1252,7 @@ export function InspectorPanel() {
                     width: "70px",
                     flexShrink: 0,
                     marginBottom: 0,
-                    fontSize: "0.85rem",
+                    fontSize: "13px",
                   }}
                 >
                   旋转角度：
@@ -1299,7 +1313,7 @@ export function InspectorPanel() {
               <div
                 className="ip-property-field"
                 style={{
-                  marginBottom: "16px",
+                  marginBottom: "8px",
                   flexDirection: "row",
                   alignItems: "center",
                 }}
@@ -1309,7 +1323,7 @@ export function InspectorPanel() {
                     width: "70px",
                     flexShrink: 0,
                     marginBottom: 0,
-                    fontSize: "0.85rem",
+                    fontSize: "13px",
                   }}
                 >
                   图层顺序：
@@ -1450,11 +1464,19 @@ export function InspectorPanel() {
                   </button>
                 </div>
               </div>
+              </>)}
             </div>
 
             {/* 基础操作 */}
             <div className="ip-property-group">
-              <h4 className="ip-group-title">基础操作</h4>
+              <h4
+                className={`ip-group-title${collapsedSections["ops"] ? " is-collapsed" : ""}`}
+                onClick={() => toggleSection("ops")}
+              >
+                基础操作
+                {sectionChevron("ops")}
+              </h4>
+              {!collapsedSections["ops"] && (<>
               <div className="ip-property-row" style={{ gap: 4 }}>
                 <button
                   data-tooltip={
@@ -1477,7 +1499,7 @@ export function InspectorPanel() {
                       : "var(--text-muted)",
                     borderRadius: 6,
                     cursor: "pointer",
-                    fontSize: 11,
+                    fontSize: 13,
                   }}
                 >
                   {selectedObj?.locked ? "🔒 已锁定" : "🔓 锁定"}
@@ -1494,7 +1516,7 @@ export function InspectorPanel() {
                     color: "var(--text-muted)",
                     borderRadius: 6,
                     cursor: selectedObj?.locked ? "not-allowed" : "pointer",
-                    fontSize: 11,
+                    fontSize: 13,
                     opacity: selectedObj?.locked ? 0.4 : 1,
                   }}
                 >
@@ -1516,22 +1538,30 @@ export function InspectorPanel() {
                     color: "#ef4444",
                     borderRadius: 6,
                     cursor: selectedObj?.locked ? "not-allowed" : "pointer",
-                    fontSize: 11,
+                    fontSize: 13,
                     opacity: selectedObj?.locked ? 0.4 : 1,
                   }}
                 >
                   删除
                 </button>
               </div>
+              </>)}
             </div>
 
             {/* 对齐工具 */}
             <div className="ip-property-group">
-              <h4 className="ip-group-title">对齐方式</h4>
+              <h4
+                className={`ip-group-title${collapsedSections["align"] ? " is-collapsed" : ""}`}
+                onClick={() => toggleSection("align")}
+              >
+                对齐方式
+                {sectionChevron("align")}
+              </h4>
+              {!collapsedSections["align"] && (<>
               {/* 水平对齐：左对齐 / 水平居中 / 右对齐 */}
               <div
                 className="ip-property-row"
-                style={{ gap: 4, marginBottom: 4 }}
+                style={{ gap: 8, marginBottom: 8 }}
               >
                 {(
                   [
@@ -1629,18 +1659,15 @@ export function InspectorPanel() {
                     }
                     style={{
                       flex: 1,
-                      height: 32,
+                      height: 28,
                       border: "1px solid var(--border-color)",
                       background: "transparent",
                       color: "var(--text-main)",
                       borderRadius: 6,
                       cursor: "pointer",
-                      fontSize: 10,
                       display: "flex",
-                      flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 2,
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor =
@@ -1654,20 +1681,11 @@ export function InspectorPanel() {
                     }}
                   >
                     {btn.icon}
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: 9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      {btn.label}
-                    </span>
                   </button>
                 ))}
               </div>
               {/* 垂直对齐：顶对齐 / 垂直居中 / 底对齐 */}
-              <div className="ip-property-row" style={{ gap: 4 }}>
+              <div className="ip-property-row" style={{ gap: 8 }}>
                 {(
                   [
                     {
@@ -1766,18 +1784,15 @@ export function InspectorPanel() {
                     }
                     style={{
                       flex: 1,
-                      height: 32,
+                      height: 28,
                       border: "1px solid var(--border-color)",
                       background: "transparent",
                       color: "var(--text-main)",
                       borderRadius: 6,
                       cursor: "pointer",
-                      fontSize: 10,
                       display: "flex",
-                      flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "center",
-                      gap: 2,
                     }}
                     onMouseEnter={(e) => {
                       e.currentTarget.style.borderColor =
@@ -1791,34 +1806,32 @@ export function InspectorPanel() {
                     }}
                   >
                     {btn.icon}
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: 9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      {btn.label}
-                    </span>
                   </button>
                 ))}
               </div>
+              </>)}
             </div>
 
-            {/* 样式设置 - 根据类型动态显示 */}
+            {/* 文字设置 */}
             <div className="ip-property-group">
-              <h4 className="ip-group-title">样式设置</h4>
+              <h4
+                className={`ip-group-title${collapsedSections["text"] ? " is-collapsed" : ""}`}
+                onClick={() => toggleSection("text")}
+              >
+                文字设置
+                {sectionChevron("text")}
+              </h4>
+              {!collapsedSections["text"] && (<>
 
-              {/* 第 1 行：核心颜色与基础属性 (描边颜色/文字颜色 | 填充颜色/线型/字号) */}
+              {/* 文字颜色 | 字体大小 */}
               <div
                 className="ip-property-field"
                 style={{
                   flexDirection: "row",
-                  gap: "12px",
-                  marginBottom: "12px",
+                  gap: "8px",
+                  marginBottom: "8px",
                 }}
               >
-                {/* 左侧：描边颜色 (形状/路径) 或 文字颜色 (文本) */}
                 <div
                   style={{
                     flex: 1,
@@ -1828,84 +1841,49 @@ export function InspectorPanel() {
                     gap: "8px",
                   }}
                 >
-                  {[
-                    "rect",
-                    "circle",
-                    "triangle",
-                    "trapezoid",
-                    "line",
-                    "arrow",
-                    "curve",
-                  ].includes(selectedObj.type) && (
-                    <>
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "65px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        描边颜色：
-                      </label>
-                      <div className="ip-input-group" style={{ width: "38px" }}>
-                        <input
-                          type="color"
-                          value={selectedObj.style?.stroke || "#000000"}
-                          onChange={(e) =>
-                            handleStyleChange("stroke", e.target.value)
-                          }
-                          style={{
-                            width: "100%",
-                            height: "24px",
-                            padding: 0,
-                            cursor: "pointer",
-                            border: "1px solid var(--border-color)",
-                            borderRadius: "var(--radius)",
-                            backgroundColor: "white",
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
-                  {(selectedObj.type === "text" ||
-                    selectedObj.type === "material") && (
-                    <>
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "65px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        文字颜色：
-                      </label>
-                      <div className="ip-input-group" style={{ width: "38px" }}>
-                        <input
-                          type="color"
-                          value={selectedObj.style?.fill || "#000000"}
-                          onChange={(e) =>
-                            handleStyleChange("fill", e.target.value)
-                          }
-                          style={{
-                            width: "100%",
-                            height: "24px",
-                            padding: 0,
-                            cursor: "pointer",
-                            border: "1px solid var(--border-color)",
-                            borderRadius: "var(--radius)",
-                            backgroundColor: "white",
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
+                  <label
+                    style={{
+                      marginBottom: 0,
+                      fontSize: "13px",
+                      whiteSpace: "nowrap",
+                      width: "65px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    文字颜色：
+                  </label>
+                  <div className="ip-input-group" style={{ width: "45px" }}>
+                    <input
+                      type="color"
+                      value={
+                        selectedObj.type === "text" ||
+                        selectedObj.type === "material"
+                          ? selectedObj.style?.fill || "#000000"
+                          : selectedObj.style?.textColor || "#334155"
+                      }
+                      onChange={(e) => {
+                        if (
+                          selectedObj.type === "text" ||
+                          selectedObj.type === "material"
+                        ) {
+                          handleStyleChange("fill", e.target.value);
+                        } else {
+                          handleStyleChange("textColor", e.target.value);
+                        }
+                      }}
+                      style={{
+                        width: "100%",
+                        height: "24px",
+                        padding: 0,
+                        cursor: "pointer",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "var(--radius)",
+                        backgroundColor: "white",
+                      }}
+                    />
+                  </div>
                 </div>
 
-                {/* 右侧：填充颜色 (形状) 或 线型 (路径) 或 字号 (文本) */}
                 <div
                   style={{
                     flex: 1,
@@ -1915,147 +1893,429 @@ export function InspectorPanel() {
                     justifyContent: "space-between",
                   }}
                 >
-                  {["rect", "circle", "triangle", "trapezoid"].includes(
-                    selectedObj.type,
-                  ) && (
-                    <>
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "40px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        填充颜色：
-                      </label>
-                      <div className="ip-input-group" style={{ width: "38px" }}>
-                        <input
-                          type="color"
-                          value={selectedObj.style?.fill || "#000000"}
-                          onChange={(e) =>
-                            handleStyleChange("fill", e.target.value)
-                          }
-                          style={{
-                            width: "100%",
-                            height: "24px",
-                            padding: 0,
-                            cursor: "pointer",
-                            border: "1px solid var(--border-color)",
-                            borderRadius: "var(--radius)",
-                            backgroundColor: "white",
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
-                  {["line", "arrow", "curve"].includes(selectedObj.type) && (
-                    <>
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "65px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        描边粗细：
-                      </label>
-                      <div className="ip-input-group" style={{ width: "44px" }}>
-                        <input
-                          type="number"
-                          min="1"
-                          max="20"
-                          value={selectedObj.style?.strokeWidth || 1}
-                          onChange={(e) => {
-                            let val = parseInt(e.target.value);
-                            if (isNaN(val)) val = 1;
-                            if (val < 1) val = 1;
-                            if (val > 20) val = 20;
-                            handleStyleChange("strokeWidth", val);
-                          }}
-                          style={{
-                            textAlign: "center",
-                            padding: "3px 4px",
-                            height: "24px",
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
-                  {(selectedObj.type === "text" ||
-                    selectedObj.type === "material") && (
-                    <>
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "65px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        文字大小：
-                      </label>
-                      <div className="ip-input-group" style={{ width: "44px" }}>
-                        <input
-                          type="number"
-                          min="5"
-                          max="120"
-                          value={selectedObj.style?.fontSize || 18}
-                          onChange={(e) => {
-                            let val = parseInt(e.target.value);
-                            if (isNaN(val)) val = 5;
-                            if (val < 5) val = 5;
-                            if (val > 120) val = 120;
-                            handleFontSizeChange(val);
-                          }}
-                          data-tooltip="字号 (5-120px)"
-                          style={{
-                            textAlign: "center",
-                            padding: "3px 4px",
-                            height: "24px",
-                          }}
-                        />
-                      </div>
-                    </>
-                  )}
+                  <label
+                    style={{
+                      marginBottom: 0,
+                      fontSize: "13px",
+                      whiteSpace: "nowrap",
+                      width: "65px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    字体大小：
+                  </label>
+                  <div className="ip-input-group" style={{ width: "45px" }}>
+                    <input
+                      type="number"
+                      min="5"
+                      max="120"
+                      value={
+                        selectedObj.style?.fontSize ||
+                        (selectedObj.type === "text" ||
+                        selectedObj.type === "material"
+                          ? 18
+                          : 14)
+                      }
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value);
+                        if (isNaN(val)) val = 5;
+                        if (val < 5) val = 5;
+                        if (val > 120) val = 120;
+                        handleFontSizeChange(val);
+                      }}
+                      style={{
+                        textAlign: "center",
+                        padding: "3px 4px",
+                        height: "24px",
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* 第 2 行：数值与高级样式 (描边粗细/对齐方式 | 圆角/样式) */}
+              {/* 对齐方式 */}
               <div
                 className="ip-property-field"
                 style={{
                   flexDirection: "row",
                   gap: "28px",
-                  marginBottom: ["line", "curve", "arrow"].includes(
-                    selectedObj.type,
-                  )
-                    ? 0
-                    : "12px",
+                  marginBottom: "8px",
                 }}
               >
-                {/* 左侧：描边粗细 (形状/路径) 或 对齐方式 (文本-独占) */}
                 <div
                   style={{
-                    flex: 1,
                     display: "flex",
                     alignItems: "center",
-                    justifyContent: "flex-start",
                     gap: "8px",
+                    flex: 1,
                   }}
                 >
-                  {["rect", "circle", "triangle", "trapezoid"].includes(
-                    selectedObj.type,
-                  ) && (
-                    <>
+                  <label
+                    style={{
+                      marginBottom: 0,
+                      fontSize: "13px",
+                      whiteSpace: "nowrap",
+                      width: "65px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    对齐方式：
+                  </label>
+                  <div
+                    style={{
+                      display: "flex",
+                      flex: 1,
+                      gap: "1px",
+                      backgroundColor: "rgba(0,0,0,0.05)",
+                      padding: "2px",
+                      borderRadius: "6px",
+                      border: "1px solid var(--border-color)",
+                    }}
+                  >
+                    {[
+                      {
+                        id: "left",
+                        icon: (
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          >
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="3" y1="12" x2="15" y2="12" />
+                            <line x1="3" y1="18" x2="18" y2="18" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        id: "center",
+                        icon: (
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          >
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="6" y1="12" x2="18" y2="12" />
+                            <line x1="5" y1="18" x2="19" y2="18" />
+                          </svg>
+                        ),
+                      },
+                      {
+                        id: "right",
+                        icon: (
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                          >
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <line x1="9" y1="12" x2="21" y2="12" />
+                            <line x1="6" y1="18" x2="21" y2="18" />
+                          </svg>
+                        ),
+                      },
+                    ].map((btn) => (
+                      <button
+                        key={btn.id}
+                        onClick={() => handleStyleChange("textAlign", btn.id)}
+                        style={{
+                          flex: 1,
+                          height: "22px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "none",
+                          backgroundColor:
+                            (selectedObj.style?.textAlign || "center") ===
+                            btn.id
+                              ? "white"
+                              : "transparent",
+                          color:
+                            (selectedObj.style?.textAlign || "center") ===
+                            btn.id
+                              ? "var(--primary-color)"
+                              : "var(--text-muted)",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                        }}
+                      >
+                        {btn.icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* 文字方向 */}
+              <div
+                className="ip-property-field"
+                style={{
+                  flexDirection: "row",
+                  gap: "28px",
+                  marginBottom: "8px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    flex: 1,
+                  }}
+                >
+                  <label
+                    style={{
+                      marginBottom: 0,
+                      fontSize: "13px",
+                      whiteSpace: "nowrap",
+                      width: "65px",
+                      flexShrink: 0,
+                    }}
+                  >
+                    文字方向：
+                  </label>
+                  <div
+                    style={{
+                      display: "flex",
+                      flex: 1,
+                      gap: "1px",
+                      backgroundColor: "rgba(0,0,0,0.05)",
+                      padding: "2px",
+                      borderRadius: "6px",
+                      border: "1px solid var(--border-color)",
+                    }}
+                  >
+                    {[
+                      { id: "horizontal", label: "横排" },
+                      { id: "vertical", label: "纵排" },
+                    ].map((btn) => (
+                      <button
+                        key={btn.id}
+                        onClick={() =>
+                          handleDirectionChange(
+                            btn.id as "horizontal" | "vertical",
+                          )
+                        }
+                        style={{
+                          flex: 1,
+                          height: "22px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: "none",
+                          backgroundColor:
+                            (selectedObj.style?.textDirection ||
+                              "horizontal") === btn.id
+                              ? "white"
+                              : "transparent",
+                          color:
+                            (selectedObj.style?.textDirection ||
+                              "horizontal") === btn.id
+                              ? "var(--primary-color)"
+                              : "var(--text-muted)",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          transition: "all 0.2s",
+                          fontSize: "13px",
+                        }}
+                      >
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              </>)}
+            </div>
+
+            {/* 样式设置 - 仅形状/路径类元素 */}
+            {selectedObj.type !== "text" && selectedObj.type !== "material" && (
+              <div className="ip-property-group">
+                <h4
+                  className={`ip-group-title${collapsedSections["style"] ? " is-collapsed" : ""}`}
+                  onClick={() => toggleSection("style")}
+                >
+                  样式设置
+                  {sectionChevron("style")}
+                </h4>
+                {!collapsedSections["style"] && (<>
+
+                {/* 描边颜色 | 填充颜色 or 描边粗细 */}
+                <div
+                  className="ip-property-field"
+                  style={{
+                    flexDirection: "row",
+                    gap: "8px",
+                    marginBottom: "8px",
+                  }}
+                >
+                  <div
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "flex-start",
+                      gap: "8px",
+                    }}
+                  >
+                    <label
+                      style={{
+                        marginBottom: 0,
+                        fontSize: "13px",
+                        whiteSpace: "nowrap",
+                        width: "65px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      描边颜色：
+                    </label>
+                    <div className="ip-input-group" style={{ width: "45px" }}>
+                      <input
+                        type="color"
+                        value={selectedObj.style?.stroke || "#000000"}
+                        onChange={(e) =>
+                          handleStyleChange("stroke", e.target.value)
+                        }
+                        style={{
+                          width: "100%",
+                          height: "24px",
+                          padding: 0,
+                          cursor: "pointer",
+                          border: "1px solid var(--border-color)",
+                          borderRadius: "var(--radius)",
+                          backgroundColor: "white",
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    {["rect", "circle", "triangle", "trapezoid"].includes(
+                      selectedObj.type,
+                    ) && (
+                      <>
+                        <label
+                          style={{
+                            marginBottom: 0,
+                            fontSize: "13px",
+                            whiteSpace: "nowrap",
+                            width: "40px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          填充颜色：
+                        </label>
+                        <div
+                          className="ip-input-group"
+                          style={{ width: "45px" }}
+                        >
+                          <input
+                            type="color"
+                            value={selectedObj.style?.fill || "#000000"}
+                            onChange={(e) =>
+                              handleStyleChange("fill", e.target.value)
+                            }
+                            style={{
+                              width: "100%",
+                              height: "24px",
+                              padding: 0,
+                              cursor: "pointer",
+                              border: "1px solid var(--border-color)",
+                              borderRadius: "var(--radius)",
+                              backgroundColor: "white",
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
+                    {["line", "arrow", "curve"].includes(selectedObj.type) && (
+                      <>
+                        <label
+                          style={{
+                            marginBottom: 0,
+                            fontSize: "13px",
+                            whiteSpace: "nowrap",
+                            width: "65px",
+                            flexShrink: 0,
+                          }}
+                        >
+                          描边粗细：
+                        </label>
+                        <div
+                          className="ip-input-group"
+                          style={{ width: "45px" }}
+                        >
+                          <input
+                            type="number"
+                            min="1"
+                            max="20"
+                            value={selectedObj.style?.strokeWidth || 1}
+                            onChange={(e) => {
+                              let val = parseInt(e.target.value);
+                              if (isNaN(val)) val = 1;
+                              if (val < 1) val = 1;
+                              if (val > 20) val = 20;
+                              handleStyleChange("strokeWidth", val);
+                            }}
+                            style={{
+                              textAlign: "center",
+                              padding: "3px 4px",
+                              height: "24px",
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* 描边粗细 | 圆角/半径 (仅形状) */}
+                {["rect", "circle", "triangle", "trapezoid"].includes(
+                  selectedObj.type,
+                ) && (
+                  <div
+                    className="ip-property-field"
+                    style={{
+                      flexDirection: "row",
+                      gap: "8px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "flex-start",
+                        gap: "8px",
+                      }}
+                    >
                       <label
                         style={{
                           marginBottom: 0,
-                          fontSize: "0.85rem",
+                          fontSize: "13px",
                           whiteSpace: "nowrap",
                           width: "65px",
                           flexShrink: 0,
@@ -2063,7 +2323,7 @@ export function InspectorPanel() {
                       >
                         描边粗细：
                       </label>
-                      <div className="ip-input-group" style={{ width: "38px" }}>
+                      <div className="ip-input-group" style={{ width: "45px" }}>
                         <input
                           type="number"
                           min="1"
@@ -2083,134 +2343,8 @@ export function InspectorPanel() {
                           }}
                         />
                       </div>
-                    </>
-                  )}
-                  {(selectedObj.type === "text" ||
-                    selectedObj.type === "material") && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        flex: 1,
-                      }}
-                    >
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "65px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        对齐方式：
-                      </label>
-                      <div
-                        style={{
-                          display: "flex",
-                          flex: 1,
-                          gap: "1px",
-                          backgroundColor: "rgba(0,0,0,0.05)",
-                          padding: "2px",
-                          borderRadius: "6px",
-                          border: "1px solid var(--border-color)",
-                        }}
-                      >
-                        {[
-                          {
-                            id: "left",
-                            icon: (
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                              >
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="3" y1="12" x2="15" y2="12" />
-                                <line x1="3" y1="18" x2="18" y2="18" />
-                              </svg>
-                            ),
-                          },
-                          {
-                            id: "center",
-                            icon: (
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                              >
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="6" y1="12" x2="18" y2="12" />
-                                <line x1="5" y1="18" x2="19" y2="18" />
-                              </svg>
-                            ),
-                          },
-                          {
-                            id: "right",
-                            icon: (
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                              >
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="9" y1="12" x2="21" y2="12" />
-                                <line x1="6" y1="18" x2="21" y2="18" />
-                              </svg>
-                            ),
-                          },
-                        ].map((btn) => (
-                          <button
-                            key={btn.id}
-                            onClick={() =>
-                              handleStyleChange("textAlign", btn.id)
-                            }
-                            style={{
-                              flex: 1,
-                              height: "22px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              border: "none",
-                              backgroundColor:
-                                (selectedObj.style?.textAlign || "center") ===
-                                btn.id
-                                  ? "white"
-                                  : "transparent",
-                              color:
-                                (selectedObj.style?.textAlign || "center") ===
-                                btn.id
-                                  ? "var(--primary-color)"
-                                  : "var(--text-muted)",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              transition: "all 0.2s",
-                            }}
-                          >
-                            {btn.icon}
-                          </button>
-                        ))}
-                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* 右侧：圆角/半径/样式 (形状/路径) - 文字类不显示此列 */}
-                {selectedObj.type !== "text" &&
-                  selectedObj.type !== "material" && (
                     <div
                       style={{
                         flex: 1,
@@ -2227,7 +2361,7 @@ export function InspectorPanel() {
                           <label
                             style={{
                               marginBottom: 0,
-                              fontSize: "0.85rem",
+                              fontSize: "13px",
                               whiteSpace: "nowrap",
                               width: "65px",
                               flexShrink: 0,
@@ -2242,7 +2376,7 @@ export function InspectorPanel() {
                           </label>
                           <div
                             className="ip-input-group"
-                            style={{ width: "38px" }}
+                            style={{ width: "45px" }}
                           >
                             <input
                               type="number"
@@ -2276,529 +2410,112 @@ export function InspectorPanel() {
                           </div>
                         </>
                       )}
-                      {/* 占位符避免空列导致的抖动 */}
-                      {!["rect", "triangle", "circle"].includes(
-                        selectedObj.type,
-                      ) && <div style={{ flex: 1 }} />}
-                    </div>
-                  )}
-              </div>
-
-              {/* 线型（仅路径类元素）*/}
-              {["line", "arrow", "curve"].includes(selectedObj.type) && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <label
-                    style={{
-                      marginBottom: 0,
-                      fontSize: "0.85rem",
-                      width: "65px",
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    <span
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span>线</span>
-                      <span>型</span>
-                    </span>
-                    <span>：</span>
-                  </label>
-                  <CustomSelect
-                    value={(selectedObj.data?.dashStyle as string) || "solid"}
-                    onChange={(val) => handleDataChange("dashStyle", val)}
-                    options={dashOptions}
-                    width="100%"
-                  />
-                </div>
-              )}
-
-              {/* 样式（仅箭头元素）*/}
-              {selectedObj.type === "arrow" && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <label
-                    style={{
-                      marginBottom: 0,
-                      fontSize: "0.85rem",
-                      width: "65px",
-                      flexShrink: 0,
-                      display: "flex",
-                      alignItems: "center",
-                      color: "var(--text-muted)",
-                    }}
-                  >
-                    <span
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <span>样</span>
-                      <span>式</span>
-                    </span>
-                    <span>：</span>
-                  </label>
-                  <CustomSelect
-                    value={(selectedObj.data?.arrowStyle as string) || "single"}
-                    onChange={(val) => handleDataChange("arrowStyle", val)}
-                    options={arrowOptions}
-                    width="100%"
-                  />
-                </div>
-              )}
-
-              {basicNamedTypes.includes(selectedObj.type) && (
-                <>
-                  <div
-                    className="ip-property-field"
-                    style={{
-                      flexDirection: "row",
-                      gap: "12px",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        flex: 1,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "flex-start",
-                        gap: "8px",
-                      }}
-                    >
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "65px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        文字颜色：
-                      </label>
-                      <div className="ip-input-group" style={{ width: "38px" }}>
-                        <input
-                          type="color"
-                          value={selectedObj.style?.textColor || "#334155"}
-                          onChange={(e) =>
-                            handleStyleChange("textColor", e.target.value)
-                          }
-                          style={{
-                            width: "100%",
-                            height: "24px",
-                            padding: 0,
-                            cursor: "pointer",
-                            border: "1px solid var(--border-color)",
-                            borderRadius: "var(--radius)",
-                            backgroundColor: "white",
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "65px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        字体大小：
-                      </label>
-                      <div className="ip-input-group" style={{ width: "44px" }}>
-                        <input
-                          type="number"
-                          min="5"
-                          max="120"
-                          value={selectedObj.style?.fontSize || 14}
-                          onChange={(e) => {
-                            let val = parseInt(e.target.value);
-                            if (isNaN(val)) val = 5;
-                            if (val < 5) val = 5;
-                            if (val > 120) val = 120;
-                            handleStyleChange("fontSize", val);
-                          }}
-                          style={{
-                            textAlign: "center",
-                            padding: "3px 4px",
-                            height: "24px",
-                          }}
-                        />
-                      </div>
+                      {selectedObj.type === "trapezoid" && (
+                        <div style={{ flex: 1 }} />
+                      )}
                     </div>
                   </div>
+                )}
 
-                  <div
-                    className="ip-property-field"
-                    style={{
-                      flexDirection: "row",
-                      gap: "28px",
-                      marginBottom: "12px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                        flex: 1,
-                      }}
-                    >
-                      <label
-                        style={{
-                          marginBottom: 0,
-                          fontSize: "0.85rem",
-                          whiteSpace: "nowrap",
-                          width: "65px",
-                          flexShrink: 0,
-                        }}
-                      >
-                        对齐方式：
-                      </label>
-                      <div
-                        style={{
-                          display: "flex",
-                          flex: 1,
-                          gap: "1px",
-                          backgroundColor: "rgba(0,0,0,0.05)",
-                          padding: "2px",
-                          borderRadius: "6px",
-                          border: "1px solid var(--border-color)",
-                        }}
-                      >
-                        {[
-                          {
-                            id: "left",
-                            icon: (
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                              >
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="3" y1="12" x2="15" y2="12" />
-                                <line x1="3" y1="18" x2="18" y2="18" />
-                              </svg>
-                            ),
-                          },
-                          {
-                            id: "center",
-                            icon: (
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                              >
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="6" y1="12" x2="18" y2="12" />
-                                <line x1="5" y1="18" x2="19" y2="18" />
-                              </svg>
-                            ),
-                          },
-                          {
-                            id: "right",
-                            icon: (
-                              <svg
-                                width="14"
-                                height="14"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2.5"
-                                strokeLinecap="round"
-                              >
-                                <line x1="3" y1="6" x2="21" y2="6" />
-                                <line x1="9" y1="12" x2="21" y2="12" />
-                                <line x1="6" y1="18" x2="21" y2="18" />
-                              </svg>
-                            ),
-                          },
-                        ].map((btn) => (
-                          <button
-                            key={btn.id}
-                            onClick={() =>
-                              handleStyleChange("textAlign", btn.id)
-                            }
-                            style={{
-                              flex: 1,
-                              height: "22px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              border: "none",
-                              backgroundColor:
-                                (selectedObj.style?.textAlign || "center") ===
-                                btn.id
-                                  ? "white"
-                                  : "transparent",
-                              color:
-                                (selectedObj.style?.textAlign || "center") ===
-                                btn.id
-                                  ? "var(--primary-color)"
-                                  : "var(--text-muted)",
-                              borderRadius: "6px",
-                              cursor: "pointer",
-                              transition: "all 0.2s",
-                            }}
-                          >
-                            {btn.icon}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-
-              {(selectedObj.type === "text" || isNameDirectionTarget) && (
-                <div
-                  className="ip-property-field"
-                  style={{
-                    flexDirection: "row",
-                    gap: "28px",
-                    marginBottom: "12px",
-                  }}
-                >
+                {/* 线型（仅路径类元素）*/}
+                {["line", "arrow", "curve"].includes(selectedObj.type) && (
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
                       gap: "8px",
-                      flex: 1,
+                      marginBottom: "8px",
                     }}
                   >
                     <label
                       style={{
                         marginBottom: 0,
-                        fontSize: "0.85rem",
-                        whiteSpace: "nowrap",
+                        fontSize: "13px",
                         width: "65px",
                         flexShrink: 0,
-                      }}
-                    >
-                      文字方向：
-                    </label>
-                    <div
-                      style={{
                         display: "flex",
-                        flex: 1,
-                        gap: "1px",
-                        backgroundColor: "rgba(0,0,0,0.05)",
-                        padding: "2px",
-                        borderRadius: "6px",
-                        border: "1px solid var(--border-color)",
+                        alignItems: "center",
+                        color: "var(--text-muted)",
                       }}
                     >
-                      {[
-                        { id: "horizontal", label: "横排" },
-                        { id: "vertical", label: "纵排" },
-                      ].map((btn) => (
-                        <button
-                          key={btn.id}
-                          onClick={() =>
-                            handleDirectionChange(
-                              btn.id as "horizontal" | "vertical",
-                            )
-                          }
-                          style={{
-                            flex: 1,
-                            height: "22px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            border: "none",
-                            backgroundColor:
-                              (selectedObj.style?.textDirection ||
-                                "horizontal") === btn.id
-                                ? "white"
-                                : "transparent",
-                            color:
-                              (selectedObj.style?.textDirection ||
-                                "horizontal") === btn.id
-                                ? "var(--primary-color)"
-                                : "var(--text-muted)",
-                            borderRadius: "6px",
-                            cursor: "pointer",
-                            transition: "all 0.2s",
-                            fontSize: "0.9rem",
-                          }}
-                        >
-                          {btn.label}
-                        </button>
-                      ))}
-                    </div>
+                      <span
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span>线</span>
+                        <span>型</span>
+                      </span>
+                      <span>：</span>
+                    </label>
+                    <CustomSelect
+                      value={(selectedObj.data?.dashStyle as string) || "solid"}
+                      onChange={(val) => handleDataChange("dashStyle", val)}
+                      options={dashOptions}
+                      width="100%"
+                    />
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+
+                {/* 样式（仅箭头元素）*/}
+                {selectedObj.type === "arrow" && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      marginBottom: "8px",
+                    }}
+                  >
+                    <label
+                      style={{
+                        marginBottom: 0,
+                        fontSize: "13px",
+                        width: "65px",
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        color: "var(--text-muted)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <span>样</span>
+                        <span>式</span>
+                      </span>
+                      <span>：</span>
+                    </label>
+                    <CustomSelect
+                      value={
+                        (selectedObj.data?.arrowStyle as string) || "single"
+                      }
+                      onChange={(val) => handleDataChange("arrowStyle", val)}
+                      options={arrowOptions}
+                      width="100%"
+                    />
+                  </div>
+                )}
+                </>)}
+              </div>
+            )}
 
             {/* ── 动画片段区 ────────────────────────────────────────── */}
             <div className="ip-property-group">
               <h4
-                className="ip-group-title"
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  marginBottom: 8,
-                }}
+                className={`ip-group-title${collapsedSections["anim"] ? " is-collapsed" : ""}`}
+                onClick={() => toggleSection("anim")}
               >
-                <span>动画片段</span>
-                {/* ＋ 添加动画 按钮 */}
-                <div ref={addAnimMenuRef} style={{ position: "relative" }}>
-                  <button
-                    onClick={() => setShowAddAnimMenu((p) => !p)}
-                    style={{
-                      fontSize: 11,
-                      padding: "2px 8px",
-                      height: 22,
-                      border: "1px solid var(--border-color)",
-                      borderRadius: 6,
-                      background: showAddAnimMenu
-                        ? "rgba(59,130,246,0.08)"
-                        : "transparent",
-                      color: showAddAnimMenu
-                        ? "var(--primary-color)"
-                        : "var(--text-muted)",
-                      cursor: "pointer",
-                      lineHeight: 1,
-                    }}
-                    data-tooltip="为此对象添加动画片段"
-                  >
-                    ＋ 添加
-                  </button>
-                  {showAddAnimMenu && selectedObj && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "100%",
-                        right: 0,
-                        zIndex: 300,
-                        marginTop: 4,
-                        background: "var(--panel-bg)",
-                        border: "1px solid var(--border-color)",
-                        borderRadius: 6,
-                        padding: "6px 0",
-                        minWidth: 140,
-                        boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 10,
-                          color: "var(--text-muted)",
-                          padding: "2px 10px 6px",
-                          fontWeight: 600,
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        选择动画类型
-                      </div>
-                      {CLIP_TYPE_OPTIONS.map((opt) => (
-                        <button
-                          key={opt.type}
-                          onClick={() => {
-                            const clip = buildAnimationClip(
-                              opt.type as ClipCreatableType,
-                              selectedObj,
-                              currentTimeMs,
-                            );
-                            addAnimationClip(clip);
-                            if (
-                              clip.startTimeMs + clip.durationMs >
-                              globalDurationMs
-                            ) {
-                              setGlobalDurationMs(
-                                clip.startTimeMs + clip.durationMs + 1000,
-                              );
-                            }
-                            setExpandedAnimationClipId(clip.id);
-                            setShowAddAnimMenu(false);
-                          }}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            width: "100%",
-                            padding: "5px 10px",
-                            border: "none",
-                            background: "transparent",
-                            color: "var(--text-main)",
-                            fontSize: 12,
-                            cursor: "pointer",
-                            textAlign: "left",
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background =
-                              "rgba(59,130,246,0.07)";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "transparent";
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: 8,
-                              height: 8,
-                              borderRadius: "50%",
-                              background:
-                                CLIP_TYPE_COLORS[opt.type] || "#64748b",
-                              flexShrink: 0,
-                            }}
-                          />
-                          <span style={{ flex: 1 }}>{opt.label}</span>
-                          <span
-                            style={{ fontSize: 10, color: "var(--text-muted)" }}
-                          >
-                            {opt.desc}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                动画片段
+                {sectionChevron("anim")}
               </h4>
+              {!collapsedSections["anim"] && (<>
               {(() => {
                 const clips = animations
                   .filter((a) => selectedObj?.animationIds?.includes(a.id))
@@ -2812,7 +2529,7 @@ export function InspectorPanel() {
                         padding: "6px 0",
                       }}
                     >
-                      暂无动画片段 — 点击右上角「＋ 添加」快速创建
+                      暂无动画片段
                     </div>
                   );
                 }
@@ -2898,6 +2615,7 @@ export function InspectorPanel() {
                   );
                 });
               })()}
+              </>)}
             </div>
           </div>
         </>
