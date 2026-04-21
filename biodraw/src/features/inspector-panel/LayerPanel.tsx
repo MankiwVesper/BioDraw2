@@ -162,7 +162,7 @@ export function LayerPanel() {
             )}
 
             {/* 类型图标 */}
-            <span style={{ fontSize: 12, flexShrink: 0, width: 18, textAlign: 'center', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: 13, flexShrink: 0, width: 18, textAlign: 'center', color: 'var(--text-muted)' }}>
               {TYPE_ICON[obj.type] || '◻'}
             </span>
 
@@ -182,7 +182,7 @@ export function LayerPanel() {
                   onClick={(e) => e.stopPropagation()}
                   style={{
                     width: '100%',
-                    fontSize: 12,
+                    fontSize: 13,
                     padding: '1px 4px',
                     border: '1px solid var(--primary-color)',
                     borderRadius: 6,
@@ -195,7 +195,7 @@ export function LayerPanel() {
               ) : (
                 <span
                   style={{
-                    fontSize: 12,
+                    fontSize: 13,
                     color: obj.visible === false ? 'var(--text-muted)' : 'var(--text-main)',
                     display: 'block',
                     overflow: 'hidden',
@@ -252,7 +252,8 @@ export function LayerPanel() {
                 border: 'none',
                 background: 'transparent',
                 cursor: 'pointer',
-                fontSize: 12,
+                fontSize: 13,
+                lineHeight: 1,
                 opacity: obj.locked ? 1 : 0.35,
                 color: obj.locked ? 'var(--primary-color)' : 'var(--text-muted)',
                 display: 'flex',
