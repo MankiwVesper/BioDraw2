@@ -526,7 +526,7 @@ export function ToolbarPanel() {
           onClick={() => setPreviewMode(!isPreviewMode)}
           data-tooltip="全屏预览 (F)"
         >
-          {isPreviewMode ? '退出预览' : '预览 ⛶'}
+          {isPreviewMode ? '退出' : '预览 ⛶'}
         </button>
 
         {/* 导出（最右，右边界对齐 konvajs-content） */}
