@@ -1264,29 +1264,19 @@ export function TimelinePanel() {
                         {/* 类型专属字段 */}
                         {clip.type === 'move' && (
                           <div className="tl-payload-section">
-                            <div className="tl-grab-row">
-                              <button
-                                type="button"
-                                className="tl-btn tl-btn-sm"
-                                data-tooltip="将对象当前位置设为起点"
-                                onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}
-                              >
-                                取当前位置 → 起点
-                              </button>
-                              <button
-                                type="button"
-                                className="tl-btn tl-btn-sm"
-                                data-tooltip="将对象当前位置设为终点"
-                                onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}
-                              >
-                                取当前位置 → 终点
-                              </button>
-                            </div>
-                            <div className="tl-payload-grid">
-                              <label className="tl-detail-label">起点X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
-                              <label className="tl-detail-label">起点Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
-                              <label className="tl-detail-label">终点X<input type="number" value={clip.payload.toX} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                              <label className="tl-detail-label">终点Y<input type="number" value={clip.payload.toY} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                            <div className="tl-coord-rows">
+                              <div className="tl-coord-row">
+                                <span className="tl-coord-label">起点</span>
+                                <label className="tl-detail-label">X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
+                                <button type="button" className="tl-btn tl-btn-sm tl-coord-grab" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                              </div>
+                              <div className="tl-coord-row">
+                                <span className="tl-coord-label">终点</span>
+                                <label className="tl-detail-label">X<input type="number" value={clip.payload.toX} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.toY} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                                <button type="button" className="tl-btn tl-btn-sm tl-coord-grab" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                              </div>
                             </div>
                             <div className="tl-keyframe-section">
                               <div className="tl-keyframe-header">
@@ -1311,31 +1301,24 @@ export function TimelinePanel() {
 
                         {clip.type === 'moveAlongPath' && (
                           <div className="tl-payload-section">
-                            <div className="tl-grab-row">
-                              <button
-                                type="button"
-                                className="tl-btn tl-btn-sm"
-                                data-tooltip="将对象当前位置设为起点"
-                                onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}
-                              >
-                                取当前位置 → 起点
-                              </button>
-                              <button
-                                type="button"
-                                className="tl-btn tl-btn-sm"
-                                data-tooltip="将对象当前位置设为终点"
-                                onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}
-                              >
-                                取当前位置 → 终点
-                              </button>
-                            </div>
-                            <div className="tl-payload-grid">
-                              <label className="tl-detail-label">起点X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
-                              <label className="tl-detail-label">起点Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
-                              <label className="tl-detail-label">控制点X<input type="number" value={clip.payload.controlX} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
-                              <label className="tl-detail-label">控制点Y<input type="number" value={clip.payload.controlY} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
-                              <label className="tl-detail-label">终点X<input type="number" value={clip.payload.toX} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                              <label className="tl-detail-label">终点Y<input type="number" value={clip.payload.toY} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                            <div className="tl-coord-rows">
+                              <div className="tl-coord-row">
+                                <span className="tl-coord-label">起点</span>
+                                <label className="tl-detail-label">X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
+                                <button type="button" className="tl-btn tl-btn-sm tl-coord-grab" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                              </div>
+                              <div className="tl-coord-row">
+                                <span className="tl-coord-label">控制点</span>
+                                <label className="tl-detail-label">X<input type="number" value={clip.payload.controlX} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.controlY} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
+                              </div>
+                              <div className="tl-coord-row">
+                                <span className="tl-coord-label">终点</span>
+                                <label className="tl-detail-label">X<input type="number" value={clip.payload.toX} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.toY} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                                <button type="button" className="tl-btn tl-btn-sm tl-coord-grab" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                              </div>
                             </div>
                           </div>
                         )}

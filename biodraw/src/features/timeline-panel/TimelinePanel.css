@@ -753,6 +753,36 @@
   min-width: unset;
 }
 
+/* ── 坐标行布局（起点/终点/控制点各占一行） ─────────── */
+.tl-coord-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-coord-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.tl-coord-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 36px;
+  flex-shrink: 0;
+  padding-bottom: 4px;
+}
+
+.tl-coord-row .tl-detail-label input {
+  width: 72px;
+  min-width: unset;
+}
+
+.tl-coord-grab {
+  margin-bottom: 1px;
+}
+
 /* ── 关键帧区 ──────────────────────────────────────── */
 .tl-keyframe-section {
   border: 1px dashed var(--border-color);
