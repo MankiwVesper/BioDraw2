@@ -1232,7 +1232,7 @@ export function InspectorPanel() {
                         : "var(--text-muted)",
                     }}
                     onClick={() => setIsRatioLocked(!isRatioLocked)}
-                    data-tooltip="锁定/解锁 长宽比例"
+                    data-tooltip={isRatioLocked ? "解锁宽高比" : "锁定宽高比"}
                   >
                     {isRatioLocked ? "🔒" : "🔓"}
                   </button>
@@ -1299,7 +1299,7 @@ export function InspectorPanel() {
                         rotation: 0,
                       })
                     }
-                    data-tooltip="一键重置尺寸与旋转"
+                    data-tooltip="重置尺寸与角度"
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
                     onMouseLeave={(e) =>
                       (e.currentTarget.style.opacity = "0.8")
