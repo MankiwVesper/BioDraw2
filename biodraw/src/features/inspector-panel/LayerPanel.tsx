@@ -16,33 +16,44 @@ const TYPE_ICON: Record<string, string> = {
 };
 
 // ── 拖拽排序辅助 ─────────────────────────────────────────────────────────────
+type DropTarget = { idx: number; before: boolean } | null;
+
 function useLayerDnD(
   onReorder: (fromIndex: number, toIndex: number) => void,
 ) {
   const dragIndexRef = useRef<number | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget>(null);
+
+  const getHalf = (e: React.DragEvent): boolean => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    return e.clientY < rect.top + rect.height / 2; // true = 上半 = insert before
+  };
 
   const onDragStart = (index: number) => {
     dragIndexRef.current = index;
   };
   const onDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
-    setDragOverIndex(index);
+    setDropTarget({ idx: index, before: getHalf(e) });
   };
-  const onDrop = (e: React.DragEvent, index: number) => {
+  const onDrop = (e: React.DragEvent, index: number, total: number) => {
     e.preventDefault();
-    if (dragIndexRef.current !== null && dragIndexRef.current !== index) {
-      onReorder(dragIndexRef.current, index);
+    if (dragIndexRef.current !== null) {
+      const before = getHalf(e);
+      const toIndex = before ? index : Math.min(index + 1, total - 1);
+      if (dragIndexRef.current !== toIndex) {
+        onReorder(dragIndexRef.current, toIndex);
+      }
     }
     dragIndexRef.current = null;
-    setDragOverIndex(null);
+    setDropTarget(null);
   };
   const onDragEnd = () => {
     dragIndexRef.current = null;
-    setDragOverIndex(null);
+    setDropTarget(null);
   };
 
-  return { onDragStart, onDragOver, onDrop, onDragEnd, dragOverIndex };
+  return { onDragStart, onDragOver, onDrop, onDragEnd, dropTarget, dragIndexRef };
 }
 
 // ── 主组件 ───────────────────────────────────────────────────────────────────
@@ -53,8 +64,7 @@ export function LayerPanel() {
   const toggleSelectObject = useEditorStore((s) => s.toggleSelectObject);
   const updateSceneObject  = useEditorStore((s) => s.updateSceneObject);
   const toggleObjectLock   = useEditorStore((s) => s.toggleObjectLock);
-  const moveObjectForward  = useEditorStore((s) => s.moveObjectForward);
-  const moveObjectBackward = useEditorStore((s) => s.moveObjectBackward);
+  const reorderObject      = useEditorStore((s) => s.reorderObject);
 
   // 从顶层到底层显示（反转 objects 数组，因为 objects 末尾 = 最顶层）
   const layerOrder = [...objects].reverse();
@@ -82,26 +92,11 @@ export function LayerPanel() {
   // layerOrder index 0 = 最顶层 (objects末尾), index N = 最底层 (objects开头)
   // 拖拽 fromIndex → toIndex 需要对 objects 数组做对应的 z-order 操作
   const handleReorder = (fromLayerIdx: number, toLayerIdx: number) => {
-    // 在 objects 数组中的真实 index
     const fromObjIdx = objects.length - 1 - fromLayerIdx;
     const toObjIdx   = objects.length - 1 - toLayerIdx;
     const id = objects[fromObjIdx]?.id;
-    if (!id) return;
-    // 用 moveObjectToFront/Back 不适合精确定位，直接用 Forward/Backward 多次
-    // 简单策略：先移到 front/back，再用 forward/backward 调整
-    // 更简单：直接 dispatch 一个新的 reorderObjects action（需要在 store 中添加）
-    // 目前用循环 moveObjectForward/Backward 近似处理
-    if (fromObjIdx < toObjIdx) {
-      // 需要下移 (向 back 移动)
-      for (let i = fromObjIdx; i < toObjIdx; i++) {
-        moveObjectBackward(id);
-      }
-    } else {
-      // 需要上移 (向 front 移动)
-      for (let i = fromObjIdx; i > toObjIdx; i--) {
-        moveObjectForward(id);
-      }
-    }
+    if (!id || fromObjIdx === toObjIdx) return;
+    reorderObject(id, toObjIdx);
   };
 
   const dnd = useLayerDnD(handleReorder);
@@ -115,11 +110,24 @@ export function LayerPanel() {
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+    <div
+      style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        const fromIdx = dnd.dragIndexRef.current;
+        const lastIdx = layerOrder.length - 1;
+        if (fromIdx !== null && fromIdx !== lastIdx) {
+          handleReorder(fromIdx, lastIdx);
+        }
+        dnd.onDragEnd();
+      }}
+    >
       {layerOrder.map((obj, layerIdx) => {
-        const isSelected = selectedIds.includes(obj.id);
-        const isDragOver = dnd.dragOverIndex === layerIdx;
-        const isInGroup  = !!obj.groupId;
+        const isSelected   = selectedIds.includes(obj.id);
+        const isInGroup    = !!obj.groupId;
+        const isDropBefore = dnd.dropTarget?.idx === layerIdx && dnd.dropTarget.before;
+        const isDropAfter  = dnd.dropTarget?.idx === layerIdx && !dnd.dropTarget.before;
 
         return (
           <div
@@ -127,7 +135,7 @@ export function LayerPanel() {
             draggable
             onDragStart={() => dnd.onDragStart(layerIdx)}
             onDragOver={(e) => dnd.onDragOver(e, layerIdx)}
-            onDrop={(e) => dnd.onDrop(e, layerIdx)}
+            onDrop={(e) => dnd.onDrop(e, layerIdx, layerOrder.length)}
             onDragEnd={dnd.onDragEnd}
             onClick={(e) => {
               if (renamingId) return;
@@ -141,7 +149,8 @@ export function LayerPanel() {
               padding: '4px 8px 4px 12px',
               cursor: 'pointer',
               userSelect: 'none',
-              borderTop: isDragOver ? '2px solid var(--primary-color)' : '2px solid transparent',
+              borderTop: isDropBefore ? '2px solid var(--primary-color)' : '2px solid transparent',
+              borderBottom: isDropAfter ? '2px solid var(--primary-color)' : '2px solid transparent',
               background: isSelected
                 ? 'rgba(59,130,246,0.10)'
                 : 'transparent',

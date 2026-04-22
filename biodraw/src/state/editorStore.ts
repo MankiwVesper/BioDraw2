@@ -83,6 +83,7 @@ interface EditorState {
   moveObjectBackward: (id: string) => void;
   moveObjectToFront: (id: string) => void;
   moveObjectToBack: (id: string) => void;
+  reorderObject: (id: string, toObjIndex: number) => void;
   setIsRatioLocked: (locked: boolean) => void;
   toggleObjectLock: (id: string) => void;
   groupObjects: (ids: string[]) => void;
@@ -296,6 +297,15 @@ export const useEditorStore = create<EditorState>()(
           const [obj] = state.objects.splice(idx, 1);
           state.objects.unshift(obj);
         }
+      }),
+
+    reorderObject: (id, toObjIndex) =>
+      set((state) => {
+        const fromObjIndex = state.objects.findIndex((o) => o.id === id);
+        if (fromObjIndex === -1 || fromObjIndex === toObjIndex) return;
+        pushHistory(state);
+        const [obj] = state.objects.splice(fromObjIndex, 1);
+        state.objects.splice(toObjIndex, 0, obj);
       }),
 
     setIsRatioLocked: (locked) =>

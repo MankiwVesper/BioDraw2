@@ -203,7 +203,7 @@ export function InspectorPanel() {
     if (selectedIds.length > 1) {
       const btnStyle: React.CSSProperties = {
         flex: 1,
-        height: 32,
+        height: 24,
         border: "1px solid var(--border-color)",
         background: "transparent",
         color: "var(--text-main)",
@@ -701,7 +701,7 @@ export function InspectorPanel() {
                           onClick={() => ungroupObjects(uniqueGroups[0])}
                           style={{
                             flex: 1,
-                            height: 28,
+                            height: 24,
                             border: "1px solid var(--primary-color)",
                             background: "rgba(59,130,246,0.08)",
                             color: "var(--primary-color)",
@@ -718,7 +718,7 @@ export function InspectorPanel() {
                           onClick={() => groupObjects(selectedIds)}
                           style={{
                             flex: 1,
-                            height: 28,
+                            height: 24,
                             border: "1px solid var(--border-color)",
                             background: "transparent",
                             color: "var(--text-main)",
@@ -741,7 +741,7 @@ export function InspectorPanel() {
                     onClick={() => removeSceneObjects(selectedIds)}
                     style={{
                       flex: 1,
-                      height: 26,
+                      height: 24,
                       border: "1px solid rgba(239,68,68,0.4)",
                       background: "transparent",
                       color: "#ef4444",
@@ -1350,7 +1350,7 @@ export function InspectorPanel() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      minHeight: "28px",
+                      height: "24px",
                     }}
                   >
                     <svg
@@ -1382,7 +1382,7 @@ export function InspectorPanel() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      minHeight: "28px",
+                      height: "24px",
                     }}
                   >
                     <svg
@@ -1413,7 +1413,7 @@ export function InspectorPanel() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      minHeight: "28px",
+                      height: "24px",
                     }}
                   >
                     <svg
@@ -1444,7 +1444,7 @@ export function InspectorPanel() {
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      minHeight: "28px",
+                      height: "24px",
                     }}
                   >
                     <svg
@@ -1489,7 +1489,7 @@ export function InspectorPanel() {
                   }
                   style={{
                     flex: 1,
-                    height: 26,
+                    height: 24,
                     border: `1px solid ${selectedObj?.locked ? "var(--primary-color)" : "var(--border-color)"}`,
                     background: selectedObj?.locked
                       ? "rgba(59,130,246,0.08)"
@@ -1510,7 +1510,7 @@ export function InspectorPanel() {
                   disabled={!!selectedObj?.locked}
                   style={{
                     flex: 1,
-                    height: 26,
+                    height: 24,
                     border: "1px solid var(--border-color)",
                     background: "transparent",
                     color: "var(--text-muted)",
@@ -1532,7 +1532,7 @@ export function InspectorPanel() {
                   disabled={!!selectedObj?.locked}
                   style={{
                     flex: 1,
-                    height: 26,
+                    height: 24,
                     border: "1px solid rgba(239,68,68,0.4)",
                     background: "transparent",
                     color: "#ef4444",
@@ -1574,20 +1574,10 @@ export function InspectorPanel() {
                         return { x: hw };
                       },
                       icon: (
-                        <svg
-                          viewBox="0 0 14 14"
-                          width="14"
-                          height="14"
-                          fill="currentColor"
-                        >
-                          <rect x="0" y="0" width="2" height="14" />
-                          <rect
-                            x="2"
-                            y="4"
-                            width="7"
-                            height="6"
-                            opacity="0.45"
-                          />
+                        <svg viewBox="0 0 14 14" width="14" height="14">
+                          <rect x="0" y="0" width="2" height="14" fill="var(--primary-color)" />
+                          <rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6" />
+                          <rect x="2" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35" />
                         </svg>
                       ),
                       label: "左对齐",
@@ -1596,27 +1586,10 @@ export function InspectorPanel() {
                       title: "水平方向居中于画布",
                       calc: () => ({ x: Math.round(canvasWidth / 2) }),
                       icon: (
-                        <svg
-                          viewBox="0 0 14 14"
-                          width="14"
-                          height="14"
-                          fill="currentColor"
-                        >
-                          <rect
-                            x="6"
-                            y="0"
-                            width="2"
-                            height="14"
-                            opacity="0.35"
-                          />
-                          <rect
-                            x="3.5"
-                            y="4"
-                            width="7"
-                            height="6"
-                            opacity="0.45"
-                          />
-                          <rect x="6.5" y="0" width="1" height="14" />
+                        <svg viewBox="0 0 14 14" width="14" height="14">
+                          <rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6" />
+                          <rect x="4" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35" />
+                          <rect x="6" y="0" width="2" height="14" fill="var(--primary-color)" />
                         </svg>
                       ),
                       label: "水平居中",
@@ -1630,20 +1603,10 @@ export function InspectorPanel() {
                         return { x: canvasWidth - hw };
                       },
                       icon: (
-                        <svg
-                          viewBox="0 0 14 14"
-                          width="14"
-                          height="14"
-                          fill="currentColor"
-                        >
-                          <rect x="12" y="0" width="2" height="14" />
-                          <rect
-                            x="5"
-                            y="4"
-                            width="7"
-                            height="6"
-                            opacity="0.45"
-                          />
+                        <svg viewBox="0 0 14 14" width="14" height="14">
+                          <rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6" />
+                          <rect x="6" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35" />
+                          <rect x="12" y="0" width="2" height="14" fill="var(--primary-color)" />
                         </svg>
                       ),
                       label: "右对齐",
@@ -1659,7 +1622,8 @@ export function InspectorPanel() {
                     }
                     style={{
                       flex: 1,
-                      height: 28,
+                      height: 24,
+                      padding: 0,
                       border: "1px solid var(--border-color)",
                       background: "transparent",
                       color: "var(--text-main)",
@@ -1698,20 +1662,10 @@ export function InspectorPanel() {
                         return { y: hh };
                       },
                       icon: (
-                        <svg
-                          viewBox="0 0 14 14"
-                          width="14"
-                          height="14"
-                          fill="currentColor"
-                        >
-                          <rect x="0" y="0" width="14" height="2" />
-                          <rect
-                            x="4"
-                            y="2"
-                            width="6"
-                            height="7"
-                            opacity="0.45"
-                          />
+                        <svg viewBox="0 0 14 14" width="14" height="14">
+                          <rect x="0" y="0" width="14" height="2" fill="var(--primary-color)" />
+                          <rect x="2" y="2" width="3" height="10" fill="var(--primary-color)" opacity="0.6" />
+                          <rect x="8" y="2" width="3" height="6" fill="var(--primary-color)" opacity="0.35" />
                         </svg>
                       ),
                       label: "顶对齐",
@@ -1720,27 +1674,10 @@ export function InspectorPanel() {
                       title: "垂直方向居中于画布",
                       calc: () => ({ y: Math.round(canvasHeight / 2) }),
                       icon: (
-                        <svg
-                          viewBox="0 0 14 14"
-                          width="14"
-                          height="14"
-                          fill="currentColor"
-                        >
-                          <rect
-                            x="0"
-                            y="6"
-                            width="14"
-                            height="2"
-                            opacity="0.35"
-                          />
-                          <rect
-                            x="4"
-                            y="3.5"
-                            width="6"
-                            height="7"
-                            opacity="0.45"
-                          />
-                          <rect x="0" y="6.5" width="14" height="1" />
+                        <svg viewBox="0 0 14 14" width="14" height="14">
+                          <rect x="2" y="2" width="3" height="10" fill="var(--primary-color)" opacity="0.6" />
+                          <rect x="8" y="4" width="3" height="6" fill="var(--primary-color)" opacity="0.35" />
+                          <rect x="0" y="6" width="14" height="2" fill="var(--primary-color)" />
                         </svg>
                       ),
                       label: "垂直居中",
@@ -1755,20 +1692,10 @@ export function InspectorPanel() {
                         return { y: canvasHeight - hh };
                       },
                       icon: (
-                        <svg
-                          viewBox="0 0 14 14"
-                          width="14"
-                          height="14"
-                          fill="currentColor"
-                        >
-                          <rect x="0" y="12" width="14" height="2" />
-                          <rect
-                            x="4"
-                            y="5"
-                            width="6"
-                            height="7"
-                            opacity="0.45"
-                          />
+                        <svg viewBox="0 0 14 14" width="14" height="14">
+                          <rect x="2" y="1" width="3" height="11" fill="var(--primary-color)" opacity="0.6" />
+                          <rect x="8" y="5" width="3" height="7" fill="var(--primary-color)" opacity="0.35" />
+                          <rect x="0" y="12" width="14" height="2" fill="var(--primary-color)" />
                         </svg>
                       ),
                       label: "底对齐",
@@ -1784,7 +1711,8 @@ export function InspectorPanel() {
                     }
                     style={{
                       flex: 1,
-                      height: 28,
+                      height: 24,
+                      padding: 0,
                       border: "1px solid var(--border-color)",
                       background: "transparent",
                       color: "var(--text-main)",
@@ -2033,7 +1961,7 @@ export function InspectorPanel() {
                         onClick={() => handleStyleChange("textAlign", btn.id)}
                         style={{
                           flex: 1,
-                          height: "22px",
+                          height: "20px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
@@ -2112,7 +2040,7 @@ export function InspectorPanel() {
                         }
                         style={{
                           flex: 1,
-                          height: "22px",
+                          height: "20px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
