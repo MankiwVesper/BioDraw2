@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
 import { downloadDocument, parseDocumentFile, clearAutoSave } from '../../infrastructure/documentSerializer';
@@ -136,7 +136,7 @@ export function ToolbarPanel() {
   const loopBtnRef     = useRef<HTMLButtonElement>(null);
   const [canvasDropdownStyle, setCanvasDropdownStyle] = useState<{ width: number; right: number }>({ width: 220, right: 0 });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!showCanvasPanel) return;
     const loop    = loopBtnRef.current;
     const exportW = exportPanelRef.current;
@@ -186,7 +186,7 @@ export function ToolbarPanel() {
   const [exportDropdownWidth,   setExportDropdownWidth]   = useState(280);
   const [exportIsRatioLocked,  setExportIsRatioLocked]  = useState(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!showExportPanel) return;
     const loop    = loopBtnRef.current;
     const exportW = exportPanelRef.current;
