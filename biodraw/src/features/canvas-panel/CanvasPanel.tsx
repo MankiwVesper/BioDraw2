@@ -1320,7 +1320,7 @@ export function CanvasPanel() {
             </button>
             <div className="pv-divider" />
             <button className="pv-exit" onClick={() => setPreviewMode(false)} data-tooltip="退出预览 (Esc)">
-              ✕ 退出预览
+              ✕ 退出
             </button>
           </div>
         )}
