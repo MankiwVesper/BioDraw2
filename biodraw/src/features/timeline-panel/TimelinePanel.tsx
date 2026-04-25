@@ -398,7 +398,7 @@ export function TimelinePanel() {
         clip = { ...base, type: 'move', payload: { fromX: src.x, fromY: src.y, toX: src.x + 120, toY: src.y + 80 } };
         break;
       case 'moveAlongPath':
-        clip = { ...base, type: 'moveAlongPath', payload: { fromX: src.x, fromY: src.y, controlX: src.x + 80, controlY: src.y - 100, toX: src.x + 160, toY: src.y } };
+        clip = { ...base, type: 'moveAlongPath', payload: { fromX: src.x, fromY: src.y, control1X: src.x + 40, control1Y: src.y - 120, control2X: src.x + 120, control2Y: src.y - 80, toX: src.x + 160, toY: src.y } };
         break;
       case 'shake':
         clip = { ...base, type: 'shake', payload: { baseX: src.x, baseY: src.y, amplitudeX: 16, amplitudeY: 8, frequency: 6, decay: 1 } };
@@ -447,12 +447,12 @@ export function TimelinePanel() {
     }
     if (template === 'crossMembrane') {
       // 分子穿越膜结构：水平方向短弧穿越（控制点向上拱起）
-      created.push({ id: crypto.randomUUID(), objectId: selectedObject.id, type: 'moveAlongPath', startTimeMs: currentTimeMs, durationMs: 1200, easing: 'ease-in-out', enabled: true, payload: { fromX: src.x - 80, fromY: src.y, controlX: src.x, controlY: src.y - 60, toX: src.x + 80, toY: src.y } });
+      created.push({ id: crypto.randomUUID(), objectId: selectedObject.id, type: 'moveAlongPath', startTimeMs: currentTimeMs, durationMs: 1200, easing: 'ease-in-out', enabled: true, payload: { fromX: src.x - 80, fromY: src.y, control1X: src.x - 27, control1Y: src.y - 40, control2X: src.x + 27, control2Y: src.y - 40, toX: src.x + 80, toY: src.y } });
     }
     if (template === 'endocytosis') {
       // 胞吞入胞：物质从细胞外弧形进入细胞内（大弧 + 淡入）
       created.push(
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'moveAlongPath', startTimeMs: currentTimeMs, durationMs: 1500, easing: 'ease-in-out', enabled: true, payload: { fromX: src.x, fromY: src.y - 120, controlX: src.x + 130, controlY: src.y + 60, toX: src.x, toY: src.y + 80 } },
+        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'moveAlongPath', startTimeMs: currentTimeMs, durationMs: 1500, easing: 'ease-in-out', enabled: true, payload: { fromX: src.x, fromY: src.y - 120, control1X: src.x + 87, control1Y: src.y, control2X: src.x + 87, control2Y: src.y + 67, toX: src.x, toY: src.y + 80 } },
         { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 400, easing: 'ease-out', enabled: true, payload: { fromOpacity: 0, toOpacity: clamp01(src.opacity) } },
       );
     }
@@ -1325,9 +1325,9 @@ export function TimelinePanel() {
                                   <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
                                 </>)}
                                 {clip.type === 'moveAlongPath' && (<>
-                                  <span className="tl-coord-label">控制点</span>
-                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.controlX)} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
-                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.controlY)} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
+                                  <span className="tl-coord-label">控制点1</span>
+                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.control1X)} onChange={(e) => updatePayloadNumberField(clip, 'control1X', e.target.value)} /></label>
+                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.control1Y)} onChange={(e) => updatePayloadNumberField(clip, 'control1Y', e.target.value)} /></label>
                                   <span className="tl-map-btn-placeholder" />
                                 </>)}
                                 {clip.type === 'fade' && <label className="tl-detail-label">结束透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.toOpacity} onChange={(e) => updatePayloadNumberField(clip, 'toOpacity', e.target.value)} /></label>}
@@ -1335,6 +1335,14 @@ export function TimelinePanel() {
                                 {clip.type === 'rotate' && <label className="tl-detail-label">结束角度<input type="number" value={clip.payload.toRotation} onChange={(e) => updatePayloadNumberField(clip, 'toRotation', e.target.value)} /></label>}
                                 {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">振幅X</span><input type="number" min={0} value={clip.payload.amplitudeX} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeX', e.target.value)} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">振幅Y</span><input type="number" min={0} value={clip.payload.amplitudeY} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeY', e.target.value)} /></label></>)}
                               </div>
+                              {clip.type === 'moveAlongPath' && (
+                                <div className="tl-type-row">
+                                  <span className="tl-coord-label">控制点2</span>
+                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.control2X)} onChange={(e) => updatePayloadNumberField(clip, 'control2X', e.target.value)} /></label>
+                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.control2Y)} onChange={(e) => updatePayloadNumberField(clip, 'control2Y', e.target.value)} /></label>
+                                  <span className="tl-map-btn-placeholder" />
+                                </div>
+                              )}
                               {(clip.type === 'moveAlongPath' || clip.type === 'shake') && (
                                 <div className="tl-type-row">
                                   {clip.type === 'moveAlongPath' && (<>

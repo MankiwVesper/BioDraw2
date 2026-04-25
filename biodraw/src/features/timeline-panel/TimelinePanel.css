@@ -974,8 +974,7 @@
 }
 
 .tl-map-params .tl-coord-label {
-  width: 3em;
-  display: inline-block;
+  display: block;
   text-align: justify;
   text-align-last: justify;
   margin-right: 8px;

@@ -114,77 +114,79 @@ function MoveOverlay({ clip, stageScale }: { clip: MoveClip; stageScale: number 
 function MoveAlongPathOverlay({ clip, stageScale }: { clip: MoveAlongPathClip; stageScale: number }) {
   const updateClip = useEditorStore((s) => s.updateAnimationClip);
 
-  const { fromX, fromY, controlX, controlY, toX, toY } = clip.payload;
+  const { fromX, fromY, control1X, control1Y, control2X, control2Y, toX, toY } = clip.payload;
   const curveRef = useRef<Konva.Line>(null);
   const arm1Ref = useRef<Konva.Line>(null);
   const arm2Ref = useRef<Konva.Line>(null);
+  const arm3Ref = useRef<Konva.Line>(null);
 
   const r = 7 / stageScale;
   const fontSize = 11 / stageScale;
   const sw = 1.5 / stageScale;
 
   const liveFrom = useRef({ x: fromX, y: fromY });
-  const liveControl = useRef({ x: controlX, y: controlY });
+  const liveControl1 = useRef({ x: control1X, y: control1Y });
+  const liveControl2 = useRef({ x: control2X, y: control2Y });
   const liveTo = useRef({ x: toX, y: toY });
 
   useEffect(() => {
     liveFrom.current = { x: clip.payload.fromX, y: clip.payload.fromY };
-    liveControl.current = { x: clip.payload.controlX, y: clip.payload.controlY };
+    liveControl1.current = { x: clip.payload.control1X, y: clip.payload.control1Y };
+    liveControl2.current = { x: clip.payload.control2X, y: clip.payload.control2Y };
     liveTo.current = { x: clip.payload.toX, y: clip.payload.toY };
   }, [
     clip.payload.fromX, clip.payload.fromY,
-    clip.payload.controlX, clip.payload.controlY,
+    clip.payload.control1X, clip.payload.control1Y,
+    clip.payload.control2X, clip.payload.control2Y,
     clip.payload.toX, clip.payload.toY,
   ]);
 
-  // Convert quadratic bezier to cubic for Konva Line bezier=true
-  const buildCubicPoints = (
-    fx: number, fy: number,
-    cx: number, cy: number,
-    tx: number, ty: number,
-  ) => {
-    const c1x = fx + (2 / 3) * (cx - fx);
-    const c1y = fy + (2 / 3) * (cy - fy);
-    const c2x = tx + (2 / 3) * (cx - tx);
-    const c2y = ty + (2 / 3) * (cy - ty);
-    return [fx, fy, c1x, c1y, c2x, c2y, tx, ty];
-  };
-
   const refreshShapes = () => {
     const { x: fx, y: fy } = liveFrom.current;
-    const { x: cx, y: cy } = liveControl.current;
+    const { x: c1x, y: c1y } = liveControl1.current;
+    const { x: c2x, y: c2y } = liveControl2.current;
     const { x: tx, y: ty } = liveTo.current;
-    curveRef.current?.points(buildCubicPoints(fx, fy, cx, cy, tx, ty));
-    arm1Ref.current?.points([fx, fy, cx, cy]);
-    arm2Ref.current?.points([cx, cy, tx, ty]);
+    curveRef.current?.points([fx, fy, c1x, c1y, c2x, c2y, tx, ty]);
+    arm1Ref.current?.points([fx, fy, c1x, c1y]);
+    arm2Ref.current?.points([c1x, c1y, c2x, c2y]);
+    arm3Ref.current?.points([c2x, c2y, tx, ty]);
     curveRef.current?.getLayer()?.batchDraw();
   };
 
   return (
     <Group>
-      {/* Bezier curve preview */}
+      {/* Cubic bezier curve preview */}
       <Line
         ref={curveRef}
-        points={buildCubicPoints(fromX, fromY, controlX, controlY, toX, toY)}
+        points={[fromX, fromY, control1X, control1Y, control2X, control2Y, toX, toY]}
         bezier
         stroke="rgba(100,116,139,0.7)"
         strokeWidth={sw}
         dash={[6 / stageScale, 4 / stageScale]}
         listening={false}
       />
-      {/* Control arm 1: from → control */}
+      {/* Control arm 1: from → control1 */}
       <Line
         ref={arm1Ref}
-        points={[fromX, fromY, controlX, controlY]}
+        points={[fromX, fromY, control1X, control1Y]}
         stroke="rgba(245,158,11,0.5)"
         strokeWidth={sw}
         dash={[4 / stageScale, 3 / stageScale]}
         listening={false}
       />
-      {/* Control arm 2: control → to */}
+      {/* Control arm 2: control1 → control2 */}
       <Line
         ref={arm2Ref}
-        points={[controlX, controlY, toX, toY]}
+        points={[control1X, control1Y, control2X, control2Y]}
+        stroke="rgba(245,158,11,0.3)"
+        strokeWidth={sw}
+        dash={[4 / stageScale, 3 / stageScale]}
+        listening={false}
+      />
+      {/* Control arm 3: control2 → to */}
+      <Line
+        ref={arm3Ref}
+        points={[control2X, control2Y, toX, toY]}
         stroke="rgba(245,158,11,0.5)"
         strokeWidth={sw}
         dash={[4 / stageScale, 3 / stageScale]}
@@ -215,30 +217,56 @@ function MoveAlongPathOverlay({ clip, stageScale }: { clip: MoveAlongPathClip; s
         fontSize={fontSize} fill="#10b981" listening={false}
       />
 
-      {/* Control handle (orange diamond) */}
+      {/* Control1 handle (orange diamond) */}
       <RegularPolygon
-        x={controlX} y={controlY}
+        x={control1X} y={control1Y}
         sides={4} radius={r * 1.1}
         rotation={45}
         fill="#f59e0b" stroke="#fff" strokeWidth={sw * 1.5}
         draggable
         onDragMove={(e: Konva.KonvaEventObject<DragEvent>) => {
-          liveControl.current = { x: e.target.x(), y: e.target.y() };
+          liveControl1.current = { x: e.target.x(), y: e.target.y() };
           refreshShapes();
         }}
         onDragEnd={(e: Konva.KonvaEventObject<DragEvent>) => {
           const nx = Math.round(e.target.x());
           const ny = Math.round(e.target.y());
-          liveControl.current = { x: nx, y: ny };
+          liveControl1.current = { x: nx, y: ny };
           updateClip(clip.id, {
-            payload: { ...clip.payload, controlX: nx, controlY: ny },
+            payload: { ...clip.payload, control1X: nx, control1Y: ny },
           } as Partial<MoveAlongPathClip>);
         }}
       />
       <Text
-        text="控"
-        x={controlX + r + 3 / stageScale} y={controlY - r}
+        text="控1"
+        x={control1X + r + 3 / stageScale} y={control1Y - r}
         fontSize={fontSize} fill="#f59e0b" listening={false}
+      />
+
+      {/* Control2 handle (amber diamond) */}
+      <RegularPolygon
+        x={control2X} y={control2Y}
+        sides={4} radius={r * 1.1}
+        rotation={45}
+        fill="#fb923c" stroke="#fff" strokeWidth={sw * 1.5}
+        draggable
+        onDragMove={(e: Konva.KonvaEventObject<DragEvent>) => {
+          liveControl2.current = { x: e.target.x(), y: e.target.y() };
+          refreshShapes();
+        }}
+        onDragEnd={(e: Konva.KonvaEventObject<DragEvent>) => {
+          const nx = Math.round(e.target.x());
+          const ny = Math.round(e.target.y());
+          liveControl2.current = { x: nx, y: ny };
+          updateClip(clip.id, {
+            payload: { ...clip.payload, control2X: nx, control2Y: ny },
+          } as Partial<MoveAlongPathClip>);
+        }}
+      />
+      <Text
+        text="控2"
+        x={control2X + r + 3 / stageScale} y={control2Y - r}
+        fontSize={fontSize} fill="#fb923c" listening={false}
       />
 
       {/* End handle (blue circle) */}

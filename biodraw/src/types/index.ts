@@ -240,8 +240,10 @@ export type MoveAlongPathClip = AnimationClipBase & {
   payload: {
     fromX: number;
     fromY: number;
-    controlX: number;
-    controlY: number;
+    control1X: number;
+    control1Y: number;
+    control2X: number;
+    control2Y: number;
     toX: number;
     toY: number;
   };

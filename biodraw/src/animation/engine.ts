@@ -35,9 +35,9 @@ const solveCubicBezierY = (x: number, x1: number, y1: number, x2: number, y2: nu
   return cubicBezierAt(t, y1, y2);
 };
 
-const resolveQuadraticBezier = (p0: number, p1: number, p2: number, t: number) => {
+const resolveCubicBezier = (p0: number, c1: number, c2: number, p1: number, t: number) => {
   const u = 1 - t;
-  return (u * u * p0) + (2 * u * t * p1) + (t * t * p2);
+  return u*u*u*p0 + 3*u*u*t*c1 + 3*u*t*t*c2 + t*t*t*p1;
 };
 
 const applyEasing = (t: number, easing: EasingType = 'linear') => {
@@ -154,11 +154,11 @@ const applyClip = (obj: SceneObject, timeMs: number, clip: AnimationClip): Scene
       };
     }
     case 'moveAlongPath': {
-      const { fromX, fromY, controlX, controlY, toX, toY } = clip.payload;
+      const { fromX, fromY, control1X, control1Y, control2X, control2Y, toX, toY } = clip.payload;
       return {
         ...obj,
-        x: resolveQuadraticBezier(fromX, controlX, toX, progress),
-        y: resolveQuadraticBezier(fromY, controlY, toY, progress),
+        x: resolveCubicBezier(fromX, control1X, control2X, toX, progress),
+        y: resolveCubicBezier(fromY, control1Y, control2Y, toY, progress),
       };
     }
     case 'shake': {

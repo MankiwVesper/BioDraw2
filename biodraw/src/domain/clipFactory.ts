@@ -30,7 +30,8 @@ export function buildAnimationClip(
         ...base, type: 'moveAlongPath',
         payload: {
           fromX: source.x, fromY: source.y,
-          controlX: source.x + 80, controlY: source.y - 100,
+          control1X: source.x + 40, control1Y: source.y - 120,
+          control2X: source.x + 120, control2Y: source.y - 80,
           toX: source.x + 160, toY: source.y,
         },
       };

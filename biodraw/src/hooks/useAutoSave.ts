@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useEditorStore } from '../state/editorStore';
 
 const STORAGE_KEY = 'biodraw_autosave';
+const CURRENT_VERSION = 2;
 const DEBOUNCE_MS = 1500;
 
 type SavePayload = {
@@ -34,6 +35,10 @@ export function useAutoSave() {
       if (!raw) return;
       const data: SavePayload = JSON.parse(raw);
       if (!data?.objects || !data?.animations) return;
+      if (data.version !== CURRENT_VERSION) {
+        localStorage.removeItem(STORAGE_KEY);
+        return;
+      }
       loadSnapshot({
         objects: data.objects,
         animations: data.animations,
@@ -55,7 +60,7 @@ export function useAutoSave() {
     timerRef.current = setTimeout(() => {
       try {
         const payload: SavePayload = {
-          version: 1,
+          version: CURRENT_VERSION,
           savedAt: new Date().toISOString(),
           objects,
           animations,
