@@ -755,7 +755,7 @@
 }
 
 .tl-type-row .tl-detail-label input {
-  width: 50px;
+  width: 52px;
   flex: none;
   min-width: unset;
 }
@@ -975,6 +975,7 @@
 
 .tl-map-params .tl-coord-label {
   display: block;
+  white-space: nowrap;
   text-align: justify;
   text-align-last: justify;
   margin-right: 8px;
