@@ -121,6 +121,7 @@
 /* ── 主体（可滚动） ────────────────────────────────── */
 .tl-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
   display: flex;
@@ -615,7 +616,7 @@
 
 /* 分割线 */
 .tl-basic-section { border-right: 1px solid var(--border-color); }
-.tl-kf-col        { border-left:  1px solid var(--border-color); }
+.tl-kf-col        { border-left: 1px solid var(--border-color); contain: size layout; overflow: hidden; }
 .tl-ops-col       { border-left:  1px solid var(--border-color); }
 
 /* 右侧各列内边距 */
@@ -832,6 +833,11 @@
   border: none;
   padding: 0;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
 }
 .tl-kf-col .tl-kf-row {
   grid-template-columns: 48px 1fr 1fr auto;
@@ -1060,11 +1066,34 @@
   box-sizing: border-box;
 }
 
-.tl-keyframe-header {
+.tl-kf-preset-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
+}
+
+.tl-kf-preset-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tl-kf-col-headers {
+  margin-bottom: 0;
+}
+
+.tl-kf-col-header {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.tl-kf-add-row {
+  display: flex;
+  justify-content: center;
+  margin-top: 2px;
 }
 
 .tl-kf-empty {
@@ -1095,6 +1124,29 @@
 
 .tl-kf-row input:focus {
   outline: none;
+  border-color: var(--primary-color);
+}
+
+.tl-kf-presets {
+  display: flex;
+  gap: 3px;
+}
+
+.tl-kf-preset-btn {
+  height: 22px;
+  border: 1px solid var(--border-color);
+  background: rgba(59, 130, 246, 0.06);
+  color: var(--primary-color);
+  border-radius: 6px;
+  padding: 0 6px;
+  cursor: pointer;
+  font-size: 11px;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.tl-kf-preset-btn:hover {
+  background: rgba(59, 130, 246, 0.14);
   border-color: var(--primary-color);
 }
 

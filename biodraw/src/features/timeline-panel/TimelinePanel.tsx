@@ -164,6 +164,17 @@ function EasingCurve({ ex1, ey1, ex2, ey2, onDrag }: EasingCurveProps) {
   );
 }
 
+const findNextKeyframeAt = (existing: { at: number }[]) => {
+  const slots = [0, ...existing.map((f) => clamp01(f.at)).sort((a, b) => a - b), 1];
+  let maxGap = 0;
+  let bestAt = 0.5;
+  for (let i = 0; i < slots.length - 1; i++) {
+    const gap = slots[i + 1] - slots[i];
+    if (gap > maxGap) { maxGap = gap; bestAt = (slots[i] + slots[i + 1]) / 2; }
+  }
+  return bestAt;
+};
+
 const sortAndSanitizeInternalKeyframes = <T extends { at: number }>(keyframes: T[]) => {
   const sorted = keyframes
     .filter((f) => Number.isFinite(f.at))
@@ -599,7 +610,8 @@ export function TimelinePanel() {
 
   // ── 关键帧
   const addMoveKeyframe = (clip: Extract<AnimationClip, { type: 'move' }>) => {
-    updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes([...(clip.payload.keyframes || []), { at: 0.5, x: (clip.payload.fromX + clip.payload.toX) / 2, y: (clip.payload.fromY + clip.payload.toY) / 2 }]) });
+    const at = findNextKeyframeAt(clip.payload.keyframes || []);
+    updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes([...(clip.payload.keyframes || []), { at, x: (clip.payload.fromX + clip.payload.toX) / 2, y: (clip.payload.fromY + clip.payload.toY) / 2 }]) });
   };
   const updateMoveKeyframeField = (clip: Extract<AnimationClip, { type: 'move' }>, index: number, field: 'at' | 'x' | 'y', rawValue: string) => {
     const parsed = parseFloat(rawValue);
@@ -617,7 +629,8 @@ export function TimelinePanel() {
   };
 
   const addFadeKeyframe = (clip: Extract<AnimationClip, { type: 'fade' }>) => {
-    updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes([...(clip.payload.keyframes || []), { at: 0.5, value: (clip.payload.fromOpacity + clip.payload.toOpacity) / 2 }]) });
+    const at = findNextKeyframeAt(clip.payload.keyframes || []);
+    updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes([...(clip.payload.keyframes || []), { at, value: (clip.payload.fromOpacity + clip.payload.toOpacity) / 2 }]) });
   };
   const updateFadeKeyframeField = (clip: Extract<AnimationClip, { type: 'fade' }>, index: number, field: 'at' | 'value', rawValue: string) => {
     const parsed = parseFloat(rawValue);
@@ -634,7 +647,8 @@ export function TimelinePanel() {
   };
 
   const addScaleKeyframe = (clip: Extract<AnimationClip, { type: 'scale' }>) => {
-    updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes([...(clip.payload.keyframes || []), { at: 0.5, scaleX: (clip.payload.fromScaleX + clip.payload.toScaleX) / 2, scaleY: (clip.payload.fromScaleY + clip.payload.toScaleY) / 2 }]) });
+    const at = findNextKeyframeAt(clip.payload.keyframes || []);
+    updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes([...(clip.payload.keyframes || []), { at, scaleX: (clip.payload.fromScaleX + clip.payload.toScaleX) / 2, scaleY: (clip.payload.fromScaleY + clip.payload.toScaleY) / 2 }]) });
   };
   const updateScaleKeyframeField = (clip: Extract<AnimationClip, { type: 'scale' }>, index: number, field: 'at' | 'scaleX' | 'scaleY', rawValue: string) => {
     const parsed = parseFloat(rawValue);
@@ -651,7 +665,8 @@ export function TimelinePanel() {
   };
 
   const addRotateKeyframe = (clip: Extract<AnimationClip, { type: 'rotate' }>) => {
-    updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes([...(clip.payload.keyframes || []), { at: 0.5, value: (clip.payload.fromRotation + clip.payload.toRotation) / 2 }]) });
+    const at = findNextKeyframeAt(clip.payload.keyframes || []);
+    updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes([...(clip.payload.keyframes || []), { at, value: (clip.payload.fromRotation + clip.payload.toRotation) / 2 }]) });
   };
   const updateRotateKeyframeField = (clip: Extract<AnimationClip, { type: 'rotate' }>, index: number, field: 'at' | 'value', rawValue: string) => {
     const parsed = parseFloat(rawValue);
@@ -665,6 +680,30 @@ export function TimelinePanel() {
   const removeRotateKeyframe = (clip: Extract<AnimationClip, { type: 'rotate' }>, index: number) => {
     const next = [...(clip.payload.keyframes || [])]; next.splice(index, 1);
     updateClipPayload(clip, { keyframes: sortAndSanitizeInternalKeyframes(next) });
+  };
+
+  const applyFadePreset = (clip: Extract<AnimationClip, { type: 'fade' }>, preset: 'flash' | 'emphasis') => {
+    const { fromOpacity, toOpacity } = clip.payload;
+    const kf = preset === 'flash'
+      ? [{ at: 0.33, value: toOpacity }, { at: 0.67, value: fromOpacity }]
+      : [{ at: 0.4, value: 1.0 }, { at: 0.6, value: 1.0 }];
+    updateClipPayload(clip, { keyframes: kf });
+  };
+
+  const applyScalePreset = (clip: Extract<AnimationClip, { type: 'scale' }>, preset: 'pulse' | 'elastic') => {
+    const { toScaleX, toScaleY } = clip.payload;
+    const kf = preset === 'pulse'
+      ? [{ at: 0.5, scaleX: toScaleX * 1.3, scaleY: toScaleY * 1.3 }]
+      : [{ at: 0.65, scaleX: toScaleX * 1.15, scaleY: toScaleY * 1.15 }, { at: 0.82, scaleX: toScaleX * 0.97, scaleY: toScaleY * 0.97 }];
+    updateClipPayload(clip, { keyframes: kf });
+  };
+
+  const applyRotatePreset = (clip: Extract<AnimationClip, { type: 'rotate' }>, preset: 'swing' | 'elastic') => {
+    const { fromRotation, toRotation } = clip.payload;
+    const kf = preset === 'swing'
+      ? [{ at: 0.35, value: toRotation }, { at: 0.65, value: fromRotation }]
+      : [{ at: 0.65, value: toRotation + (toRotation - fromRotation) * 0.2 }, { at: 0.85, value: toRotation - (toRotation - fromRotation) * 0.07 }];
+    updateClipPayload(clip, { keyframes: kf });
   };
 
   // ── 时间轴光标
@@ -1411,76 +1450,127 @@ export function TimelinePanel() {
                           <span className="tl-col-header">关键帧设置</span>
                           {clip.type === 'move' && (
                             <div className="tl-keyframe-section">
-                              <div className="tl-keyframe-header">
-                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addMoveKeyframe(clip)}>+ 添加</button>
-                              </div>
+                              {(clip.payload.keyframes || []).length > 0 && (
+                                <div className="tl-kf-col-headers tl-kf-row">
+                                  <span className="tl-kf-col-header">时间%</span>
+                                  <span className="tl-kf-col-header">X</span>
+                                  <span className="tl-kf-col-header">Y</span>
+                                  <span />
+                                </div>
+                              )}
                               {(clip.payload.keyframes || []).length === 0 ? (
                                 <span className="tl-kf-empty">暂无关键帧</span>
                               ) : (
                                 (clip.payload.keyframes || []).map((frame, i) => (
                                   <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateMoveKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
-                                    <input type="number" value={frame.x} onChange={(e) => updateMoveKeyframeField(clip, i, 'x', e.target.value)} data-tooltip="X" />
-                                    <input type="number" value={frame.y} onChange={(e) => updateMoveKeyframeField(clip, i, 'y', e.target.value)} data-tooltip="Y" />
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateMoveKeyframeField(clip, i, 'at', e.target.value)} />
+                                    <input type="number" value={frame.x} onChange={(e) => updateMoveKeyframeField(clip, i, 'x', e.target.value)} />
+                                    <input type="number" value={frame.y} onChange={(e) => updateMoveKeyframeField(clip, i, 'y', e.target.value)} />
                                     <button type="button" className="tl-kf-del" onClick={() => removeMoveKeyframe(clip, i)}>✕</button>
                                   </div>
                                 ))
                               )}
+                              <div className="tl-kf-add-row">
+                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addMoveKeyframe(clip)}>+ 添加</button>
+                              </div>
                             </div>
                           )}
                           {clip.type === 'fade' && (
                             <div className="tl-keyframe-section">
-                              <div className="tl-keyframe-header">
-                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addFadeKeyframe(clip)}>+ 添加</button>
+                              <div className="tl-kf-preset-row">
+                                <span className="tl-kf-preset-label">预设效果:</span>
+                                <div className="tl-kf-presets">
+                                  <button type="button" className="tl-kf-preset-btn" onClick={() => applyFadePreset(clip, 'flash')}>闪烁</button>
+                                  <button type="button" className="tl-kf-preset-btn" onClick={() => applyFadePreset(clip, 'emphasis')}>强调</button>
+                                </div>
                               </div>
+                              {(clip.payload.keyframes || []).length > 0 && (
+                                <div className="tl-kf-col-headers tl-kf-row">
+                                  <span className="tl-kf-col-header">时间%</span>
+                                  <span className="tl-kf-col-header">透明度</span>
+                                  <span />
+                                </div>
+                              )}
                               {(clip.payload.keyframes || []).length === 0 ? (
                                 <span className="tl-kf-empty">暂无关键帧</span>
                               ) : (
                                 (clip.payload.keyframes || []).map((frame, i) => (
                                   <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateFadeKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
-                                    <input type="number" min={0} max={1} step={0.01} value={frame.value} onChange={(e) => updateFadeKeyframeField(clip, i, 'value', e.target.value)} data-tooltip="透明度" />
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateFadeKeyframeField(clip, i, 'at', e.target.value)} />
+                                    <input type="number" min={0} max={1} step={0.01} value={frame.value} onChange={(e) => updateFadeKeyframeField(clip, i, 'value', e.target.value)} />
                                     <button type="button" className="tl-kf-del" onClick={() => removeFadeKeyframe(clip, i)}>✕</button>
                                   </div>
                                 ))
                               )}
+                              <div className="tl-kf-add-row">
+                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addFadeKeyframe(clip)}>+ 添加</button>
+                              </div>
                             </div>
                           )}
                           {clip.type === 'scale' && (
                             <div className="tl-keyframe-section">
-                              <div className="tl-keyframe-header">
-                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addScaleKeyframe(clip)}>+ 添加</button>
+                              <div className="tl-kf-preset-row">
+                                <span className="tl-kf-preset-label">预设效果:</span>
+                                <div className="tl-kf-presets">
+                                  <button type="button" className="tl-kf-preset-btn" onClick={() => applyScalePreset(clip, 'pulse')}>脉冲</button>
+                                  <button type="button" className="tl-kf-preset-btn" onClick={() => applyScalePreset(clip, 'elastic')}>弹性</button>
+                                </div>
                               </div>
+                              {(clip.payload.keyframes || []).length > 0 && (
+                                <div className="tl-kf-col-headers tl-kf-row tl-kf-row-wide">
+                                  <span className="tl-kf-col-header">时间%</span>
+                                  <span className="tl-kf-col-header">缩放X</span>
+                                  <span className="tl-kf-col-header">缩放Y</span>
+                                  <span />
+                                </div>
+                              )}
                               {(clip.payload.keyframes || []).length === 0 ? (
                                 <span className="tl-kf-empty">暂无关键帧</span>
                               ) : (
                                 (clip.payload.keyframes || []).map((frame, i) => (
                                   <div className="tl-kf-row tl-kf-row-wide" key={`${frame.at}-${i}`}>
-                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateScaleKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
-                                    <input type="number" step={0.01} value={frame.scaleX} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleX', e.target.value)} data-tooltip="缩放X" />
-                                    <input type="number" step={0.01} value={frame.scaleY} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleY', e.target.value)} data-tooltip="缩放Y" />
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateScaleKeyframeField(clip, i, 'at', e.target.value)} />
+                                    <input type="number" step={0.01} value={frame.scaleX} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleX', e.target.value)} />
+                                    <input type="number" step={0.01} value={frame.scaleY} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleY', e.target.value)} />
                                     <button type="button" className="tl-kf-del" onClick={() => removeScaleKeyframe(clip, i)}>✕</button>
                                   </div>
                                 ))
                               )}
+                              <div className="tl-kf-add-row">
+                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addScaleKeyframe(clip)}>+ 添加</button>
+                              </div>
                             </div>
                           )}
                           {clip.type === 'rotate' && (
                             <div className="tl-keyframe-section">
-                              <div className="tl-keyframe-header">
-                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addRotateKeyframe(clip)}>+ 添加</button>
+                              <div className="tl-kf-preset-row">
+                                <span className="tl-kf-preset-label">预设效果:</span>
+                                <div className="tl-kf-presets">
+                                  <button type="button" className="tl-kf-preset-btn" onClick={() => applyRotatePreset(clip, 'swing')}>摆动</button>
+                                  <button type="button" className="tl-kf-preset-btn" onClick={() => applyRotatePreset(clip, 'elastic')}>弹性</button>
+                                </div>
                               </div>
+                              {(clip.payload.keyframes || []).length > 0 && (
+                                <div className="tl-kf-col-headers tl-kf-row">
+                                  <span className="tl-kf-col-header">时间%</span>
+                                  <span className="tl-kf-col-header">角度°</span>
+                                  <span />
+                                </div>
+                              )}
                               {(clip.payload.keyframes || []).length === 0 ? (
                                 <span className="tl-kf-empty">暂无关键帧</span>
                               ) : (
                                 (clip.payload.keyframes || []).map((frame, i) => (
                                   <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateRotateKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
-                                    <input type="number" value={frame.value} onChange={(e) => updateRotateKeyframeField(clip, i, 'value', e.target.value)} data-tooltip="角度" />
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateRotateKeyframeField(clip, i, 'at', e.target.value)} />
+                                    <input type="number" value={frame.value} onChange={(e) => updateRotateKeyframeField(clip, i, 'value', e.target.value)} />
                                     <button type="button" className="tl-kf-del" onClick={() => removeRotateKeyframe(clip, i)}>✕</button>
                                   </div>
                                 ))
                               )}
+                              <div className="tl-kf-add-row">
+                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addRotateKeyframe(clip)}>+ 添加</button>
+                              </div>
                             </div>
                           )}
                           {(clip.type === 'shake' || clip.type === 'moveAlongPath' || clip.type === 'stateChange') && (
