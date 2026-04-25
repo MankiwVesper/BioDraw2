@@ -1289,55 +1289,66 @@ export function TimelinePanel() {
                     {isExpanded && (
                       <div className="tl-clip-detail">
 
-                        {/* ── 基础参数（时间 + 类型专属，共享行网格） */}
+                        {/* ── 基础参数：时间设置子列 + 基础参数子列 */}
                         <div className="tl-basic-section">
-                          <span className="tl-col-header-centered">基础参数</span>
-                          <div className="tl-basic-grid">
-                            {/* 行1 */}
-                            <label className="tl-detail-label">开始(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effStart} onChange={(e) => updateClipNumberField(clip, 'startTimeMs', e.target.value)} /></label>
-                            <div className="tl-type-row">
-                              {(clip.type === 'move' || clip.type === 'moveAlongPath') && (<>
-                                <span className="tl-coord-label">起点</span>
-                                <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.fromY)} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
-                                <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
-                              </>)}
-                              {clip.type === 'fade' && <label className="tl-detail-label">起始透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.fromOpacity} onChange={(e) => updatePayloadNumberField(clip, 'fromOpacity', e.target.value)} /></label>}
-                              {clip.type === 'scale' && (<><label className="tl-detail-label">起始缩放X<input type="number" step={0.01} value={clip.payload.fromScaleX} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleX', e.target.value)} /></label><label className="tl-detail-label">起始缩放Y<input type="number" step={0.01} value={clip.payload.fromScaleY} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleY', e.target.value)} /></label></>)}
-                              {clip.type === 'rotate' && <label className="tl-detail-label">起始角度<input type="number" value={clip.payload.fromRotation} onChange={(e) => updatePayloadNumberField(clip, 'fromRotation', e.target.value)} /></label>}
-                              {clip.type === 'shake' && (<><label className="tl-detail-label">基准X<input type="number" step={1} value={Math.round(clip.payload.baseX)} onChange={(e) => updatePayloadNumberField(clip, 'baseX', e.target.value)} /></label><label className="tl-detail-label">基准Y<input type="number" step={1} value={Math.round(clip.payload.baseY)} onChange={(e) => updatePayloadNumberField(clip, 'baseY', e.target.value)} /></label></>)}
-                            </div>
-                            {/* 行2 */}
-                            <label className="tl-detail-label">时长(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effDuration} onChange={(e) => updateClipNumberField(clip, 'durationMs', e.target.value)} /></label>
-                            <div className="tl-type-row">
-                              {clip.type === 'move' && (<>
-                                <span className="tl-coord-label">终点</span>
-                                <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
-                                <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
-                              </>)}
-                              {clip.type === 'moveAlongPath' && (<>
-                                <span className="tl-coord-label">控制点</span>
-                                <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.controlX)} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.controlY)} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
-                              </>)}
-                              {clip.type === 'fade' && <label className="tl-detail-label">结束透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.toOpacity} onChange={(e) => updatePayloadNumberField(clip, 'toOpacity', e.target.value)} /></label>}
-                              {clip.type === 'scale' && (<><label className="tl-detail-label">结束缩放X<input type="number" step={0.01} value={clip.payload.toScaleX} onChange={(e) => updatePayloadNumberField(clip, 'toScaleX', e.target.value)} /></label><label className="tl-detail-label">结束缩放Y<input type="number" step={0.01} value={clip.payload.toScaleY} onChange={(e) => updatePayloadNumberField(clip, 'toScaleY', e.target.value)} /></label></>)}
-                              {clip.type === 'rotate' && <label className="tl-detail-label">结束角度<input type="number" value={clip.payload.toRotation} onChange={(e) => updatePayloadNumberField(clip, 'toRotation', e.target.value)} /></label>}
-                              {clip.type === 'shake' && (<><label className="tl-detail-label">振幅X<input type="number" min={0} value={clip.payload.amplitudeX} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeX', e.target.value)} /></label><label className="tl-detail-label">振幅Y<input type="number" min={0} value={clip.payload.amplitudeY} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeY', e.target.value)} /></label></>)}
-                            </div>
-                            {/* 行3 */}
-                            <div />
-                            <div className="tl-type-row">
-                              {clip.type === 'moveAlongPath' && (<>
-                                <span className="tl-coord-label">终点</span>
-                                <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
-                                <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
-                              </>)}
-                              {clip.type === 'shake' && (<><label className="tl-detail-label">频率<input type="number" min={0} value={clip.payload.frequency} onChange={(e) => updatePayloadNumberField(clip, 'frequency', e.target.value)} /></label><label className="tl-detail-label">衰减<input type="number" min={0} step={0.1} value={clip.payload.decay ?? 1} onChange={(e) => updatePayloadNumberField(clip, 'decay', e.target.value)} /></label></>)}
+
+                          {/* 时间设置 */}
+                          <div className="tl-time-subcol">
+                            <span className="tl-col-header-centered">时间设置</span>
+                            <div className="tl-time-subcol-body">
+                              <label className="tl-detail-label">开始(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effStart} onChange={(e) => updateClipNumberField(clip, 'startTimeMs', e.target.value)} /></label>
+                              <label className="tl-detail-label">时长(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effDuration} onChange={(e) => updateClipNumberField(clip, 'durationMs', e.target.value)} /></label>
                             </div>
                           </div>
+
+                          {/* 基础参数（类型专属） */}
+                          <div className="tl-params-subcol">
+                            <span className="tl-col-header-centered">基础参数</span>
+                            <div className={`tl-params-subcol-body${clip.type === 'moveAlongPath' ? ' tl-map-params' : ''}`}>
+                              <div className="tl-type-row">
+                                {(clip.type === 'move' || clip.type === 'moveAlongPath') && (<>
+                                  <span className="tl-coord-label">起点</span>
+                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
+                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.fromY)} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
+                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                </>)}
+                                {clip.type === 'fade' && <label className="tl-detail-label">起始透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.fromOpacity} onChange={(e) => updatePayloadNumberField(clip, 'fromOpacity', e.target.value)} /></label>}
+                                {clip.type === 'scale' && (<><label className="tl-detail-label">起始缩放X<input type="number" step={0.01} value={clip.payload.fromScaleX} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleX', e.target.value)} /></label><label className="tl-detail-label">起始缩放Y<input type="number" step={0.01} value={clip.payload.fromScaleY} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleY', e.target.value)} /></label></>)}
+                                {clip.type === 'rotate' && <label className="tl-detail-label">起始角度<input type="number" value={clip.payload.fromRotation} onChange={(e) => updatePayloadNumberField(clip, 'fromRotation', e.target.value)} /></label>}
+                                {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">基准X</span><input type="number" step={1} value={Math.round(clip.payload.baseX)} onChange={(e) => updatePayloadNumberField(clip, 'baseX', e.target.value)} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">基准Y</span><input type="number" step={1} value={Math.round(clip.payload.baseY)} onChange={(e) => updatePayloadNumberField(clip, 'baseY', e.target.value)} /></label></>)}
+                              </div>
+                              <div className="tl-type-row">
+                                {clip.type === 'move' && (<>
+                                  <span className="tl-coord-label">终点</span>
+                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
+                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                </>)}
+                                {clip.type === 'moveAlongPath' && (<>
+                                  <span className="tl-coord-label">控制点</span>
+                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.controlX)} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
+                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.controlY)} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
+                                  <span className="tl-map-btn-placeholder" />
+                                </>)}
+                                {clip.type === 'fade' && <label className="tl-detail-label">结束透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.toOpacity} onChange={(e) => updatePayloadNumberField(clip, 'toOpacity', e.target.value)} /></label>}
+                                {clip.type === 'scale' && (<><label className="tl-detail-label">结束缩放X<input type="number" step={0.01} value={clip.payload.toScaleX} onChange={(e) => updatePayloadNumberField(clip, 'toScaleX', e.target.value)} /></label><label className="tl-detail-label">结束缩放Y<input type="number" step={0.01} value={clip.payload.toScaleY} onChange={(e) => updatePayloadNumberField(clip, 'toScaleY', e.target.value)} /></label></>)}
+                                {clip.type === 'rotate' && <label className="tl-detail-label">结束角度<input type="number" value={clip.payload.toRotation} onChange={(e) => updatePayloadNumberField(clip, 'toRotation', e.target.value)} /></label>}
+                                {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">振幅X</span><input type="number" min={0} value={clip.payload.amplitudeX} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeX', e.target.value)} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">振幅Y</span><input type="number" min={0} value={clip.payload.amplitudeY} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeY', e.target.value)} /></label></>)}
+                              </div>
+                              {(clip.type === 'moveAlongPath' || clip.type === 'shake') && (
+                                <div className="tl-type-row">
+                                  {clip.type === 'moveAlongPath' && (<>
+                                    <span className="tl-coord-label">终点</span>
+                                    <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
+                                    <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                                    <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                  </>)}
+                                  {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">频率</span><input type="number" min={0} value={clip.payload.frequency} onChange={(e) => updatePayloadNumberField(clip, 'frequency', e.target.value)} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">衰减</span><input type="number" min={0} step={0.1} value={clip.payload.decay ?? 1} onChange={(e) => updatePayloadNumberField(clip, 'decay', e.target.value)} /></label></>)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
                         </div>
 
                         {/* ── 动画节奏（纵向堆叠） */}

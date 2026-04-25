@@ -628,7 +628,73 @@
   padding: 0 10px 8px;
 }
 
-/* ── 基础参数区 ────────────────────────────────────── */
+/* ── 基础参数区（左右子列布局） ───────────────────── */
+.tl-basic-section {
+  flex-direction: row !important;
+}
+
+.tl-time-subcol,
+.tl-params-subcol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.tl-time-subcol {
+  padding-right: 12px;
+}
+
+.tl-time-subcol-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+.tl-time-subcol-body .tl-detail-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.tl-time-subcol-body .tl-detail-label .tl-input-sm {
+  width: 45px;
+  flex: none;
+  min-width: unset;
+}
+
+.tl-time-subcol-body .tl-detail-label .tl-input-sm::-webkit-inner-spin-button,
+.tl-time-subcol-body .tl-detail-label .tl-input-sm::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tl-time-subcol-body .tl-detail-label .tl-input-sm[type=number] {
+  -moz-appearance: textfield;
+}
+
+.tl-params-subcol {
+  flex: 1;
+}
+
+.tl-time-subcol .tl-col-header-centered,
+.tl-params-subcol .tl-col-header-centered {
+  align-self: stretch;
+  margin: 0 8px;
+}
+
+.tl-params-subcol-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+}
+
+/* ── 各列标题（居中版） ────────────────────────────── */
 .tl-col-header-centered {
   font-size: 11px;
   color: var(--text-muted);
@@ -648,24 +714,29 @@
   align-items: center;
 }
 
-.tl-basic-grid .tl-detail-label {
+.tl-basic-grid .tl-detail-label,
+.tl-time-subcol-body .tl-detail-label {
   flex-direction: row;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
 }
 
-.tl-basic-grid .tl-detail-label .tl-input-sm {
+.tl-basic-grid .tl-detail-label .tl-input-sm,
+.tl-time-subcol-body .tl-detail-label .tl-input-sm {
   width: 45px;
   flex: none;
   min-width: unset;
 }
 .tl-basic-grid .tl-detail-label .tl-input-sm::-webkit-inner-spin-button,
-.tl-basic-grid .tl-detail-label .tl-input-sm::-webkit-outer-spin-button {
+.tl-basic-grid .tl-detail-label .tl-input-sm::-webkit-outer-spin-button,
+.tl-time-subcol-body .tl-detail-label .tl-input-sm::-webkit-inner-spin-button,
+.tl-time-subcol-body .tl-detail-label .tl-input-sm::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-.tl-basic-grid .tl-detail-label .tl-input-sm[type=number] {
+.tl-basic-grid .tl-detail-label .tl-input-sm[type=number],
+.tl-time-subcol-body .tl-detail-label .tl-input-sm[type=number] {
   -moz-appearance: textfield;
 }
 
@@ -887,6 +958,43 @@
 }
 
 
+
+/* ── 曲线移动专用对齐网格 ──────────────────────────── */
+.tl-map-params {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  justify-content: center;
+  align-items: center;
+  gap: 4px 6px;
+  padding: 8px 10px;
+}
+
+.tl-map-params .tl-type-row {
+  display: contents;
+}
+
+.tl-map-params .tl-coord-label {
+  width: 3em;
+  display: inline-block;
+  text-align: justify;
+  text-align-last: justify;
+  margin-right: 8px;
+}
+
+.tl-shake-lbl {
+  width: 3em;
+  display: inline-block;
+  text-align: justify;
+  text-align-last: justify;
+}
+
+.tl-map-btn-placeholder {
+  display: inline-block;
+  width: 54px;
+  height: 22px;
+  visibility: hidden;
+  flex-shrink: 0;
+}
 
 /* ── payload 字段区 ────────────────────────────────── */
 .tl-payload-section {
