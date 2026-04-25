@@ -76,6 +76,94 @@ const getEasingPreviewPath = (x1: number, y1: number, x2: number, y2: number) =>
   return `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${ex} ${ey}`;
 };
 
+const CURVE_VB = { sx: 4, sy: 48, ex: 84, ey: 4, w: 80, h: 44 } as const;
+
+function clientToSvgPoint(e: MouseEvent, svg: SVGSVGElement) {
+  const pt = svg.createSVGPoint();
+  pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(svg.getScreenCTM()!.inverse());
+}
+
+function evalBezierPoint(t: number, ex1: number, ey1: number, ex2: number, ey2: number) {
+  const { sx, sy, ex, ey, w, h } = CURVE_VB;
+  const c1x = sx + w * ex1, c1y = sy - h * ey1;
+  const c2x = sx + w * ex2, c2y = sy - h * ey2;
+  const mt = 1 - t;
+  return {
+    x: mt*mt*mt*sx + 3*mt*mt*t*c1x + 3*mt*t*t*c2x + t*t*t*ex,
+    y: mt*mt*mt*sy + 3*mt*mt*t*c1y + 3*mt*t*t*c2y + t*t*t*ey,
+  };
+}
+
+function findCurveT(mx: number, my: number, ex1: number, ey1: number, ex2: number, ey2: number) {
+  let best = 0.5, bestD = Infinity;
+  for (let i = 1; i < 100; i++) {
+    const t = i / 100;
+    const p = evalBezierPoint(t, ex1, ey1, ex2, ey2);
+    const d = (p.x - mx) ** 2 + (p.y - my) ** 2;
+    if (d < bestD) { best = t; bestD = d; }
+  }
+  return best;
+}
+
+interface EasingCurveProps {
+  ex1: number; ey1: number; ex2: number; ey2: number;
+  onDrag: (ex1: number, ey1: number, ex2: number, ey2: number) => void;
+}
+
+function EasingCurve({ ex1, ey1, ex2, ey2, onDrag }: EasingCurveProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const onDragRef = useRef(onDrag);
+  onDragRef.current = onDrag;
+
+  const dragState = useRef<{
+    t: number; sx0: number; sy0: number;
+    ox1: number; oy1: number; ox2: number; oy2: number;
+  } | null>(null);
+
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!svgRef.current) return;
+    const pt = clientToSvgPoint(e.nativeEvent, svgRef.current);
+    const t = findCurveT(pt.x, pt.y, ex1, ey1, ex2, ey2);
+    if (t < 0.05 || t > 0.95 || Math.abs(t - 0.5) < 0.04) return;
+    e.preventDefault();
+    dragState.current = { t, sx0: pt.x, sy0: pt.y, ox1: ex1, oy1: ey1, ox2: ex2, oy2: ey2 };
+  };
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragState.current || !svgRef.current) return;
+      const { t, sx0, sy0, ox1, oy1, ox2, oy2 } = dragState.current;
+      const pt = clientToSvgPoint(e, svgRef.current);
+      const dx = pt.x - sx0, dy = pt.y - sy0;
+      const factor = Math.min(1 / (3 * t * (1 - t)), 10);
+      const dex = (dx / CURVE_VB.w) * factor;
+      const dey = (-dy / CURVE_VB.h) * factor;
+      onDragRef.current(
+        clamp01(ox1 + dex),
+        clampBezierY(oy1 + dey),
+        clamp01(ox2 + dex),
+        clampBezierY(oy2 + dey),
+      );
+    };
+    const onUp = () => { dragState.current = null; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  return (
+    <svg ref={svgRef} viewBox="0 0 88 52" preserveAspectRatio="none" className="tl-easing-svg"
+      onMouseDown={handleMouseDown} aria-hidden="true">
+      <path d="M 4 48 L 84 4" className="tl-easing-base" />
+      <path d={getEasingPreviewPath(ex1, ey1, ex2, ey2)} className="tl-easing-curve" />
+    </svg>
+  );
+}
+
 const sortAndSanitizeInternalKeyframes = <T extends { at: number }>(keyframes: T[]) => {
   const sorted = keyframes
     .filter((f) => Number.isFinite(f.at))
@@ -475,6 +563,8 @@ export function TimelinePanel() {
     if (end > globalDurationMs) setGlobalDurationMs(end + 1000);
   };
 
+  const coordFields = new Set(['fromX', 'fromY', 'toX', 'toY', 'controlX', 'controlY', 'baseX', 'baseY']);
+
   const updatePayloadNumberField = (clip: AnimationClip, field: string, rawValue: string) => {
     ensurePausedForEdit();
     const parsed = parseFloat(rawValue);
@@ -483,6 +573,7 @@ export function TimelinePanel() {
     const next =
       clip.type === 'fade' && ['fromOpacity', 'toOpacity'].includes(field) ? clamp01(parsed)
       : shouldClampNonNeg ? Math.max(0, parsed)
+      : coordFields.has(field) ? Math.round(parsed)
       : parsed;
     updateAnimationClip(clip.id, { payload: { ...(clip.payload as Record<string, number>), [field]: next } } as Partial<AnimationClip>);
   };
@@ -1194,235 +1285,196 @@ export function TimelinePanel() {
                       <span className="tl-clip-arrow">{isExpanded ? '▲' : '▼'}</span>
                     </div>
 
-                    {/* ── 展开详情 */}
+                    {/* ── 展开详情：6列布局 */}
                     {isExpanded && (
                       <div className="tl-clip-detail">
 
-                        {/* ── 左栏：时间 + 缓动 + 类型参数 */}
-                        <div className="tl-detail-left">
-
-                          {/* 时间 + 操作 */}
-                          <div className="tl-detail-row">
-                            <label className="tl-detail-label">
-                              开始(ms)
-                              <input className="tl-input-sm" type="number" min={0} value={effStart} onChange={(e) => updateClipNumberField(clip, 'startTimeMs', e.target.value)} />
-                            </label>
-                            <label className="tl-detail-label">
-                              时长(ms)
-                              <input className="tl-input-sm" type="number" min={1} value={effDuration} onChange={(e) => updateClipNumberField(clip, 'durationMs', e.target.value)} />
-                            </label>
-                            <button className="tl-btn tl-btn-sm" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(clip.startTimeMs); }}>跳到</button>
-                            <button className="tl-btn tl-btn-sm" onClick={() => duplicateClip(clip)}>复制</button>
-                          </div>
-
-                          {/* 缓动 */}
-                          <div className="tl-easing-row">
-                            <span className="tl-section-label">缓动</span>
-                            <div className="tl-easing-presets">
-                              {EASING_PRESET_OPTIONS.map((preset) => (
-                                <button
-                                  key={preset.value}
-                                  type="button"
-                                  className={`tl-easing-btn${(clip.easing || 'linear') === preset.value ? ' is-active' : ''}`}
-                                  onClick={() => setClipEasingPreset(clip, preset.value)}
-                                >
-                                  {preset.label}
-                                </button>
-                              ))}
-                            </div>
-                            <div className="tl-easing-preview-wrap">
-                              <svg viewBox="0 0 88 52" className="tl-easing-svg" aria-hidden="true">
-                                <path d="M 4 48 L 84 4" className="tl-easing-base" />
-                                <path d={getEasingPreviewPath(ex1, ey1, ex2, ey2)} className="tl-easing-curve" />
-                              </svg>
-                            </div>
-                            <button
-                              type="button"
-                              className={`tl-btn tl-btn-sm${showAdvancedEasing ? ' is-active' : ''}`}
-                              onClick={() => setShowAdvancedEasing((p) => !p)}
-                            >
-                              高级
-                            </button>
-                          </div>
-
-                          {/* 高级缓动：贝塞尔控制点 */}
-                          {showAdvancedEasing && (
-                            <div className="tl-easing-advanced">
-                              {(
-                                [
-                                  { label: 'x1', idx: 0 as const, min: 0, max: 1, step: 0.01, val: ex1 },
-                                  { label: 'y1', idx: 1 as const, min: -2, max: 2, step: 0.01, val: ey1 },
-                                  { label: 'x2', idx: 2 as const, min: 0, max: 1, step: 0.01, val: ex2 },
-                                  { label: 'y2', idx: 3 as const, min: -2, max: 2, step: 0.01, val: ey2 },
-                                ]
-                              ).map((f) => (
-                                <label key={f.label} className="tl-detail-label">
-                                  {f.label}
-                                  <input type="number" min={f.min} max={f.max} step={f.step} value={formatBezierValue(f.val)} onChange={(e) => updateClipBezierControlPoint(clip, f.idx, e.target.value)} />
-                                </label>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* 类型专属参数 */}
-                          {clip.type === 'move' && (
-                            <div className="tl-coord-rows">
-                              <div className="tl-coord-row">
+                        {/* ── 基础参数（时间 + 类型专属，共享行网格） */}
+                        <div className="tl-basic-section">
+                          <span className="tl-col-header-centered">基础参数</span>
+                          <div className="tl-basic-grid">
+                            {/* 行1 */}
+                            <label className="tl-detail-label">开始(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effStart} onChange={(e) => updateClipNumberField(clip, 'startTimeMs', e.target.value)} /></label>
+                            <div className="tl-type-row">
+                              {(clip.type === 'move' || clip.type === 'moveAlongPath') && (<>
                                 <span className="tl-coord-label">起点</span>
-                                <label className="tl-detail-label">X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
-                                <button type="button" className="tl-btn tl-btn-sm tl-coord-grab" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
-                              </div>
-                              <div className="tl-coord-row">
+                                <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.fromY)} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
+                                <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                              </>)}
+                              {clip.type === 'fade' && <label className="tl-detail-label">起始透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.fromOpacity} onChange={(e) => updatePayloadNumberField(clip, 'fromOpacity', e.target.value)} /></label>}
+                              {clip.type === 'scale' && (<><label className="tl-detail-label">起始缩放X<input type="number" step={0.01} value={clip.payload.fromScaleX} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleX', e.target.value)} /></label><label className="tl-detail-label">起始缩放Y<input type="number" step={0.01} value={clip.payload.fromScaleY} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleY', e.target.value)} /></label></>)}
+                              {clip.type === 'rotate' && <label className="tl-detail-label">起始角度<input type="number" value={clip.payload.fromRotation} onChange={(e) => updatePayloadNumberField(clip, 'fromRotation', e.target.value)} /></label>}
+                              {clip.type === 'shake' && (<><label className="tl-detail-label">基准X<input type="number" step={1} value={Math.round(clip.payload.baseX)} onChange={(e) => updatePayloadNumberField(clip, 'baseX', e.target.value)} /></label><label className="tl-detail-label">基准Y<input type="number" step={1} value={Math.round(clip.payload.baseY)} onChange={(e) => updatePayloadNumberField(clip, 'baseY', e.target.value)} /></label></>)}
+                            </div>
+                            {/* 行2 */}
+                            <label className="tl-detail-label">时长(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effDuration} onChange={(e) => updateClipNumberField(clip, 'durationMs', e.target.value)} /></label>
+                            <div className="tl-type-row">
+                              {clip.type === 'move' && (<>
                                 <span className="tl-coord-label">终点</span>
-                                <label className="tl-detail-label">X<input type="number" value={clip.payload.toX} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.toY} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
-                                <button type="button" className="tl-btn tl-btn-sm tl-coord-grab" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
-                              </div>
-                            </div>
-                          )}
-
-                          {clip.type === 'moveAlongPath' && (
-                            <div className="tl-coord-rows">
-                              <div className="tl-coord-row">
-                                <span className="tl-coord-label">起点</span>
-                                <label className="tl-detail-label">X<input type="number" value={clip.payload.fromX} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.fromY} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
-                                <button type="button" className="tl-btn tl-btn-sm tl-coord-grab" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
-                              </div>
-                              <div className="tl-coord-row">
+                                <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                                <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                              </>)}
+                              {clip.type === 'moveAlongPath' && (<>
                                 <span className="tl-coord-label">控制点</span>
-                                <label className="tl-detail-label">X<input type="number" value={clip.payload.controlX} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.controlY} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
-                              </div>
-                              <div className="tl-coord-row">
+                                <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.controlX)} onChange={(e) => updatePayloadNumberField(clip, 'controlX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.controlY)} onChange={(e) => updatePayloadNumberField(clip, 'controlY', e.target.value)} /></label>
+                              </>)}
+                              {clip.type === 'fade' && <label className="tl-detail-label">结束透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.toOpacity} onChange={(e) => updatePayloadNumberField(clip, 'toOpacity', e.target.value)} /></label>}
+                              {clip.type === 'scale' && (<><label className="tl-detail-label">结束缩放X<input type="number" step={0.01} value={clip.payload.toScaleX} onChange={(e) => updatePayloadNumberField(clip, 'toScaleX', e.target.value)} /></label><label className="tl-detail-label">结束缩放Y<input type="number" step={0.01} value={clip.payload.toScaleY} onChange={(e) => updatePayloadNumberField(clip, 'toScaleY', e.target.value)} /></label></>)}
+                              {clip.type === 'rotate' && <label className="tl-detail-label">结束角度<input type="number" value={clip.payload.toRotation} onChange={(e) => updatePayloadNumberField(clip, 'toRotation', e.target.value)} /></label>}
+                              {clip.type === 'shake' && (<><label className="tl-detail-label">振幅X<input type="number" min={0} value={clip.payload.amplitudeX} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeX', e.target.value)} /></label><label className="tl-detail-label">振幅Y<input type="number" min={0} value={clip.payload.amplitudeY} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeY', e.target.value)} /></label></>)}
+                            </div>
+                            {/* 行3 */}
+                            <div />
+                            <div className="tl-type-row">
+                              {clip.type === 'moveAlongPath' && (<>
                                 <span className="tl-coord-label">终点</span>
-                                <label className="tl-detail-label">X<input type="number" value={clip.payload.toX} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                                <label className="tl-detail-label">Y<input type="number" value={clip.payload.toY} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
-                                <button type="button" className="tl-btn tl-btn-sm tl-coord-grab" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
-                              </div>
+                                <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
+                                <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                                <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                              </>)}
+                              {clip.type === 'shake' && (<><label className="tl-detail-label">频率<input type="number" min={0} value={clip.payload.frequency} onChange={(e) => updatePayloadNumberField(clip, 'frequency', e.target.value)} /></label><label className="tl-detail-label">衰减<input type="number" min={0} step={0.1} value={clip.payload.decay ?? 1} onChange={(e) => updatePayloadNumberField(clip, 'decay', e.target.value)} /></label></>)}
                             </div>
-                          )}
-
-                          {clip.type === 'shake' && (
-                            <div className="tl-payload-grid">
-                              <label className="tl-detail-label">基准X<input type="number" value={clip.payload.baseX} onChange={(e) => updatePayloadNumberField(clip, 'baseX', e.target.value)} /></label>
-                              <label className="tl-detail-label">基准Y<input type="number" value={clip.payload.baseY} onChange={(e) => updatePayloadNumberField(clip, 'baseY', e.target.value)} /></label>
-                              <label className="tl-detail-label">振幅X<input type="number" min={0} value={clip.payload.amplitudeX} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeX', e.target.value)} /></label>
-                              <label className="tl-detail-label">振幅Y<input type="number" min={0} value={clip.payload.amplitudeY} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeY', e.target.value)} /></label>
-                              <label className="tl-detail-label">频率<input type="number" min={0} value={clip.payload.frequency} onChange={(e) => updatePayloadNumberField(clip, 'frequency', e.target.value)} /></label>
-                              <label className="tl-detail-label">衰减<input type="number" min={0} step={0.1} value={clip.payload.decay ?? 1} onChange={(e) => updatePayloadNumberField(clip, 'decay', e.target.value)} /></label>
-                            </div>
-                          )}
-
-                          {clip.type === 'fade' && (
-                            <div className="tl-payload-grid">
-                              <label className="tl-detail-label">起始透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.fromOpacity} onChange={(e) => updatePayloadNumberField(clip, 'fromOpacity', e.target.value)} /></label>
-                              <label className="tl-detail-label">结束透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.toOpacity} onChange={(e) => updatePayloadNumberField(clip, 'toOpacity', e.target.value)} /></label>
-                            </div>
-                          )}
-
-                          {clip.type === 'scale' && (
-                            <div className="tl-payload-grid">
-                              <label className="tl-detail-label">起始缩放X<input type="number" step={0.01} value={clip.payload.fromScaleX} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleX', e.target.value)} /></label>
-                              <label className="tl-detail-label">起始缩放Y<input type="number" step={0.01} value={clip.payload.fromScaleY} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleY', e.target.value)} /></label>
-                              <label className="tl-detail-label">结束缩放X<input type="number" step={0.01} value={clip.payload.toScaleX} onChange={(e) => updatePayloadNumberField(clip, 'toScaleX', e.target.value)} /></label>
-                              <label className="tl-detail-label">结束缩放Y<input type="number" step={0.01} value={clip.payload.toScaleY} onChange={(e) => updatePayloadNumberField(clip, 'toScaleY', e.target.value)} /></label>
-                            </div>
-                          )}
-
-                          {clip.type === 'rotate' && (
-                            <div className="tl-payload-grid">
-                              <label className="tl-detail-label">起始角度<input type="number" value={clip.payload.fromRotation} onChange={(e) => updatePayloadNumberField(clip, 'fromRotation', e.target.value)} /></label>
-                              <label className="tl-detail-label">结束角度<input type="number" value={clip.payload.toRotation} onChange={(e) => updatePayloadNumberField(clip, 'toRotation', e.target.value)} /></label>
-                            </div>
-                          )}
-
+                          </div>
                         </div>
 
-                        {/* ── 右栏：关键帧区 */}
-                        {(clip.type === 'move' || clip.type === 'fade' || clip.type === 'scale' || clip.type === 'rotate') && (
-                          <div className="tl-detail-right">
-                            {clip.type === 'move' && (
-                              <div className="tl-keyframe-section">
-                                <div className="tl-keyframe-header">
-                                  <span className="tl-section-label">关键帧</span>
-                                  <button type="button" className="tl-btn tl-btn-sm" onClick={() => addMoveKeyframe(clip)}>+ 添加</button>
-                                </div>
-                                {(clip.payload.keyframes || []).length === 0 ? (
-                                  <span className="tl-kf-empty">无</span>
-                                ) : (
-                                  (clip.payload.keyframes || []).map((frame, i) => (
-                                    <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                      <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateMoveKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
-                                      <input type="number" value={frame.x} onChange={(e) => updateMoveKeyframeField(clip, i, 'x', e.target.value)} data-tooltip="X" />
-                                      <input type="number" value={frame.y} onChange={(e) => updateMoveKeyframeField(clip, i, 'y', e.target.value)} data-tooltip="Y" />
-                                      <button type="button" className="tl-kf-del" onClick={() => removeMoveKeyframe(clip, i)}>✕</button>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            )}
-                            {clip.type === 'fade' && (
-                              <div className="tl-keyframe-section">
-                                <div className="tl-keyframe-header">
-                                  <span className="tl-section-label">关键帧</span>
-                                  <button type="button" className="tl-btn tl-btn-sm" onClick={() => addFadeKeyframe(clip)}>+ 添加</button>
-                                </div>
-                                {(clip.payload.keyframes || []).length === 0 ? (
-                                  <span className="tl-kf-empty">无</span>
-                                ) : (
-                                  (clip.payload.keyframes || []).map((frame, i) => (
-                                    <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                      <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateFadeKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
-                                      <input type="number" min={0} max={1} step={0.01} value={frame.value} onChange={(e) => updateFadeKeyframeField(clip, i, 'value', e.target.value)} data-tooltip="透明度" />
-                                      <button type="button" className="tl-kf-del" onClick={() => removeFadeKeyframe(clip, i)}>✕</button>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            )}
-                            {clip.type === 'scale' && (
-                              <div className="tl-keyframe-section">
-                                <div className="tl-keyframe-header">
-                                  <span className="tl-section-label">关键帧</span>
-                                  <button type="button" className="tl-btn tl-btn-sm" onClick={() => addScaleKeyframe(clip)}>+ 添加</button>
-                                </div>
-                                {(clip.payload.keyframes || []).length === 0 ? (
-                                  <span className="tl-kf-empty">无</span>
-                                ) : (
-                                  (clip.payload.keyframes || []).map((frame, i) => (
-                                    <div className="tl-kf-row tl-kf-row-wide" key={`${frame.at}-${i}`}>
-                                      <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateScaleKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
-                                      <input type="number" step={0.01} value={frame.scaleX} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleX', e.target.value)} data-tooltip="缩放X" />
-                                      <input type="number" step={0.01} value={frame.scaleY} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleY', e.target.value)} data-tooltip="缩放Y" />
-                                      <button type="button" className="tl-kf-del" onClick={() => removeScaleKeyframe(clip, i)}>✕</button>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            )}
-                            {clip.type === 'rotate' && (
-                              <div className="tl-keyframe-section">
-                                <div className="tl-keyframe-header">
-                                  <span className="tl-section-label">关键帧</span>
-                                  <button type="button" className="tl-btn tl-btn-sm" onClick={() => addRotateKeyframe(clip)}>+ 添加</button>
-                                </div>
-                                {(clip.payload.keyframes || []).length === 0 ? (
-                                  <span className="tl-kf-empty">无</span>
-                                ) : (
-                                  (clip.payload.keyframes || []).map((frame, i) => (
-                                    <div className="tl-kf-row" key={`${frame.at}-${i}`}>
-                                      <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateRotateKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
-                                      <input type="number" value={frame.value} onChange={(e) => updateRotateKeyframeField(clip, i, 'value', e.target.value)} data-tooltip="角度" />
-                                      <button type="button" className="tl-kf-del" onClick={() => removeRotateKeyframe(clip, i)}>✕</button>
-                                    </div>
-                                  ))
-                                )}
-                              </div>
-                            )}
+                        {/* ── 动画节奏（纵向堆叠） */}
+                        <div className="tl-easing-col">
+                          <span className="tl-col-header">动画节奏</span>
+                          {EASING_PRESET_OPTIONS.map((preset) => (
+                            <button
+                              key={preset.value}
+                              type="button"
+                              className={`tl-easing-btn${(clip.easing || 'linear') === preset.value ? ' is-active' : ''}`}
+                              onClick={() => setClipEasingPreset(clip, preset.value)}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* ── 节奏调整（纵向堆叠） */}
+                        <div className="tl-bezier-col">
+                          <span className="tl-col-header">节奏调整</span>
+                          {(
+                            [
+                              { label: 'X1', idx: 0 as const, min: 0, max: 1, step: 0.01, val: ex1 },
+                              { label: 'Y1', idx: 1 as const, min: -2, max: 2, step: 0.01, val: ey1 },
+                              { label: 'X2', idx: 2 as const, min: 0, max: 1, step: 0.01, val: ex2 },
+                              { label: 'Y2', idx: 3 as const, min: -2, max: 2, step: 0.01, val: ey2 },
+                            ]
+                          ).map((f) => (
+                            <label key={f.label} className="tl-detail-label">
+                              {f.label}
+                              <input type="number" min={f.min} max={f.max} step={f.step} value={formatBezierValue(f.val)} onChange={(e) => updateClipBezierControlPoint(clip, f.idx, e.target.value)} />
+                            </label>
+                          ))}
+                        </div>
+
+                        {/* ── 节奏曲线 */}
+                        <div className="tl-curve-col">
+                          <span className="tl-col-header">节奏曲线</span>
+                          <div className="tl-easing-preview-wrap tl-easing-preview-lg">
+                            <EasingCurve
+                              ex1={ex1} ey1={ey1} ex2={ex2} ey2={ey2}
+                              onDrag={(nx1, ny1, nx2, ny2) => {
+                                ensurePausedForEdit();
+                                updateAnimationClip(clip.id, { easing: buildBezierEasingValue(nx1, ny1, nx2, ny2) });
+                              }}
+                            />
                           </div>
-                        )}
+                        </div>
+
+                        {/* ── 关键帧设置 */}
+                        <div className="tl-kf-col">
+                          <span className="tl-col-header">关键帧设置</span>
+                          {clip.type === 'move' && (
+                            <div className="tl-keyframe-section">
+                              <div className="tl-keyframe-header">
+                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addMoveKeyframe(clip)}>+ 添加</button>
+                              </div>
+                              {(clip.payload.keyframes || []).length === 0 ? (
+                                <span className="tl-kf-empty">暂无关键帧</span>
+                              ) : (
+                                (clip.payload.keyframes || []).map((frame, i) => (
+                                  <div className="tl-kf-row" key={`${frame.at}-${i}`}>
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateMoveKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
+                                    <input type="number" value={frame.x} onChange={(e) => updateMoveKeyframeField(clip, i, 'x', e.target.value)} data-tooltip="X" />
+                                    <input type="number" value={frame.y} onChange={(e) => updateMoveKeyframeField(clip, i, 'y', e.target.value)} data-tooltip="Y" />
+                                    <button type="button" className="tl-kf-del" onClick={() => removeMoveKeyframe(clip, i)}>✕</button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
+                          {clip.type === 'fade' && (
+                            <div className="tl-keyframe-section">
+                              <div className="tl-keyframe-header">
+                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addFadeKeyframe(clip)}>+ 添加</button>
+                              </div>
+                              {(clip.payload.keyframes || []).length === 0 ? (
+                                <span className="tl-kf-empty">暂无关键帧</span>
+                              ) : (
+                                (clip.payload.keyframes || []).map((frame, i) => (
+                                  <div className="tl-kf-row" key={`${frame.at}-${i}`}>
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateFadeKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
+                                    <input type="number" min={0} max={1} step={0.01} value={frame.value} onChange={(e) => updateFadeKeyframeField(clip, i, 'value', e.target.value)} data-tooltip="透明度" />
+                                    <button type="button" className="tl-kf-del" onClick={() => removeFadeKeyframe(clip, i)}>✕</button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
+                          {clip.type === 'scale' && (
+                            <div className="tl-keyframe-section">
+                              <div className="tl-keyframe-header">
+                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addScaleKeyframe(clip)}>+ 添加</button>
+                              </div>
+                              {(clip.payload.keyframes || []).length === 0 ? (
+                                <span className="tl-kf-empty">暂无关键帧</span>
+                              ) : (
+                                (clip.payload.keyframes || []).map((frame, i) => (
+                                  <div className="tl-kf-row tl-kf-row-wide" key={`${frame.at}-${i}`}>
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateScaleKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
+                                    <input type="number" step={0.01} value={frame.scaleX} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleX', e.target.value)} data-tooltip="缩放X" />
+                                    <input type="number" step={0.01} value={frame.scaleY} onChange={(e) => updateScaleKeyframeField(clip, i, 'scaleY', e.target.value)} data-tooltip="缩放Y" />
+                                    <button type="button" className="tl-kf-del" onClick={() => removeScaleKeyframe(clip, i)}>✕</button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
+                          {clip.type === 'rotate' && (
+                            <div className="tl-keyframe-section">
+                              <div className="tl-keyframe-header">
+                                <button type="button" className="tl-btn tl-btn-sm" onClick={() => addRotateKeyframe(clip)}>+ 添加</button>
+                              </div>
+                              {(clip.payload.keyframes || []).length === 0 ? (
+                                <span className="tl-kf-empty">暂无关键帧</span>
+                              ) : (
+                                (clip.payload.keyframes || []).map((frame, i) => (
+                                  <div className="tl-kf-row" key={`${frame.at}-${i}`}>
+                                    <input type="number" min={0} max={100} step={1} value={Number((frame.at * 100).toFixed(1))} onChange={(e) => updateRotateKeyframeField(clip, i, 'at', e.target.value)} data-tooltip="时间(%)" />
+                                    <input type="number" value={frame.value} onChange={(e) => updateRotateKeyframeField(clip, i, 'value', e.target.value)} data-tooltip="角度" />
+                                    <button type="button" className="tl-kf-del" onClick={() => removeRotateKeyframe(clip, i)}>✕</button>
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          )}
+                          {(clip.type === 'shake' || clip.type === 'moveAlongPath' || clip.type === 'stateChange') && (
+                            <span className="tl-kf-empty">此动画类型不支持关键帧</span>
+                          )}
+                        </div>
+
+                        {/* ── 基础操作 */}
+                        <div className="tl-ops-col">
+                          <span className="tl-col-header">基础操作</span>
+                          <button className="tl-btn tl-btn-sm" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(clip.startTimeMs); }}>跳到</button>
+                          <button className="tl-btn tl-btn-sm" onClick={() => duplicateClip(clip)}>复制</button>
+                        </div>
 
                       </div>
                     )}

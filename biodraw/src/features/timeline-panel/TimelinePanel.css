@@ -592,26 +592,181 @@
   text-align: center;
 }
 
-/* ── 展开详情区 ────────────────────────────────────── */
+/* ── 展开详情区：5列 grid ─────────────────────────── */
 .tl-clip-detail {
   border-top: 1px solid var(--border-color);
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 400px auto auto 128px 280px auto;
   background: var(--bg-color);
+  align-items: stretch;
 }
 
-.tl-detail-left {
+/* 各列通用 */
+.tl-basic-section,
+.tl-easing-col,
+.tl-bezier-col,
+.tl-curve-col,
+.tl-kf-col,
+.tl-ops-col {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  min-width: 0;
+}
+
+/* 分割线 */
+.tl-basic-section { border-right: 1px solid var(--border-color); }
+.tl-kf-col        { border-left:  1px solid var(--border-color); }
+.tl-ops-col       { border-left:  1px solid var(--border-color); }
+
+/* 右侧各列内边距 */
+.tl-easing-col,
+.tl-bezier-col,
+.tl-curve-col,
+.tl-kf-col,
+.tl-ops-col {
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+
+/* ── 基础参数区 ────────────────────────────────────── */
+.tl-col-header-centered {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 8px 0 4px;
+  margin: 0 10px;
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
-.tl-detail-right {
+.tl-basic-grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  justify-content: center;
+  gap: 6px 20px;
+  padding: 8px 10px;
+  align-items: center;
+}
+
+.tl-basic-grid .tl-detail-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.tl-basic-grid .tl-detail-label .tl-input-sm {
+  width: 45px;
+  flex: none;
+  min-width: unset;
+}
+.tl-basic-grid .tl-detail-label .tl-input-sm::-webkit-inner-spin-button,
+.tl-basic-grid .tl-detail-label .tl-input-sm::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.tl-basic-grid .tl-detail-label .tl-input-sm[type=number] {
+  -moz-appearance: textfield;
+}
+
+.tl-type-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.tl-type-row .tl-detail-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.tl-type-row .tl-detail-label input {
+  width: 50px;
+  flex: none;
+  min-width: unset;
+}
+
+.tl-time-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* ── 各右侧列标题 ──────────────────────────────────── */
+.tl-col-header {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  padding: 8px 0 4px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  text-align: center;
+}
+
+/* ── 动画节奏列 ────────────────────────────────────── */
+.tl-easing-col { align-items: center; }
+.tl-easing-col .tl-easing-btn {
+  width: 54px;
+  flex: none;
+  text-align: center;
+}
+
+/* ── 节奏调整列 ────────────────────────────────────── */
+.tl-bezier-col { align-items: center; }
+.tl-bezier-col .tl-detail-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+.tl-bezier-col .tl-detail-label input {
+  flex: none;
+  min-width: unset;
+  width: 45px;
+}
+.tl-bezier-col .tl-detail-label input::-webkit-inner-spin-button,
+.tl-bezier-col .tl-detail-label input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.tl-bezier-col .tl-detail-label input[type=number] {
+  -moz-appearance: textfield;
+}
+
+/* ── 节奏曲线列 ────────────────────────────────────── */
+.tl-curve-col { align-items: stretch; }
+.tl-easing-preview-wrap.tl-easing-preview-lg {
   flex: 1;
+  position: relative;
+  width: 100%;
+  height: 0;
+  min-height: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--panel-bg);
+  overflow: hidden;
+}
+
+.tl-easing-preview-wrap.tl-easing-preview-lg .tl-easing-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Cline x1='0' y1='8' x2='16' y2='8' stroke='%23000' stroke-width='1'/%3E%3Cline x1='8' y1='0' x2='8' y2='16' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") 8 8, crosshair;
+}
+
+/* ── 关键帧列 ──────────────────────────────────────── */
+.tl-kf-col .tl-keyframe-section {
+  border: none;
+  padding: 0;
+  width: 100%;
+}
+.tl-kf-col .tl-kf-row {
+  grid-template-columns: 48px 1fr 1fr auto;
+}
+.tl-kf-col .tl-kf-row input {
+  width: 100%;
   min-width: 0;
 }
 
@@ -651,25 +806,26 @@
 
 /* 区域标签 */
 .tl-section-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 400;
   color: var(--text-muted);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  text-transform: none;
   white-space: nowrap;
 }
 
-/* ── 缓动行 ────────────────────────────────────────── */
+/* ── 缓动行（旧，保留兼容） ──────────────────────────── */
 .tl-easing-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .tl-easing-presets {
   display: flex;
   gap: 3px;
+  flex: 1;
 }
 
 .tl-easing-btn {
@@ -677,12 +833,14 @@
   border: 1px solid var(--border-color);
   background: var(--panel-bg);
   color: var(--text-muted);
-  border-radius: 999px;
-  padding: 0 8px;
+  border-radius: 6px;
+  padding: 0 4px;
   cursor: pointer;
   font-size: 11px;
   white-space: nowrap;
   transition: border-color 0.12s, color 0.12s;
+  flex: 1;
+  text-align: center;
 }
 
 .tl-easing-btn:hover {
@@ -718,29 +876,17 @@
   stroke: rgba(100, 116, 139, 0.35);
   stroke-width: 1;
   stroke-dasharray: 3 3;
+  vector-effect: non-scaling-stroke;
 }
 
 .tl-easing-curve {
   fill: none;
   stroke: var(--primary-color);
-  stroke-width: 2;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
 }
 
-/* 高级缓动 */
-.tl-easing-advanced {
-  display: flex;
-  gap: 6px;
-  padding: 6px 8px;
-  background: var(--bg-color);
-  border-radius: 6px;
-  border: 1px dashed var(--border-color);
-  flex-wrap: wrap;
-}
 
-.tl-easing-advanced .tl-detail-label input {
-  width: 64px;
-  min-width: unset;
-}
 
 /* ── payload 字段区 ────────────────────────────────── */
 .tl-payload-section {
@@ -782,9 +928,7 @@
 .tl-coord-label {
   font-size: 11px;
   color: var(--text-muted);
-  width: 36px;
   flex-shrink: 0;
-  padding-bottom: 4px;
 }
 
 .tl-coord-row .tl-detail-label input {
