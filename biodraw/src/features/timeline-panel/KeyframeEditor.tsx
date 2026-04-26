@@ -123,8 +123,8 @@ function getEditorConfig(clip: KeyframeableClip): {
     const { fromX, fromY, toX, toY } = clip.payload;
     return {
       fields: [
-        { key: 'x', label: 'X', step: 1 },
-        { key: 'y', label: 'Y', step: 1 },
+        { key: 'x', label: '坐标Ｘ', step: 1 },
+        { key: 'y', label: '坐标Ｙ', step: 1 },
       ],
       presets: [
         {
@@ -200,8 +200,8 @@ function getEditorConfig(clip: KeyframeableClip): {
     const { fromScaleX, fromScaleY, toScaleX, toScaleY } = clip.payload;
     return {
       fields: [
-        { key: 'scaleX', label: '缩放X', step: 0.01 },
-        { key: 'scaleY', label: '缩放Y', step: 0.01 },
+        { key: 'scaleX', label: '倍数Ｘ', step: 0.01 },
+        { key: 'scaleY', label: '倍数Ｙ', step: 0.01 },
       ],
       presets: [
         {
@@ -245,7 +245,7 @@ function getEditorConfig(clip: KeyframeableClip): {
   const { fromRotation, toRotation } = clip.payload;
   return {
     fields: [
-      { key: 'value', label: '角度°', step: 1 },
+      { key: 'value', label: '角度值', step: 1 },
     ],
     presets: [
       {
@@ -428,7 +428,7 @@ export function KeyframeEditor({
 
   // ── 渲染 ───────────────────────────────────────────
 
-  const gridTemplateColumns = `40px repeat(${keyframes.length}, 40px)`;
+  const gridTemplateColumns = `44px repeat(${keyframes.length}, 40px)`;
   // 字段值显示格式：整数字段（step>=1）直接四舍五入，小数字段保留 2 位
   const formatFieldValue = (v: number, step: number) => step >= 1 ? Math.round(v) : Number(v.toFixed(2));
 
@@ -497,7 +497,7 @@ export function KeyframeEditor({
         ) : (
           <div className="kf-grid" style={{ gridTemplateColumns }}>
             {/* 时间行 */}
-            <span className="kf-grid-label">时间%</span>
+            <span className="kf-grid-label">时间％</span>
             {keyframes.map((kf, i) => (
               <input
                 key={`at-${i}`}
