@@ -210,6 +210,7 @@ export function CanvasPanel() {
   const undo = useEditorStore(state => state.undo);
   const redo = useEditorStore(state => state.redo);
   const animations = useEditorStore(state => state.animations);
+  const previewClipId = useEditorStore(state => state.previewClipId);
   const playbackStatus = useEditorStore(state => state.playbackStatus);
   const currentTimeMs = useEditorStore(state => state.currentTimeMs);
   const globalDurationMs = useEditorStore(state => state.globalDurationMs);
@@ -267,9 +268,12 @@ export function CanvasPanel() {
   useEffect(() => { stagePosRef.current = stagePos; }, [stagePos]);
 
   const previewObjects = useMemo(() => {
-    if (currentTimeMs <= 0) return objects;
-    return buildAnimatedPreviewObjects(objects, animations, currentTimeMs);
-  }, [objects, animations, currentTimeMs]);
+    if (currentTimeMs <= 0 && !previewClipId) return objects;
+    const activeAnimations = previewClipId
+      ? animations.filter((c) => c.id === previewClipId)
+      : animations;
+    return buildAnimatedPreviewObjects(objects, activeAnimations, currentTimeMs);
+  }, [objects, animations, currentTimeMs, previewClipId]);
 
   const isSequenceExportRunning = sequenceExportStatus === 'running';
   const isVideoExportRunning = videoExportStatus === 'running';

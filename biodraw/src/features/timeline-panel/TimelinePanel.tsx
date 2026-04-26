@@ -241,6 +241,7 @@ export function TimelinePanel() {
   const removeAnimationClip = useEditorStore((s) => s.removeAnimationClip);
   const setExpandedAnimationClipId = useEditorStore((s) => s.setExpandedAnimationClipId);
   const copyAnimationClipsToObjects = useEditorStore((s) => s.copyAnimationClipsToObjects);
+  const startClipPreview = useEditorStore((s) => s.startClipPreview);
 
   // ── 派生状态
   const selectedObject = useMemo(
@@ -1351,6 +1352,13 @@ export function TimelinePanel() {
                           <span className="tl-col-header">基础操作</span>
                           <button className="tl-btn tl-btn-sm" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(clip.startTimeMs); }}>跳到</button>
                           <button className="tl-btn tl-btn-sm" onClick={() => duplicateClip(clip)}>复制</button>
+                          <button
+                            className="tl-btn tl-btn-sm"
+                            data-tooltip="只播放此动画片段的时间范围"
+                            onClick={() => startClipPreview(clip.id)}
+                          >
+                            预览
+                          </button>
                         </div>
 
                       </div>

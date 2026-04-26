@@ -41,6 +41,7 @@ interface EditorState {
   globalDurationMs: number;
   playbackStatus: PlaybackStatus;
   currentTimeMs: number;
+  previewClipId: string | null;
   playbackRate: number;
   playbackLoopEnabled: boolean;
   sequenceExportRequestId: number;
@@ -99,6 +100,7 @@ interface EditorState {
   play: () => void;
   pause: () => void;
   stop: () => void;
+  startClipPreview: (clipId: string) => void;
   advancePlayback: (deltaMs: number) => void;
   setPlaybackRate: (rate: number) => void;
   setPlaybackLoopEnabled: (enabled: boolean) => void;
@@ -165,6 +167,7 @@ export const useEditorStore = create<EditorState>()(
     globalDurationMs: 10000,
     playbackStatus: 'stopped',
     currentTimeMs: 0,
+    previewClipId: null,
     playbackRate: 1,
     playbackLoopEnabled: false,
     sequenceExportRequestId: 0,
@@ -412,6 +415,7 @@ export const useEditorStore = create<EditorState>()(
 
     setCurrentTimeMs: (timeMs) =>
       set((state) => {
+        state.previewClipId = null;
         state.currentTimeMs = clampTime(timeMs, state.globalDurationMs);
         if (state.currentTimeMs === 0 && state.playbackStatus === 'paused') {
           state.playbackStatus = 'stopped';
@@ -425,6 +429,7 @@ export const useEditorStore = create<EditorState>()(
       set((state) => {
         if (state.globalDurationMs <= 0) return;
         if (state.animations.length === 0) return;
+        state.previewClipId = null;
         if (state.currentTimeMs >= state.globalDurationMs) {
           state.currentTimeMs = 0;
         }
@@ -435,12 +440,23 @@ export const useEditorStore = create<EditorState>()(
       set((state) => {
         if (state.playbackStatus !== 'playing') return;
         state.playbackStatus = 'paused';
+        state.previewClipId = null;
       }),
 
     stop: () =>
       set((state) => {
         state.playbackStatus = 'stopped';
         state.currentTimeMs = 0;
+        state.previewClipId = null;
+      }),
+
+    startClipPreview: (clipId) =>
+      set((state) => {
+        const clip = state.animations.find((a) => a.id === clipId);
+        if (!clip) return;
+        state.previewClipId = clipId;
+        state.currentTimeMs = clampTime(clip.startTimeMs, state.globalDurationMs);
+        state.playbackStatus = 'playing';
       }),
 
     advancePlayback: (deltaMs) =>
@@ -450,6 +466,24 @@ export const useEditorStore = create<EditorState>()(
         if (delta <= 0) return;
 
         const nextTime = state.currentTimeMs + delta;
+
+        if (state.previewClipId) {
+          const clip = state.animations.find((a) => a.id === state.previewClipId);
+          if (!clip) {
+            state.previewClipId = null;
+          } else {
+            const endMs = clampTime(clip.startTimeMs + clip.durationMs, state.globalDurationMs);
+            if (nextTime >= endMs) {
+              state.currentTimeMs = endMs;
+              state.playbackStatus = endMs <= 0 ? 'stopped' : 'paused';
+              state.previewClipId = null;
+              return;
+            }
+            state.currentTimeMs = nextTime;
+            return;
+          }
+        }
+
         if (nextTime >= state.globalDurationMs) {
           if (state.playbackLoopEnabled) {
             const duration = Math.max(1, state.globalDurationMs);
@@ -478,6 +512,7 @@ export const useEditorStore = create<EditorState>()(
         const frameMs = 1000 / 60;
         const delta = direction >= 0 ? frameMs : -frameMs;
         state.playbackStatus = 'paused';
+        state.previewClipId = null;
         state.currentTimeMs = clampTime(state.currentTimeMs + delta, state.globalDurationMs);
         if (state.currentTimeMs === 0) {
           state.playbackStatus = 'stopped';
@@ -497,6 +532,7 @@ export const useEditorStore = create<EditorState>()(
     setPreviewMode: (v) =>
       set((state) => {
         state.isPreviewMode = v;
+        state.previewClipId = null;
         if (v) {
           state.currentTimeMs = 0;
           state.playbackStatus = state.animations.length > 0 ? 'playing' : 'stopped';
