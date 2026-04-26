@@ -221,18 +221,21 @@ export type AnimationClipBase = {
 export type NumericKeyframe = {
   at: number;
   value: number;
+  preset?: string;
 };
 
 export type PointKeyframe = {
   at: number;
   x: number;
   y: number;
+  preset?: string;
 };
 
 export type ScaleKeyframe = {
   at: number;
   scaleX: number;
   scaleY: number;
+  preset?: string;
 };
 
 export type MoveAlongPathClip = AnimationClipBase & {
