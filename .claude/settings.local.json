@@ -14,7 +14,21 @@
       "Bash(git push:*)",
       "Bash(node -e ':*)",
       "Bash(npm run:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(grep -r \"width\" /d/Projects/BioDraw2/biodraw/src/features/inspector-panel/*.css)",
+      "Bash(npm install *)",
+      "Bash(npm ls *)",
+      "Bash(node -e ' *)",
+      "Bash(node *)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(xargs grep *)",
+      "Bash(git restore *)",
+      "Bash(git -C \"D:/Projects/BioDraw2/biodraw\" restore src/pages/editor/EditorPage.css src/pages/editor/EditorPage.tsx)",
+      "Bash(git -C D:/Projects/BioDraw2 status)",
+      "Bash(git -C D:/Projects/BioDraw2 diff --stat)",
+      "Bash(git stash *)",
+      "Bash(npx eslint *)"
     ]
   }
 }
