@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
+import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
 import type { AnimationClip } from '../../types';
 import { KeyframeEditor } from './KeyframeEditor';
 import './TimelinePanel.css';
@@ -206,6 +207,8 @@ export function TimelinePanel() {
   const [batchEnabledInput, setBatchEnabledInput] = useState<'' | 'enabled' | 'disabled'>('');
   const clipCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const clipTrackRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const panelRef = useRef<HTMLElement>(null);
+  useNumberInputWheelEdit(panelRef);
   const [dragState, setDragState] = useState<{
     clipId: string;
     mode: 'move' | 'resize-start' | 'resize-end';
@@ -789,7 +792,7 @@ export function TimelinePanel() {
   // ── 渲染 ─────────────────────────────────────────────────────
 
   return (
-    <section className="tl-panel">
+    <section className="tl-panel" ref={panelRef}>
 
       {/* ── 顶部控制栏 ── */}
       <div className="tl-header">
