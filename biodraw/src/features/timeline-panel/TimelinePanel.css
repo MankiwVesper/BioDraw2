@@ -8,28 +8,7 @@
   overflow: hidden;
 }
 
-/* ── 顶部控制栏 ──────────────────────────────────── */
-.tl-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--border-color);
-  background: var(--panel-bg);
-  flex-shrink: 0;
-}
-
-.tl-header-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.tl-header-cursor {
-  flex: 1;
-  min-width: 0;
-}
-
+/* ── 行内控件（label / 单位 / 输入框） ──────────── */
 .tl-label {
   font-size: 11px;
   color: var(--text-muted);
@@ -53,28 +32,136 @@
   font-size: 12px;
 }
 
+.tl-input-nospin[type=number]::-webkit-inner-spin-button,
+.tl-input-nospin[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tl-input-nospin[type=number] {
+  -moz-appearance: textfield;
+}
+
 .tl-time-display {
   font-size: 12px;
   color: var(--text-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
+  justify-self: end;
+  align-self: center;
 }
 
-.tl-cursor-wrap {
-  position: relative;
+.tl-zoom-range {
   flex: 1;
-  min-width: 80px;
+  min-width: 0;
 }
 
-.tl-cursor-range {
-  width: 100%;
-  display: block;
+.tl-zoom-val {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 36px;
+  text-align: right;
 }
 
-.tl-cursor-badge {
+/* ── 动画时间轴（顶部一行） ──────────────────────── */
+.tl-overall-row {
+  display: grid;
+  grid-template-columns: 62px 1fr 144px;
+  column-gap: 8px;
+  align-items: center;
+  padding: 5px 12px 5px 12px;
+  background: var(--panel-bg);
+  flex-shrink: 0;
+}
+
+.tl-overall-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 62px;
+}
+
+.tl-overall-track {
+  position: relative;
+  height: 20px;
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+}
+
+.tl-row-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  justify-self: end;
+}
+
+.tl-row-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
+/* 缩略带行：与上行对齐 */
+.tl-overall-thumbs-row {
+  display: grid;
+  grid-template-columns: 62px 1fr 144px;
+  column-gap: 8px;
+  align-items: center;
+  padding: 4px 12px 6px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  flex-shrink: 0;
+}
+
+.tl-overall-tick {
   position: absolute;
-  top: calc(100% + 4px);
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.tl-overall-tick-line {
+  width: 1px;
+  height: 6px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
+.tl-overall-tick-label {
+  font-size: 9px;
+  line-height: 14px;
+  white-space: nowrap;
+  color: var(--text-muted);
+  transform: translateX(-50%);
+}
+
+.tl-overall-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--primary-color, #3b82f6);
+  pointer-events: none;
+}
+
+.tl-overall-badge {
+  position: absolute;
+  bottom: calc(100% + 4px);
   transform: translateX(-50%);
   pointer-events: none;
   white-space: nowrap;
@@ -89,15 +176,152 @@
   z-index: 10;
 }
 
-.tl-zoom-range {
-  width: 80px;
+.tl-overall-thumbs {
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  border: 1px dashed var(--border-color);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  font-size: 9px;
+  color: var(--text-muted);
+  background: transparent;
 }
 
-.tl-zoom-val {
+/* ── 第二大行：三列网格布局 ──────────────────────
+   左列(72px)：上=元素时间轴标签 / 下=元素名称
+   中列(1fr) ：轨道，跨上下两行
+   右列(auto)：上=操作按钮 / 下=缩放滑块
+   ─────────────────────────────────────────────── */
+.tl-element-section {
+  display: grid;
+  grid-template-columns: 62px 1fr 144px;
+  grid-template-rows: auto auto;
+  column-gap: 8px;
+  padding: 5px 12px 5px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--panel-bg);
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.tl-element-track-row { display: contents; }
+.tl-element-info-row  { display: contents; }
+
+.tl-zoom-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  grid-column: 3;
+}
+
+.tl-element-label {
   font-size: 11px;
+  font-weight: 600;
   color: var(--text-muted);
-  min-width: 36px;
-  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 62px;
+}
+
+.tl-element-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  width: 62px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tl-element-name-empty {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.tl-element-track {
+  position: relative;
+  grid-column: 2;
+  align-self: center;
+  height: 20px;
+  min-width: 0;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(148, 163, 184, 0.18),
+      rgba(148, 163, 184, 0.18) 4px,
+      transparent 4px,
+      transparent 8px
+    ),
+    var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  user-select: none;
+  overflow: hidden;
+}
+
+.tl-element-window {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(34, 197, 94, 0.22);
+  border-left: 1px solid #22c55e;
+  border-right: 1px solid #22c55e;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-main);
+}
+
+.tl-element-window.is-dragging { cursor: grabbing; }
+
+.tl-element-window-label {
+  pointer-events: none;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 0 4px;
+  border-radius: 3px;
+}
+
+.tl-element-handle-l,
+.tl-element-handle-r {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  background: rgba(34, 197, 94, 0.55);
+}
+
+.tl-element-handle-l { left: 0; }
+.tl-element-handle-r { right: 0; }
+
+.tl-element-tick {
+  position: absolute;
+  bottom: 1px;
+  font-size: 9px;
+  color: var(--text-muted);
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.tl-element-tick-start { left: 4px; }
+.tl-element-tick-end { right: 4px; }
+
+.tl-element-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--primary-color, #3b82f6);
+  pointer-events: none;
 }
 
 /* ── 占位提示 ──────────────────────────────────────── */
@@ -132,33 +356,6 @@
   scrollbar-color: var(--border-color) transparent;
 }
 
-/* ── 对象操作栏 ────────────────────────────────────── */
-.tl-object-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-  flex-shrink: 0;
-}
-
-.tl-object-name {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-main);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 160px;
-}
-
-.tl-object-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
 /* ── 通用按钮 ──────────────────────────────────────── */
 .tl-btn {
   height: 28px;
@@ -173,8 +370,13 @@
   transition: border-color 0.15s, background 0.15s;
 }
 
-.tl-btn:hover {
+.tl-btn:hover:not(:disabled) {
   border-color: var(--primary-color);
+}
+
+.tl-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .tl-btn.is-active {
@@ -808,6 +1010,28 @@
   width: 48px;
   flex: none;
   text-align: center;
+}
+
+/* ── 元素区右列控件：两按钮等宽填满 144px 列（(144-4)/2=70px each） */
+.tl-element-section .tl-row-ctrl {
+  justify-self: stretch;
+}
+
+.tl-element-section .tl-row-ctrl > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.tl-element-section .tl-row-ctrl > div > .tl-btn,
+.tl-element-section .tl-row-ctrl > div > .tl-add-btn {
+  width: 100%;
+}
+
+/* ── 元素时间轴操作按钮降高，缩短两小行间距 ─────────── */
+.tl-element-section .tl-row-ctrl .tl-btn,
+.tl-element-section .tl-row-ctrl .tl-add-btn,
+.tl-element-section .tl-row-ctrl .tl-conflict-btn {
+  height: 22px;
 }
 
 /* ── 节奏调整列 ────────────────────────────────────── */

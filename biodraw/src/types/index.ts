@@ -147,6 +147,11 @@ export type SceneObject = {
   pathIds?: Id[];
   animationIds: Id[];
 
+  // 元素出现窗口：currentTimeMs ∈ [appearStartMs, appearEndMs] 时该对象渲染，否则隐藏。
+  // 二者均缺省时视为整段动画都显示。
+  appearStartMs?: number;
+  appearEndMs?: number;
+
   meta?: SceneObjectMeta;
   data?: Record<string, unknown>; // Holds LabelObjectData, ArrowObjectData, etc.
 };

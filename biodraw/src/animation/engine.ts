@@ -215,7 +215,8 @@ export const buildAnimatedPreviewObjects = (
   animations: AnimationClip[],
   currentTimeMs: number,
 ) => {
-  if (animations.length === 0 || currentTimeMs <= 0) return objects;
+  // t=0 默认编辑态：保留全部对象（即使其出现窗口不含 0），方便用户初始化布局。
+  if (currentTimeMs <= 0) return objects;
 
   const clipsByObjectId = new Map<string, AnimationClip[]>();
   for (const clip of animations) {
@@ -224,12 +225,21 @@ export const buildAnimatedPreviewObjects = (
     clipsByObjectId.set(clip.objectId, list);
   }
 
-  return objects.map((obj) => {
+  const result: SceneObject[] = [];
+  for (const obj of objects) {
+    // 出现窗口硬切：currentTimeMs 不在窗口内 → 不输出该对象
+    const startMs = obj.appearStartMs ?? 0;
+    const endMs = obj.appearEndMs ?? Infinity;
+    if (currentTimeMs < startMs || currentTimeMs > endMs) continue;
+
     const clips = (clipsByObjectId.get(obj.id) || [])
       .filter((clip) => clip.type !== 'stateChange')
       .sort((a, b) => a.startTimeMs - b.startTimeMs);
 
-    if (clips.length === 0) return obj;
+    if (clips.length === 0) {
+      result.push(obj);
+      continue;
+    }
 
     let next = obj;
     for (const clip of clips) {
@@ -239,6 +249,7 @@ export const buildAnimatedPreviewObjects = (
         next = applyClip(next, clip.startTimeMs + Math.max(1, clip.durationMs), clip);
       }
     }
-    return next;
-  });
+    result.push(next);
+  }
+  return result;
 };

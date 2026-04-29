@@ -15,7 +15,6 @@ const clampPositive = (value: number, fallback: number) => {
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const clampBezierY = (value: number) => Math.max(-2, Math.min(2, value));
-const clampTimelineZoom = (value: number) => Math.max(50, Math.min(400, value));
 const SNAP_DISTANCE_PX = 8;
 const CONFLICT_DOMAIN_ORDER = ['position', 'opacity', 'scale', 'rotation', 'state'];
 
@@ -200,15 +199,28 @@ export function TimelinePanel() {
   const [flashClipId, setFlashClipId] = useState<string | null>(null);
   const [cursorSnapGuideMs, setCursorSnapGuideMs] = useState<number | null>(null);
   const [isCursorDragging, setIsCursorDragging] = useState(false);
-  const [timelineZoomPercent, setTimelineZoomPercent] = useState(100);
+  const [timelineZoom, setTimelineZoom] = useState(100);
   const [batchSelectedClipIds, setBatchSelectedClipIds] = useState<string[]>([]);
   const [batchDurationInput, setBatchDurationInput] = useState('');
   const [batchEasingInput, setBatchEasingInput] = useState<AnimationClip['easing'] | ''>('');
   const [batchEnabledInput, setBatchEnabledInput] = useState<'' | 'enabled' | 'disabled'>('');
   const clipCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const clipTrackRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const overallTrackRef = useRef<HTMLDivElement>(null);
+  const elementTrackRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
   useNumberInputWheelEdit(panelRef);
+
+  // 元素出现窗口拖拽态
+  const [windowDragState, setWindowDragState] = useState<{
+    mode: 'move' | 'resize-start' | 'resize-end';
+    objectId: string;
+    offsetMs: number;
+    fixedStartMs: number;
+    fixedEndMs: number;
+    previewStartMs: number;
+    previewEndMs: number;
+  } | null>(null);
   const [dragState, setDragState] = useState<{
     clipId: string;
     mode: 'move' | 'resize-start' | 'resize-end';
@@ -223,7 +235,6 @@ export function TimelinePanel() {
   const [expandedClipId, setExpandedClipId] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showBatchPanel, setShowBatchPanel] = useState(false);
-  const [showAdvancedEasing, setShowAdvancedEasing] = useState(false);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyTargetIds, setCopyTargetIds] = useState<string[]>([]);
   const addMenuRef = useRef<HTMLDivElement>(null);
@@ -239,6 +250,7 @@ export function TimelinePanel() {
   const setGlobalDurationMs = useEditorStore((s) => s.setGlobalDurationMs);
   const setCurrentTimeMs = useEditorStore((s) => s.setCurrentTimeMs);
   const pause = useEditorStore((s) => s.pause);
+  const updateSceneObject = useEditorStore((s) => s.updateSceneObject);
   const addAnimationClip = useEditorStore((s) => s.addAnimationClip);
   const updateAnimationClip = useEditorStore((s) => s.updateAnimationClip);
   const removeAnimationClip = useEditorStore((s) => s.removeAnimationClip);
@@ -586,24 +598,14 @@ export function TimelinePanel() {
     updateAnimationClip(clip.id, { easing: buildBezierEasingValue(pts[0], pts[1], pts[2], pts[3]) });
   };
 
-  // ── 时间轴光标
-  const handleCursorChange = (rawValue: string) => {
-    ensurePausedForEdit();
-    const parsed = parseInt(rawValue, 10);
-    if (Number.isNaN(parsed)) return;
-    const snap = getCursorSnapResult(parsed);
-    setCurrentTimeMs(snap.value);
-    setCursorSnapGuideMs(snap.snapped ? snap.value : null);
-  };
-
   // ── 时间轴标尺刻度计算 ───────────────────────────────────────
   const rulerIntervalMs = useMemo(() => {
-    const trackWidthPx = 600 * (timelineZoomPercent / 100);
+    const trackWidthPx = 600 * (timelineZoom / 100);
     const msPerPx = globalDurationMs / Math.max(1, trackWidthPx);
     const rawIntervalMs = msPerPx * 80;
     const niceIntervals = [100, 200, 250, 500, 1000, 2000, 5000, 10000, 30000];
     return niceIntervals.find((v) => v >= rawIntervalMs) ?? 30000;
-  }, [globalDurationMs, timelineZoomPercent]);
+  }, [globalDurationMs, timelineZoom]);
 
   const rulerTicks = useMemo(() => {
     const ticks: number[] = [];
@@ -630,6 +632,63 @@ export function TimelinePanel() {
     const snap = getCursorSnapResult(Math.round(ratio * globalDurationMs));
     setCurrentTimeMs(snap.value);
     setCursorSnapGuideMs(snap.snapped ? snap.value : null);
+  };
+
+  // 总时间轴 scrub：mousedown 起点定位 + 拖拽持续更新
+  const startOverallScrub = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const trackEl = overallTrackRef.current;
+    if (!trackEl) return;
+    ensurePausedForEdit();
+    setIsCursorDragging(true);
+    const apply = (clientX: number) => {
+      const rect = trackEl.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      const snap = getCursorSnapResult(Math.round(ratio * globalDurationMs));
+      setCurrentTimeMs(snap.value);
+      setCursorSnapGuideMs(snap.snapped ? snap.value : null);
+    };
+    apply(event.clientX);
+    const onMove = (e: MouseEvent) => apply(e.clientX);
+    const onUp = () => {
+      setIsCursorDragging(false);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    event.preventDefault();
+  };
+
+  // 元素出现窗口拖拽
+  const startWindowDrag = (
+    mode: 'move' | 'resize-start' | 'resize-end',
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    if (event.button !== 0) return;
+    if (!selectedObject) return;
+    const trackEl = elementTrackRef.current;
+    if (!trackEl) return;
+    const rect = trackEl.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const startMs = selectedObject.appearStartMs ?? 0;
+    const endMs = selectedObject.appearEndMs ?? globalDurationMs;
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const pointerMs = ratio * globalDurationMs;
+    const offsetMs = mode === 'resize-end' ? pointerMs - endMs : pointerMs - startMs;
+    ensurePausedForEdit();
+    setWindowDragState({
+      mode,
+      objectId: selectedObject.id,
+      offsetMs,
+      fixedStartMs: startMs,
+      fixedEndMs: endMs,
+      previewStartMs: startMs,
+      previewEndMs: endMs,
+    });
+    event.preventDefault();
+    event.stopPropagation();
   };
 
   // ── 拖拽逻辑（保持原有完整实现）
@@ -746,6 +805,55 @@ export function TimelinePanel() {
     return () => { window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp); };
   }, [animations, dragState, globalDurationMs, selectedObjectClips, setGlobalDurationMs, updateAnimationClip, playbackStatus, pause]);
 
+  // 元素出现窗口拖拽：mousemove + mouseup
+  useEffect(() => {
+    if (!windowDragState) return;
+    const handleMove = (e: MouseEvent) => {
+      const trackEl = elementTrackRef.current;
+      if (!trackEl) return;
+      const rect = trackEl.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const pointerMs = Math.round(ratio * globalDurationMs);
+      const safeMax = Math.max(0, globalDurationMs);
+      setWindowDragState((p) => {
+        if (!p) return p;
+        if (p.mode === 'move') {
+          const len = p.fixedEndMs - p.fixedStartMs;
+          const rawStart = pointerMs - p.offsetMs;
+          const ns = Math.max(0, Math.min(safeMax - len, Math.round(rawStart)));
+          return { ...p, previewStartMs: ns, previewEndMs: ns + len };
+        }
+        if (p.mode === 'resize-start') {
+          const ns = Math.max(0, Math.min(p.previewEndMs - 1, Math.round(pointerMs - p.offsetMs)));
+          return { ...p, previewStartMs: ns };
+        }
+        const ne = Math.max(p.previewStartMs + 1, Math.min(safeMax, Math.round(pointerMs - p.offsetMs)));
+        return { ...p, previewEndMs: ne };
+      });
+    };
+    const handleUp = () => {
+      const next = windowDragState;
+      if (next) {
+        const ns = Math.max(0, Math.min(globalDurationMs, next.previewStartMs));
+        const ne = Math.max(ns + 1, Math.min(globalDurationMs, next.previewEndMs));
+        const target = objects.find((o) => o.id === next.objectId);
+        const curStart = target?.appearStartMs ?? 0;
+        const curEnd = target?.appearEndMs ?? globalDurationMs;
+        if (target && (curStart !== ns || curEnd !== ne)) {
+          updateSceneObject(next.objectId, { appearStartMs: ns, appearEndMs: ne });
+        }
+      }
+      setWindowDragState(null);
+    };
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+    };
+  }, [windowDragState, globalDurationMs, objects, updateSceneObject]);
+
   // 关闭添加菜单（点击外部）
   useEffect(() => {
     if (!showAddMenu) return;
@@ -769,8 +877,6 @@ export function TimelinePanel() {
     return () => window.removeEventListener('mousedown', handler);
   }, [showCopyDialog]);
 
-  // 切换展开片段时重置高级缓动面板
-  useEffect(() => { setShowAdvancedEasing(false); }, [expandedClipId]);
 
   // 同步当前展开的 move/moveAlongPath 片段到 store，供画布路径叠加层使用
   useEffect(() => {
@@ -794,101 +900,107 @@ export function TimelinePanel() {
   return (
     <section className="tl-panel" ref={panelRef}>
 
-      {/* ── 顶部控制栏 ── */}
-      <div className="tl-header">
-        <div className="tl-header-item">
-          <span className="tl-label">总时长</span>
+      {/* ── 行 1：动画时间轴（顶部） ── */}
+      <div className="tl-overall-row">
+        <span className="tl-overall-label">动画时间轴</span>
+        <div
+          className="tl-overall-track"
+          ref={overallTrackRef}
+          onMouseDown={startOverallScrub}
+        >
+          {rulerTicks.map((ms) => {
+            const pct = globalDurationMs > 0 ? (ms / globalDurationMs) * 100 : 0;
+            return (
+              <div key={ms} className="tl-overall-tick" style={{ left: `${pct}%` }}>
+                <div className="tl-overall-tick-line" />
+                <span className="tl-overall-tick-label">
+                  {ms >= 1000 ? `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s` : `${ms}ms`}
+                </span>
+              </div>
+            );
+          })}
+          <div className="tl-overall-playhead" style={{ left: cursorPercent }} />
+          {isCursorDragging && (
+            <div className="tl-overall-badge" style={{ left: cursorPercent }}>
+              {cursorTimeLabel}
+            </div>
+          )}
+        </div>
+        <div className="tl-row-ctrl">
+          <span className="tl-time-display">{(currentTimeMs / 1000).toFixed(2)}s</span>
+          <span className="tl-row-divider" />
+          <span className="tl-label">动画时长</span>
           <input
-            className="tl-input-sm"
+            className="tl-input-sm tl-input-nospin"
             type="number"
             min={1000}
             value={globalDurationMs}
             onChange={(e) => { ensurePausedForEdit(); setGlobalDurationMs(parseInt(e.target.value || '1000', 10)); }}
+            style={{ width: 40 }}
           />
           <span className="tl-unit">ms</span>
         </div>
+      </div>
 
-        <div className="tl-header-item tl-header-cursor">
-          <span className="tl-time-display">
-            {(currentTimeMs / 1000).toFixed(2)}s / {(globalDurationMs / 1000).toFixed(2)}s
-          </span>
-          <div className="tl-cursor-wrap">
-            <input
-              type="range"
-              min={0}
-              max={globalDurationMs}
-              value={currentTimeMs}
-              className="tl-cursor-range"
-              onChange={(e) => handleCursorChange(e.target.value)}
-              onMouseDown={() => setIsCursorDragging(true)}
-              onTouchStart={() => setIsCursorDragging(true)}
-              onBlur={() => setIsCursorDragging(false)}
-            />
-            {isCursorDragging && (
-              <div className="tl-cursor-badge" style={{ left: cursorPercent }}>
-                {cursorTimeLabel}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="tl-header-item">
-          <span className="tl-label">缩放</span>
-          <input
-            type="range"
-            min={50}
-            max={400}
-            step={10}
-            value={timelineZoomPercent}
-            className="tl-zoom-range"
-            onChange={(e) => {
-              const v = parseInt(e.target.value, 10);
-              if (!Number.isNaN(v)) setTimelineZoomPercent(clampTimelineZoom(v));
-            }}
-          />
-          <span className="tl-zoom-val">{timelineZoomPercent}%</span>
+      {/* ── 行 2：元素分布轴（所有元素的出现窗口缩略带） ── */}
+      <div className="tl-overall-thumbs-row">
+        <span className="tl-overall-label">元素分布轴</span>
+        <div className="tl-overall-thumbs" data-tooltip="后续将在此显示所有元素的出现窗口缩略带">
+          <span>元素出现窗口缩略带（待完善）</span>
         </div>
       </div>
 
-      {/* ── 主体 ── */}
-      {!selectedObject ? (
-        <div className="tl-placeholder">选中画布上的对象，即可在此处管理动画片段<br/><span style={{fontSize:11,opacity:0.6}}>也可在右侧检查器「动画片段」区域快速添加</span></div>
-      ) : (
-        <div className="tl-body">
+      {/* ── 第二大行：元素时间轴区块（仅选中元素时显示） ── */}
+      {selectedObject && (() => {
+        const winStart = windowDragState?.objectId === selectedObject.id
+          ? windowDragState.previewStartMs
+          : (selectedObject.appearStartMs ?? 0);
+        const winEnd = windowDragState?.objectId === selectedObject.id
+          ? windowDragState.previewEndMs
+          : (selectedObject.appearEndMs ?? globalDurationMs);
+        const safeT = Math.max(1, globalDurationMs);
+        const leftPct = `${Math.max(0, Math.min(100, (winStart / safeT) * 100))}%`;
+        const widthPct = `${Math.max(0, Math.min(100, ((winEnd - winStart) / safeT) * 100))}%`;
+        const isWindowDragging = !!windowDragState && windowDragState.objectId === selectedObject.id;
+        return (
+          <div className="tl-element-section">
 
-          {/* 对象操作栏 */}
-          <div className="tl-object-bar">
-            <span className="tl-object-name" data-tooltip={selectedObject.name || selectedObject.id}>
-              {selectedObject.name || '未命名对象'}
-            </span>
-            <div className="tl-object-actions">
-              {/* 冲突警告 */}
+            {/* 左列 行1：标签 */}
+            <span className="tl-overall-label">元素时间轴</span>
+
+            {/* 中列：轨道（grid-row 1/3，跨两行） */}
+            <div className="tl-element-track" ref={elementTrackRef}>
+              <div
+                className={`tl-element-window${isWindowDragging ? ' is-dragging' : ''}`}
+                style={{ left: leftPct, width: widthPct }}
+                onMouseDown={(e) => startWindowDrag('move', e)}
+              >
+                <div className="tl-element-handle-l" onMouseDown={(e) => startWindowDrag('resize-start', e)} />
+                <div className="tl-element-handle-r" onMouseDown={(e) => startWindowDrag('resize-end', e)} />
+                <span className="tl-element-window-label">
+                  {(winStart / 1000).toFixed(2)}s ~ {(winEnd / 1000).toFixed(2)}s
+                </span>
+              </div>
+              <span className="tl-element-tick tl-element-tick-start">0s</span>
+              <span className="tl-element-tick tl-element-tick-end">
+                {(globalDurationMs / 1000).toFixed(globalDurationMs % 1000 === 0 ? 0 : 1)}s
+              </span>
+              <div className="tl-element-playhead" style={{ left: cursorPercent }} />
+            </div>
+
+            {/* 右列 行1：操作按钮 */}
+            <div className="tl-row-ctrl">
               {conflictMeta.ids.size > 0 && (
                 <button className="tl-conflict-btn" onClick={autoResolveConflicts} data-tooltip={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
                   ⚠ {conflictMeta.ids.size} 个冲突 · 修复
                 </button>
               )}
-
-              {/* 批量操作开关 */}
-              {selectedObjectClips.length > 0 && (
-                <button
-                  className={`tl-btn${showBatchPanel ? ' is-active' : ''}`}
-                  onClick={() => setShowBatchPanel((p) => !p)}
-                >
-                  批量
-                </button>
-              )}
-
-              {/* 复制动画到其他对象 */}
-              {selectedObjectClips.length > 0 && objects.length > 1 && (
-                <div style={{ position: 'relative' }} ref={copyDialogRef}>
+              <div style={{ position: 'relative' }} ref={copyDialogRef}>
                   <button
                     className={`tl-btn${showCopyDialog ? ' is-active' : ''}`}
+                    disabled={selectedObjectClips.length === 0 || objects.length <= 1}
                     data-tooltip="将当前对象的所有动画片段复制到其他对象"
-                    onClick={() => {
-                      setCopyTargetIds([]);
-                      setShowCopyDialog((p) => !p);
-                    }}
+                    onClick={() => { setCopyTargetIds([]); setShowCopyDialog((p) => !p); }}
                   >
                     复制动画
                   </button>
@@ -899,38 +1011,28 @@ export function TimelinePanel() {
                       borderRadius: 6, padding: '8px', minWidth: 180,
                       boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
                     }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>
-                        选择目标对象
-                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>选择目标对象</div>
                       <div style={{ maxHeight: 160, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                        {objects
-                          .filter((o) => o.id !== selectedObject.id)
-                          .map((o) => (
-                            <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '3px 4px', borderRadius: 6, fontSize: 12 }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
-                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={copyTargetIds.includes(o.id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
-                                  else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
-                                }}
-                              />
-                              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {o.name || '未命名'}
-                              </span>
-                            </label>
-                          ))}
+                        {objects.filter((o) => o.id !== selectedObject.id).map((o) => (
+                          <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '3px 4px', borderRadius: 6, fontSize: 12 }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={copyTargetIds.includes(o.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
+                                else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
+                              }}
+                            />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name || '未命名'}</span>
+                          </label>
+                        ))}
                       </div>
                       <button
                         disabled={copyTargetIds.length === 0}
-                        onClick={() => {
-                          copyAnimationClipsToObjects(selectedObject.id, copyTargetIds);
-                          setShowCopyDialog(false);
-                          setCopyTargetIds([]);
-                        }}
+                        onClick={() => { copyAnimationClipsToObjects(selectedObject.id, copyTargetIds); setShowCopyDialog(false); setCopyTargetIds([]); }}
                         style={{
                           marginTop: 8, width: '100%', padding: '5px 0',
                           background: copyTargetIds.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
@@ -944,32 +1046,21 @@ export function TimelinePanel() {
                     </div>
                   )}
                 </div>
-              )}
-
-              {/* 添加动画下拉 */}
               <div className="tl-add-wrap" ref={addMenuRef}>
-                <button className="tl-add-btn" onClick={() => setShowAddMenu((p) => !p)}>
-                  ＋ 添加动画
-                </button>
+                <button className="tl-add-btn" onClick={() => setShowAddMenu((p) => !p)}>添加动画</button>
                 {showAddMenu && (
                   <div className="tl-add-menu">
                     <div className="tl-add-menu-section">基础动画</div>
                     <div className="tl-add-menu-grid">
-                      {(
-                        [
-                          { type: 'move', label: '移动' },
-                          { type: 'moveAlongPath', label: '曲线移动' },
-                          { type: 'fade', label: '淡入淡出' },
-                          { type: 'scale', label: '缩放' },
-                          { type: 'rotate', label: '旋转' },
-                          { type: 'shake', label: '抖动' },
-                        ] as const
-                      ).map((item) => (
-                        <button
-                          key={item.type}
-                          className="tl-add-menu-item"
-                          onClick={() => { createClip(item.type); setShowAddMenu(false); }}
-                        >
+                      {([
+                        { type: 'move', label: '移动' },
+                        { type: 'moveAlongPath', label: '曲线移动' },
+                        { type: 'fade', label: '淡入淡出' },
+                        { type: 'scale', label: '缩放' },
+                        { type: 'rotate', label: '旋转' },
+                        { type: 'shake', label: '抖动' },
+                      ] as const).map((item) => (
+                        <button key={item.type} className="tl-add-menu-item" onClick={() => { createClip(item.type); setShowAddMenu(false); }}>
                           <span className={`tl-type-dot tl-type-${item.type}`} />
                           {item.label}
                         </button>
@@ -977,37 +1068,25 @@ export function TimelinePanel() {
                     </div>
                     <div className="tl-add-menu-section">通用模板</div>
                     <div className="tl-add-menu-grid">
-                      {(
-                        [
-                          { key: 'fadeIn', label: '淡入' },
-                          { key: 'bounceIn', label: '弹跳进入' },
-                          { key: 'moveFadeIn', label: '平移淡入' },
-                          { key: 'fadeOut', label: '淡出消失' },
-                          { key: 'moveFadeOut', label: '移动消失' },
-                        ] as const
-                      ).map((item) => (
-                        <button
-                          key={item.key}
-                          className="tl-add-menu-item tl-add-menu-template"
-                          onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}
-                        >
+                      {([
+                        { key: 'fadeIn', label: '淡入' },
+                        { key: 'bounceIn', label: '弹跳进入' },
+                        { key: 'moveFadeIn', label: '平移淡入' },
+                        { key: 'fadeOut', label: '淡出消失' },
+                        { key: 'moveFadeOut', label: '移动消失' },
+                      ] as const).map((item) => (
+                        <button key={item.key} className="tl-add-menu-item tl-add-menu-template" onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}>
                           {item.label}
                         </button>
                       ))}
                     </div>
                     <div className="tl-add-menu-section">生物场景</div>
                     <div className="tl-add-menu-grid">
-                      {(
-                        [
-                          { key: 'crossMembrane', label: '跨膜移动' },
-                          { key: 'endocytosis', label: '胞吞入胞' },
-                        ] as const
-                      ).map((item) => (
-                        <button
-                          key={item.key}
-                          className="tl-add-menu-item tl-add-menu-template tl-add-menu-bio"
-                          onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}
-                        >
+                      {([
+                        { key: 'crossMembrane', label: '跨膜移动' },
+                        { key: 'endocytosis', label: '胞吞入胞' },
+                      ] as const).map((item) => (
+                        <button key={item.key} className="tl-add-menu-item tl-add-menu-template tl-add-menu-bio" onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}>
                           {item.label}
                         </button>
                       ))}
@@ -1016,7 +1095,33 @@ export function TimelinePanel() {
                 )}
               </div>
             </div>
+
+            {/* 左列 行2：元素名称 */}
+            <span className="tl-overall-label" data-tooltip={selectedObject.name || selectedObject.id}>
+              {selectedObject.name || '未命名对象'}
+            </span>
+
+            {/* 右列 行2：缩放滑块 */}
+            <div className="tl-zoom-ctrl">
+              <input
+                type="range"
+                className="tl-zoom-range"
+                min={50} max={300} step={10}
+                value={timelineZoom}
+                onChange={(e) => setTimelineZoom(parseInt(e.target.value))}
+              />
+              <span className="tl-zoom-val">{timelineZoom}%</span>
+            </div>
+
           </div>
+        );
+      })()}
+
+      {/* ── 主体 ── */}
+      {!selectedObject ? (
+        <div className="tl-placeholder">选中画布上的对象，即可在此处管理动画片段<br/><span style={{fontSize:11,opacity:0.6}}>也可在右侧检查器「动画片段」区域快速添加</span></div>
+      ) : (
+        <div className="tl-body">
 
           {/* 批量编辑面板（可折叠） */}
           {showBatchPanel && (
@@ -1059,38 +1164,9 @@ export function TimelinePanel() {
           {/* 片段列表 */}
           <div className="tl-clip-list">
 
-            {/* 时间轴标尺 */}
-            <div
-              style={{
-                position: 'relative', height: 20, flexShrink: 0,
-                borderBottom: '1px solid var(--border-color)',
-                overflow: 'hidden', fontSize: 10,
-                color: 'var(--text-muted)', userSelect: 'none',
-              }}
-              onClick={seekByTrackClick}
-            >
-              {rulerTicks.map((ms) => {
-                const pct = globalDurationMs > 0 ? (ms / globalDurationMs) * 100 : 0;
-                return (
-                  <div key={ms} style={{ position: 'absolute', left: `${pct}%`, top: 0, bottom: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
-                    <div style={{ width: 1, height: 6, background: 'var(--border-color)', flexShrink: 0 }} />
-                    <span style={{ fontSize: 9, lineHeight: '14px', whiteSpace: 'nowrap', transform: 'translateX(-50%)' }}>
-                      {ms >= 1000 ? `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s` : `${ms}ms`}
-                    </span>
-                  </div>
-                );
-              })}
-              {/* 播放头线 */}
-              <div style={{
-                position: 'absolute', top: 0, bottom: 0, width: 1,
-                background: 'var(--primary-color, #3b82f6)', pointerEvents: 'none',
-                left: `${globalDurationMs > 0 ? (currentTimeMs / globalDurationMs) * 100 : 0}%`,
-              }} />
-            </div>
-
             {selectedObjectClips.length === 0 ? (
               <div className="tl-placeholder tl-placeholder-sm">
-                点击上方「＋ 添加动画」，或在右侧检查器快速添加
+                点击上方「添加动画」，或在右侧检查器快速添加
               </div>
             ) : (
               displayObjectClips.map((clip) => {
@@ -1148,7 +1224,7 @@ export function TimelinePanel() {
                       <div className="tl-track-scroll">
                         <div
                           className="tl-track"
-                          style={{ width: `${timelineZoomPercent}%` }}
+                          style={{ width: `${timelineZoom}%` }}
                           onClick={seekByTrackClick}
                           ref={(node) => { if (node) clipTrackRefs.current.set(clip.id, node); else clipTrackRefs.current.delete(clip.id); }}
                         >
