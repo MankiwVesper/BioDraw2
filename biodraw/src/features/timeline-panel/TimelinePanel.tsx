@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
@@ -209,6 +209,18 @@ export function TimelinePanel() {
   const overallTrackRef = useRef<HTMLDivElement>(null);
   const elementTrackRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+  const zoomCleanupRef = useRef<(() => void) | null>(null);
+  const zoomCtrlRef = useCallback((el: HTMLDivElement | null) => {
+    zoomCleanupRef.current?.();
+    zoomCleanupRef.current = null;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      setTimelineZoom(prev => Math.max(50, Math.min(300, prev + (e.deltaY < 0 ? 10 : -10))));
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    zoomCleanupRef.current = () => el.removeEventListener('wheel', handler);
+  }, []);
   useNumberInputWheelEdit(panelRef);
 
   // 元素出现窗口拖拽态
@@ -929,16 +941,15 @@ export function TimelinePanel() {
         <div className="tl-row-ctrl">
           <span className="tl-time-display">{(currentTimeMs / 1000).toFixed(2)}s</span>
           <span className="tl-row-divider" />
-          <span className="tl-label">动画时长</span>
+          <span className="tl-label">动画时长/ms</span>
           <input
             className="tl-input-sm tl-input-nospin"
             type="number"
             min={1000}
             value={globalDurationMs}
             onChange={(e) => { ensurePausedForEdit(); setGlobalDurationMs(parseInt(e.target.value || '1000', 10)); }}
-            style={{ width: 40 }}
+            style={{ width: 50 }}
           />
-          <span className="tl-unit">ms</span>
         </div>
       </div>
 
@@ -963,12 +974,13 @@ export function TimelinePanel() {
         const widthPct = `${Math.max(0, Math.min(100, ((winEnd - winStart) / safeT) * 100))}%`;
         const isWindowDragging = !!windowDragState && windowDragState.objectId === selectedObject.id;
         return (
-          <div className="tl-element-section">
+          <>
+          <div className="tl-element-track-row">
 
-            {/* 左列 行1：标签 */}
+            {/* 左列：标签 */}
             <span className="tl-overall-label">元素时间轴</span>
 
-            {/* 中列：轨道（grid-row 1/3，跨两行） */}
+            {/* 中列：轨道 */}
             <div className="tl-element-track" ref={elementTrackRef}>
               <div
                 className={`tl-element-window${isWindowDragging ? ' is-dragging' : ''}`}
@@ -1096,24 +1108,29 @@ export function TimelinePanel() {
               </div>
             </div>
 
-            {/* 左列 行2：元素名称 */}
+          </div>
+          <div className="tl-element-zoom-row">
+
+            {/* 左列：元素名称 */}
             <span className="tl-overall-label" data-tooltip={selectedObject.name || selectedObject.id}>
               {selectedObject.name || '未命名对象'}
             </span>
 
-            {/* 右列 行2：缩放滑块 */}
-            <div className="tl-zoom-ctrl">
+            {/* 右列：缩放滑块 */}
+            <div className="tl-zoom-ctrl" ref={zoomCtrlRef}>
               <input
                 type="range"
                 className="tl-zoom-range"
                 min={50} max={300} step={10}
                 value={timelineZoom}
+                style={{ '--fill': `${((timelineZoom - 50) / 250) * 100}%` } as CSSProperties}
                 onChange={(e) => setTimelineZoom(parseInt(e.target.value))}
               />
               <span className="tl-zoom-val">{timelineZoom}%</span>
             </div>
 
           </div>
+          </>
         );
       })()}
 

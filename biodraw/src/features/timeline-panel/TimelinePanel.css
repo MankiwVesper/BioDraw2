@@ -55,19 +55,74 @@
 .tl-zoom-range {
   flex: 1;
   min-width: 0;
+  height: 22px;          /* 撑满行高，避免 thumb 溢出 layout box 导致偏上 */
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  outline: none;
+  cursor: pointer;
+}
+.tl-zoom-range::-webkit-slider-runnable-track {
+  height: 3px;
+  background: linear-gradient(
+    to right,
+    var(--primary-color) var(--fill, 20%),
+    var(--border-color)  var(--fill, 20%)
+  );
+  border-radius: 2px;
+}
+.tl-zoom-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -3.5px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+  border: none;
+  transition: box-shadow 0.12s ease;
+}
+.tl-zoom-range:hover::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+.tl-zoom-range:active::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-color) 35%, transparent);
+}
+.tl-zoom-range::-moz-range-track {
+  height: 3px;
+  background: var(--border-color);
+  border-radius: 2px;
+}
+.tl-zoom-range::-moz-range-progress {
+  height: 3px;
+  background: var(--primary-color);
+  border-radius: 2px;
+}
+.tl-zoom-range::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
+  border: none;
+  transition: box-shadow 0.12s ease;
+}
+.tl-zoom-range:hover::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 25%, transparent);
 }
 
 .tl-zoom-val {
   font-size: 11px;
   color: var(--text-muted);
-  min-width: 36px;
-  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── 动画时间轴（顶部一行） ──────────────────────── */
 .tl-overall-row {
   display: grid;
-  grid-template-columns: 62px 1fr 144px;
+  grid-template-columns: 62px 1fr 154px;
   column-gap: 8px;
   align-items: center;
   padding: 5px 12px 5px 12px;
@@ -105,6 +160,13 @@
   justify-self: end;
 }
 
+/* 动画时间轴行：stretch 填满 col3，justify-end 保证 input 贴右，| 两侧均匀 4px */
+.tl-overall-row .tl-row-ctrl {
+  justify-self: stretch;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
 .tl-row-divider {
   width: 1px;
   height: 12px;
@@ -115,7 +177,7 @@
 /* 缩略带行：与上行对齐 */
 .tl-overall-thumbs-row {
   display: grid;
-  grid-template-columns: 62px 1fr 144px;
+  grid-template-columns: 62px 1fr 154px;
   column-gap: 8px;
   align-items: center;
   padding: 4px 12px 6px 12px;
@@ -190,31 +252,36 @@
   background: transparent;
 }
 
-/* ── 第二大行：三列网格布局 ──────────────────────
-   左列(72px)：上=元素时间轴标签 / 下=元素名称
-   中列(1fr) ：轨道，跨上下两行
-   右列(auto)：上=操作按钮 / 下=缩放滑块
-   ─────────────────────────────────────────────── */
-.tl-element-section {
+/* ── 第二大行：元素时间轴行 ──────────────────────── */
+.tl-element-track-row {
   display: grid;
-  grid-template-columns: 62px 1fr 144px;
-  grid-template-rows: auto auto;
+  grid-template-columns: 62px 1fr 154px;
   column-gap: 8px;
-  padding: 5px 12px 5px 12px;
+  align-items: center;
+  padding: 5px 12px;
+  background: var(--panel-bg);
+  flex-shrink: 0;
+}
+
+/* ── 第二大行：元素名称 + 缩放行 ─────────────────── */
+.tl-element-zoom-row {
+  display: grid;
+  grid-template-columns: 62px 1fr 154px;
+  column-gap: 8px;
+  align-items: center;
+  padding: 4px 12px 6px;
   border-bottom: 1px solid var(--border-color);
   background: var(--panel-bg);
   flex-shrink: 0;
-  align-items: center;
 }
-
-.tl-element-track-row { display: contents; }
-.tl-element-info-row  { display: contents; }
 
 .tl-zoom-ctrl {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   grid-column: 3;
+  justify-self: stretch;
+  align-self: center;
 }
 
 .tl-element-label {
@@ -1012,25 +1079,25 @@
   text-align: center;
 }
 
-/* ── 元素区右列控件：两按钮等宽填满 144px 列（(144-4)/2=70px each） */
-.tl-element-section .tl-row-ctrl {
+/* ── 元素时间轴行右列控件：两按钮等宽填满 154px 列 */
+.tl-element-track-row .tl-row-ctrl {
   justify-self: stretch;
 }
 
-.tl-element-section .tl-row-ctrl > div {
+.tl-element-track-row .tl-row-ctrl > div {
   flex: 1;
   min-width: 0;
 }
 
-.tl-element-section .tl-row-ctrl > div > .tl-btn,
-.tl-element-section .tl-row-ctrl > div > .tl-add-btn {
+.tl-element-track-row .tl-row-ctrl > div > .tl-btn,
+.tl-element-track-row .tl-row-ctrl > div > .tl-add-btn {
   width: 100%;
 }
 
-/* ── 元素时间轴操作按钮降高，缩短两小行间距 ─────────── */
-.tl-element-section .tl-row-ctrl .tl-btn,
-.tl-element-section .tl-row-ctrl .tl-add-btn,
-.tl-element-section .tl-row-ctrl .tl-conflict-btn {
+/* ── 元素时间轴操作按钮降高 ──────────────────────── */
+.tl-element-track-row .tl-row-ctrl .tl-btn,
+.tl-element-track-row .tl-row-ctrl .tl-add-btn,
+.tl-element-track-row .tl-row-ctrl .tl-conflict-btn {
   height: 22px;
 }
 
