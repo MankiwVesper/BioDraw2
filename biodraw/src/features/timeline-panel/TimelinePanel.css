@@ -637,6 +637,108 @@
   background: rgba(59, 130, 246, 0.15);
 }
 
+/* ── 批量面板 - 片段列表 ────────────────────────────── */
+.tl-batch-clip-list {
+  max-height: 144px;
+  overflow-y: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 0;
+}
+
+.tl-batch-clip-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tl-batch-clip-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tl-batch-clip-list::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
+
+.tl-batch-clip-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color);
+  transition: background 0.1s;
+}
+
+.tl-batch-clip-item:last-child {
+  border-bottom: none;
+}
+
+.tl-batch-clip-item:hover {
+  background: rgba(59, 130, 246, 0.04);
+}
+
+.tl-batch-clip-item.is-selected {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+/* ── 批量面板 - 自定义下拉 ──────────────────────────── */
+.tl-batch-select {
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 6px;
+  font-size: 11px;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s;
+}
+
+.tl-batch-select:hover {
+  border-color: var(--primary-color);
+}
+
+.tl-batch-select-arrow {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  margin-left: 2px;
+  display: block;
+}
+
+.tl-batch-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 300;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.tl-batch-option {
+  padding: 4px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: background 0.1s;
+}
+
+.tl-batch-option:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.tl-batch-option.is-active {
+  color: var(--primary-color);
+  background: rgba(59, 130, 246, 0.06);
+}
+
 /* ── 片段列表 ──────────────────────────────────────── */
 .tl-clip-list {
   display: flex;

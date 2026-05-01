@@ -39,6 +39,20 @@ const CLIP_TYPE_LABELS: Record<string, string> = {
 
 const getClipTypeLabel = (type: string) => CLIP_TYPE_LABELS[type] ?? type;
 
+const BATCH_EASING_OPTS: Array<{ value: AnimationClip['easing'] | ''; label: string }> = [
+  { value: '', label: '不修改' },
+  { value: 'linear', label: '线性' },
+  { value: 'ease-in', label: '缓入' },
+  { value: 'ease-out', label: '缓出' },
+  { value: 'ease-in-out', label: '缓入缓出' },
+];
+
+const BATCH_STATE_OPTS: Array<{ value: '' | 'enabled' | 'disabled'; label: string }> = [
+  { value: '', label: '不修改' },
+  { value: 'enabled', label: '启用' },
+  { value: 'disabled', label: '禁用' },
+];
+
 // ── 纯函数工具 ───────────────────────────────────────────────
 
 const findPresetByValue = (value: string) =>
@@ -201,9 +215,12 @@ export function TimelinePanel() {
   const [isCursorDragging, setIsCursorDragging] = useState(false);
   const [timelineZoom, setTimelineZoom] = useState(100);
   const [batchSelectedClipIds, setBatchSelectedClipIds] = useState<string[]>([]);
+  const [batchStartInput, setBatchStartInput] = useState('');
   const [batchDurationInput, setBatchDurationInput] = useState('');
   const [batchEasingInput, setBatchEasingInput] = useState<AnimationClip['easing'] | ''>('');
   const [batchEnabledInput, setBatchEnabledInput] = useState<'' | 'enabled' | 'disabled'>('');
+  const [batchEasingDropOpen, setBatchEasingDropOpen] = useState(false);
+  const [batchStateDropOpen, setBatchStateDropOpen] = useState(false);
   const clipCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const clipTrackRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const overallTrackRef = useRef<HTMLDivElement>(null);
@@ -252,6 +269,8 @@ export function TimelinePanel() {
   const addMenuRef = useRef<HTMLDivElement>(null);
   const copyDialogRef = useRef<HTMLDivElement>(null);
   const batchPanelRef = useRef<HTMLDivElement>(null);
+  const batchEasingDropRef = useRef<HTMLDivElement>(null);
+  const batchStateDropRef = useRef<HTMLDivElement>(null);
 
   // ── Store 订阅
   const objects = useEditorStore((s) => s.objects);
@@ -503,13 +522,18 @@ export function TimelinePanel() {
 
   const applyBatchEdits = () => {
     if (selectedBatchClips.length === 0) return;
+    const rawStart = batchStartInput.trim();
+    const hasStart = rawStart.length > 0;
+    const parsedStart = hasStart ? parseInt(rawStart, 10) : NaN;
+    if (hasStart && Number.isNaN(parsedStart)) return;
     const rawDuration = batchDurationInput.trim();
     const hasDuration = rawDuration.length > 0;
     const parsedDuration = hasDuration ? parseInt(rawDuration, 10) : NaN;
     if (hasDuration && Number.isNaN(parsedDuration)) return;
     const hasEasing = batchEasingInput !== '';
     const hasEnabled = batchEnabledInput !== '';
-    if (!hasDuration && !hasEasing && !hasEnabled) return;
+    if (!hasStart && !hasDuration && !hasEasing && !hasEnabled) return;
+    const nextStart = hasStart ? Math.max(0, parsedStart) : null;
     const nextDuration = hasDuration ? clampPositive(parsedDuration, 1000) : null;
     const nextEnabled = hasEnabled ? batchEnabledInput === 'enabled' : null;
     const nextEasing = hasEasing ? batchEasingInput : null;
@@ -517,11 +541,15 @@ export function TimelinePanel() {
     let maxEnd = globalDurationMs, lastId: string | null = null;
     for (const clip of selectedBatchClips) {
       const upd: Partial<AnimationClip> = {};
-      if (nextDuration !== null && clip.durationMs !== nextDuration) { upd.durationMs = nextDuration; maxEnd = Math.max(maxEnd, clip.startTimeMs + nextDuration); }
+      const effectiveStart = nextStart !== null ? nextStart : clip.startTimeMs;
+      const effectiveDuration = nextDuration !== null ? nextDuration : clip.durationMs;
+      if (nextStart !== null && clip.startTimeMs !== nextStart) upd.startTimeMs = nextStart;
+      if (nextDuration !== null && clip.durationMs !== nextDuration) upd.durationMs = nextDuration;
       if (nextEasing && (clip.easing || 'linear') !== nextEasing) upd.easing = nextEasing;
       const clipEnabled = clip.enabled !== false;
       if (nextEnabled !== null && clipEnabled !== nextEnabled) upd.enabled = nextEnabled;
       if (Object.keys(upd).length === 0) continue;
+      maxEnd = Math.max(maxEnd, effectiveStart + effectiveDuration);
       updateAnimationClip(clip.id, upd);
       lastId = clip.id;
     }
@@ -902,6 +930,21 @@ export function TimelinePanel() {
     return () => window.removeEventListener('mousedown', handler);
   }, [showBatchPanel]);
 
+  // 点击下拉容器外部时收起下拉
+  useEffect(() => {
+    if (!batchEasingDropOpen && !batchStateDropOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (batchEasingDropOpen && batchEasingDropRef.current && !batchEasingDropRef.current.contains(e.target as Node)) {
+        setBatchEasingDropOpen(false);
+      }
+      if (batchStateDropOpen && batchStateDropRef.current && !batchStateDropRef.current.contains(e.target as Node)) {
+        setBatchStateDropOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [batchEasingDropOpen, batchStateDropOpen]);
+
 
   // 同步当前展开的 move/moveAlongPath 片段到 store，供画布路径叠加层使用
   useEffect(() => {
@@ -1148,71 +1191,122 @@ export function TimelinePanel() {
                   <div style={{
                     position: 'absolute', top: '100%', right: 0, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
-                    borderRadius: 6, padding: '8px 10px', width: 264,
+                    borderRadius: 6, padding: 8, width: 240, height: 160,
                     boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                    display: 'flex', flexDirection: 'row', boxSizing: 'border-box',
                   }}>
-                    {/* 标题行 */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
-                        已选 {selectedBatchClips.length} / {selectedObjectClips.length} 个片段
-                      </span>
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="tl-btn tl-btn-sm" onClick={() => setBatchSelectedClipIds(selectedObjectClips.map((c) => c.id))}>全选</button>
-                        <button className="tl-btn tl-btn-sm" onClick={() => setBatchSelectedClipIds([])}>清空</button>
+
+                    {/* ── 左列：全选/清空 + 片段列表 ── */}
+                    <div style={{ width: 108, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                      <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginBottom: 4 }}>
+                        <button className="tl-btn tl-btn-sm" style={{ flex: 1 }} onClick={() => setBatchSelectedClipIds(selectedObjectClips.map((c) => c.id))}>全选</button>
+                        <button className="tl-btn tl-btn-sm" style={{ flex: 1 }} onClick={() => setBatchSelectedClipIds([])}>清空</button>
+                      </div>
+                      <div style={{ borderTop: '1px solid var(--border-color)', flexShrink: 0, marginBottom: 4 }} />
+                      <div className="tl-batch-clip-list" style={{ flex: 1, maxHeight: 'none', minHeight: 0 }}>
+                        {selectedObjectClips.map((clip) => {
+                          const isSel = batchSelectedClipIdSet.has(clip.id);
+                          return (
+                            <div
+                              key={clip.id}
+                              className={`tl-batch-clip-item${isSel ? ' is-selected' : ''}`}
+                              onClick={() => toggleBatchClipSelection(clip.id, !isSel)}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSel}
+                                onChange={(e) => toggleBatchClipSelection(clip.id, e.target.checked)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{ margin: 0, cursor: 'pointer', flexShrink: 0 }}
+                              />
+                              <span className={`tl-type-dot tl-type-${clip.type}`} />
+                              <span style={{ flex: 1, fontSize: 11, color: clip.enabled === false ? 'var(--text-muted)' : 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {getClipTypeLabel(clip.type)}
+                              </span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                    {/* 字段行 */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>时长(ms)</span>
+
+                    {/* ── 竖向分隔线 ── */}
+                    <div style={{ width: 1, background: 'var(--border-color)', margin: '0 8px', flexShrink: 0 }} />
+
+                    {/* ── 右列：字段 + 应用按钮 ── */}
+                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      {/* 缓动 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, width: 23 }}>缓动</span>
+                        <div ref={batchEasingDropRef} style={{ width: 72, flexShrink: 0, position: 'relative' }}>
+                          <div className="tl-batch-select" onClick={() => { setBatchEasingDropOpen((p) => !p); setBatchStateDropOpen(false); }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BATCH_EASING_OPTS.find((o) => o.value === batchEasingInput)?.label ?? '不修改'}</span>
+                            <svg className="tl-batch-select-arrow" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M1 1L4 4L7 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                          {batchEasingDropOpen && (
+                            <div className="tl-batch-dropdown">
+                              {BATCH_EASING_OPTS.map((opt) => (
+                                <div key={opt.value} className={`tl-batch-option${batchEasingInput === opt.value ? ' is-active' : ''}`} onClick={() => { setBatchEasingInput(opt.value); setBatchEasingDropOpen(false); }}>
+                                  {opt.label}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {/* 状态 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, width: 23 }}>状态</span>
+                        <div ref={batchStateDropRef} style={{ width: 72, flexShrink: 0, position: 'relative' }}>
+                          <div className="tl-batch-select" onClick={() => { setBatchStateDropOpen((p) => !p); setBatchEasingDropOpen(false); }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{BATCH_STATE_OPTS.find((o) => o.value === batchEnabledInput)?.label ?? '不修改'}</span>
+                            <svg className="tl-batch-select-arrow" width="8" height="5" viewBox="0 0 8 5" fill="none"><path d="M1 1L4 4L7 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </div>
+                          {batchStateDropOpen && (
+                            <div className="tl-batch-dropdown">
+                              {BATCH_STATE_OPTS.map((opt) => (
+                                <div key={opt.value} className={`tl-batch-option${batchEnabledInput === opt.value ? ' is-active' : ''}`} onClick={() => { setBatchEnabledInput(opt.value); setBatchStateDropOpen(false); }}>
+                                  {opt.label}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {/* 开始 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, width: 23 }}>开始</span>
                         <input
-                          type="number" min={1} value={batchDurationInput} placeholder="不修改"
-                          onChange={(e) => setBatchDurationInput(e.target.value)}
-                          style={{ height: 22, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', padding: '0 4px', background: 'var(--bg-color)', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                          type="number" min={0} value={batchStartInput} placeholder="—"
+                          onChange={(e) => setBatchStartInput(e.target.value)}
+                          style={{ width: 72, flexShrink: 0, height: 24, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', padding: '0 4px', background: 'var(--bg-color)', color: 'var(--text-main)', boxSizing: 'border-box' }}
                         />
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>缓动</span>
-                        <select
-                          value={batchEasingInput}
-                          onChange={(e) => setBatchEasingInput(e.target.value as AnimationClip['easing'] | '')}
-                          style={{ height: 22, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)' }}
-                        >
-                          <option value="">不修改</option>
-                          <option value="linear">线性</option>
-                          <option value="ease-in">缓入</option>
-                          <option value="ease-out">缓出</option>
-                          <option value="ease-in-out">缓入缓出</option>
-                        </select>
-                      </label>
-                      <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>状态</span>
-                        <select
-                          value={batchEnabledInput}
-                          onChange={(e) => setBatchEnabledInput(e.target.value as '' | 'enabled' | 'disabled')}
-                          style={{ height: 22, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)' }}
-                        >
-                          <option value="">不修改</option>
-                          <option value="enabled">启用</option>
-                          <option value="disabled">禁用</option>
-                        </select>
-                      </label>
+                      </div>
+                      {/* 时长 */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, width: 23 }}>时长</span>
+                        <input
+                          type="number" min={1} value={batchDurationInput} placeholder="—"
+                          onChange={(e) => setBatchDurationInput(e.target.value)}
+                          style={{ width: 72, flexShrink: 0, height: 24, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', padding: '0 4px', background: 'var(--bg-color)', color: 'var(--text-main)', boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      {/* 应用按钮（推到底部） */}
+                      <button
+                        disabled={selectedBatchClips.length === 0}
+                        onClick={() => { applyBatchEdits(); setShowBatchPanel(false); }}
+                        style={{
+                          marginTop: 'auto', width: '100%', height: 26,
+                          background: selectedBatchClips.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
+                          color: selectedBatchClips.length === 0 ? 'var(--text-muted)' : '#fff',
+                          border: selectedBatchClips.length === 0 ? '1px solid var(--border-color)' : 'none',
+                          borderRadius: 5, cursor: selectedBatchClips.length === 0 ? 'not-allowed' : 'pointer',
+                          fontSize: 11, fontWeight: 600,
+                        }}
+                      >
+                        应用{selectedBatchClips.length > 0 ? `（${selectedBatchClips.length}）` : '修改'}
+                      </button>
                     </div>
-                    {/* 应用按钮 */}
-                    <button
-                      disabled={selectedBatchClips.length === 0}
-                      onClick={() => { applyBatchEdits(); setShowBatchPanel(false); }}
-                      style={{
-                        width: '100%', height: 24,
-                        background: selectedBatchClips.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
-                        color: selectedBatchClips.length === 0 ? 'var(--text-muted)' : '#fff',
-                        border: 'none', borderRadius: 5,
-                        cursor: selectedBatchClips.length === 0 ? 'not-allowed' : 'pointer',
-                        fontSize: 11, fontWeight: 600,
-                      }}
-                    >
-                      应用修改{selectedBatchClips.length > 0 ? `（${selectedBatchClips.length} 个）` : ''}
-                    </button>
+
                   </div>
                 )}
               </div>
@@ -1328,15 +1422,6 @@ export function TimelinePanel() {
                       {/* col3：时长 + 批量选中 + 启用 + 删除 + 展开箭头 */}
                       <div className="tl-clip-ctrl">
                         <span className="tl-clip-dur">{effDuration}ms</span>
-                        {showBatchPanel && (
-                          <label className="tl-clip-check" onClick={(e) => e.stopPropagation()} data-tooltip="批量选中">
-                            <input
-                              type="checkbox"
-                              checked={isBatchSelected}
-                              onChange={(e) => toggleBatchClipSelection(clip.id, e.target.checked)}
-                            />
-                          </label>
-                        )}
                         <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
                           <input
                             type="checkbox"
