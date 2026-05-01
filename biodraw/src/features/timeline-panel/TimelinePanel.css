@@ -283,6 +283,24 @@
   flex-shrink: 0;
 }
 
+.tl-zoom-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  grid-column: 2;
+  justify-self: end;
+  align-self: center;
+}
+
+.tl-element-zoom-row .tl-btn,
+.tl-element-zoom-row .tl-conflict-btn {
+  height: 22px;
+}
+
+.tl-element-zoom-row .tl-btn {
+  width: 75px;
+}
+
 .tl-zoom-ctrl {
   display: flex;
   align-items: center;

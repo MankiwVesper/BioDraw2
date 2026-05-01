@@ -251,6 +251,7 @@ export function TimelinePanel() {
   const [copyTargetIds, setCopyTargetIds] = useState<string[]>([]);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const copyDialogRef = useRef<HTMLDivElement>(null);
+  const batchPanelRef = useRef<HTMLDivElement>(null);
 
   // ── Store 订阅
   const objects = useEditorStore((s) => s.objects);
@@ -889,6 +890,18 @@ export function TimelinePanel() {
     return () => window.removeEventListener('mousedown', handler);
   }, [showCopyDialog]);
 
+  // 关闭批量修改弹窗（点击外部）
+  useEffect(() => {
+    if (!showBatchPanel) return;
+    const handler = (e: MouseEvent) => {
+      if (batchPanelRef.current && !batchPanelRef.current.contains(e.target as Node)) {
+        setShowBatchPanel(false);
+      }
+    };
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [showBatchPanel]);
+
 
   // 同步当前展开的 move/moveAlongPath 片段到 store，供画布路径叠加层使用
   useEffect(() => {
@@ -1007,11 +1020,6 @@ export function TimelinePanel() {
 
             {/* 右列 行1：操作按钮 */}
             <div className="tl-row-ctrl">
-              {conflictMeta.ids.size > 0 && (
-                <button className="tl-conflict-btn" onClick={autoResolveConflicts} data-tooltip={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
-                  ⚠ {conflictMeta.ids.size} 个冲突 · 修复
-                </button>
-              )}
               <div style={{ position: 'relative' }} ref={copyDialogRef}>
                   <button
                     className={`tl-btn${showCopyDialog ? ' is-active' : ''}`}
@@ -1024,7 +1032,7 @@ export function TimelinePanel() {
                   {showCopyDialog && (
                     <div style={{
                       position: 'absolute', top: '100%', right: 0, zIndex: 200,
-                      background: 'var(--bg-panel)', border: '1px solid var(--border-color)',
+                      background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                       borderRadius: 6, padding: '8px', minWidth: 180,
                       boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
                     }}>
@@ -1121,6 +1129,95 @@ export function TimelinePanel() {
               {selectedObject.name || '未命名对象'}
             </span>
 
+            {/* 中列：冲突修复 + 批量修改 */}
+            <div className="tl-zoom-row-actions">
+              {conflictMeta.ids.size > 0 && (
+                <button className="tl-conflict-btn" onClick={autoResolveConflicts} data-tooltip={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
+                  ⚠ {conflictMeta.ids.size} 个冲突 · 修复
+                </button>
+              )}
+              <div style={{ position: 'relative' }} ref={batchPanelRef}>
+                <button
+                  className={`tl-btn${showBatchPanel ? ' is-active' : ''}`}
+                  onClick={() => setShowBatchPanel((p) => !p)}
+                  data-tooltip="批量修改选中的动画片段"
+                >
+                  批量修改
+                </button>
+                {showBatchPanel && (
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, zIndex: 200,
+                    background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
+                    borderRadius: 6, padding: '8px 10px', width: 264,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                  }}>
+                    {/* 标题行 */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>
+                        已选 {selectedBatchClips.length} / {selectedObjectClips.length} 个片段
+                      </span>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="tl-btn tl-btn-sm" onClick={() => setBatchSelectedClipIds(selectedObjectClips.map((c) => c.id))}>全选</button>
+                        <button className="tl-btn tl-btn-sm" onClick={() => setBatchSelectedClipIds([])}>清空</button>
+                      </div>
+                    </div>
+                    {/* 字段行 */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 8 }}>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>时长(ms)</span>
+                        <input
+                          type="number" min={1} value={batchDurationInput} placeholder="不修改"
+                          onChange={(e) => setBatchDurationInput(e.target.value)}
+                          style={{ height: 22, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', padding: '0 4px', background: 'var(--bg-color)', color: 'var(--text-main)', width: '100%', boxSizing: 'border-box' }}
+                        />
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>缓动</span>
+                        <select
+                          value={batchEasingInput}
+                          onChange={(e) => setBatchEasingInput(e.target.value as AnimationClip['easing'] | '')}
+                          style={{ height: 22, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)' }}
+                        >
+                          <option value="">不修改</option>
+                          <option value="linear">线性</option>
+                          <option value="ease-in">缓入</option>
+                          <option value="ease-out">缓出</option>
+                          <option value="ease-in-out">缓入缓出</option>
+                        </select>
+                      </label>
+                      <label style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>状态</span>
+                        <select
+                          value={batchEnabledInput}
+                          onChange={(e) => setBatchEnabledInput(e.target.value as '' | 'enabled' | 'disabled')}
+                          style={{ height: 22, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', background: 'var(--bg-color)', color: 'var(--text-main)' }}
+                        >
+                          <option value="">不修改</option>
+                          <option value="enabled">启用</option>
+                          <option value="disabled">禁用</option>
+                        </select>
+                      </label>
+                    </div>
+                    {/* 应用按钮 */}
+                    <button
+                      disabled={selectedBatchClips.length === 0}
+                      onClick={() => { applyBatchEdits(); setShowBatchPanel(false); }}
+                      style={{
+                        width: '100%', height: 24,
+                        background: selectedBatchClips.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
+                        color: selectedBatchClips.length === 0 ? 'var(--text-muted)' : '#fff',
+                        border: 'none', borderRadius: 5,
+                        cursor: selectedBatchClips.length === 0 ? 'not-allowed' : 'pointer',
+                        fontSize: 11, fontWeight: 600,
+                      }}
+                    >
+                      应用修改{selectedBatchClips.length > 0 ? `（${selectedBatchClips.length} 个）` : ''}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* 右列：缩放滑块 */}
             <div className="tl-zoom-ctrl" ref={zoomCtrlRef}>
               <input
@@ -1144,44 +1241,6 @@ export function TimelinePanel() {
         <div className="tl-placeholder">选中画布上的对象，即可在此处管理动画片段<br/><span style={{fontSize:11,opacity:0.6}}>也可在右侧检查器「动画片段」区域快速添加</span></div>
       ) : (
         <div className="tl-body">
-
-          {/* 批量编辑面板（可折叠） */}
-          {showBatchPanel && (
-            <div className="tl-batch-panel">
-              <div className="tl-batch-header">
-                <span>批量编辑：已选 {selectedBatchClips.length} / {selectedObjectClips.length} 个片段</span>
-                <div className="tl-batch-header-actions">
-                  <button className="tl-btn tl-btn-sm" onClick={() => setBatchSelectedClipIds(selectedObjectClips.map((c) => c.id))}>全选</button>
-                  <button className="tl-btn tl-btn-sm" onClick={() => setBatchSelectedClipIds([])}>清空</button>
-                </div>
-              </div>
-              <div className="tl-batch-fields">
-                <label className="tl-detail-label">
-                  时长(ms)
-                  <input type="number" min={1} value={batchDurationInput} placeholder="不修改" onChange={(e) => setBatchDurationInput(e.target.value)} />
-                </label>
-                <label className="tl-detail-label">
-                  缓动
-                  <select value={batchEasingInput} onChange={(e) => setBatchEasingInput(e.target.value as AnimationClip['easing'] | '')}>
-                    <option value="">不修改</option>
-                    <option value="linear">线性</option>
-                    <option value="ease-in">缓入</option>
-                    <option value="ease-out">缓出</option>
-                    <option value="ease-in-out">缓入缓出</option>
-                  </select>
-                </label>
-                <label className="tl-detail-label">
-                  状态
-                  <select value={batchEnabledInput} onChange={(e) => setBatchEnabledInput(e.target.value as '' | 'enabled' | 'disabled')}>
-                    <option value="">不修改</option>
-                    <option value="enabled">启用</option>
-                    <option value="disabled">禁用</option>
-                  </select>
-                </label>
-                <button className="tl-apply-btn" onClick={applyBatchEdits}>应用</button>
-              </div>
-            </div>
-          )}
 
           {/* 片段列表 */}
           <div className="tl-clip-list">
