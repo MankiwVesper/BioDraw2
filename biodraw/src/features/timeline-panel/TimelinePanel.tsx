@@ -920,12 +920,17 @@ export function TimelinePanel() {
           ref={overallTrackRef}
           onMouseDown={startOverallScrub}
         >
-          {rulerTicks.map((ms) => {
+          {rulerTicks.map((ms, idx) => {
             const pct = globalDurationMs > 0 ? (ms / globalDurationMs) * 100 : 0;
+            const labelStyle = idx === 0
+              ? { transform: 'translateX(4px)' }
+              : idx === rulerTicks.length - 1
+                ? { transform: 'translateX(calc(-100% - 4px))' }
+                : undefined;
             return (
               <div key={ms} className="tl-overall-tick" style={{ left: `${pct}%` }}>
                 <div className="tl-overall-tick-line" />
-                <span className="tl-overall-tick-label">
+                <span className="tl-overall-tick-label" style={labelStyle}>
                   {ms >= 1000 ? `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s` : `${ms}ms`}
                 </span>
               </div>
@@ -1226,18 +1231,18 @@ export function TimelinePanel() {
                       className="tl-clip-row"
                       onClick={() => setExpandedClipId(isExpanded ? null : clip.id)}
                     >
-                      {/* 类型色点 */}
-                      <span className={`tl-type-dot tl-type-${clip.type}`} data-tooltip={getClipTypeLabel(clip.type)} />
+                      {/* col1：类型色点 + 类型名 */}
+                      <div className="tl-clip-label">
+                        <span className={`tl-type-dot tl-type-${clip.type}`} data-tooltip={getClipTypeLabel(clip.type)} />
+                        <span className="tl-clip-type-name">
+                          {getClipTypeLabel(clip.type)}
+                          {isConflict && (
+                            <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
+                          )}
+                        </span>
+                      </div>
 
-                      {/* 类型名 */}
-                      <span className="tl-clip-type-name">
-                        {getClipTypeLabel(clip.type)}
-                        {isConflict && (
-                          <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
-                        )}
-                      </span>
-
-                      {/* 轨道条 */}
+                      {/* col2：轨道条 */}
                       <div className="tl-track-scroll">
                         <div
                           className="tl-track"
@@ -1261,40 +1266,34 @@ export function TimelinePanel() {
                         </div>
                       </div>
 
-                      {/* 时长 */}
-                      <span className="tl-clip-dur">{effDuration}ms</span>
-
-                      {/* 批量选中 */}
-                      {showBatchPanel && (
-                        <label className="tl-clip-check" onClick={(e) => e.stopPropagation()} data-tooltip="批量选中">
+                      {/* col3：时长 + 批量选中 + 启用 + 删除 + 展开箭头 */}
+                      <div className="tl-clip-ctrl">
+                        <span className="tl-clip-dur">{effDuration}ms</span>
+                        {showBatchPanel && (
+                          <label className="tl-clip-check" onClick={(e) => e.stopPropagation()} data-tooltip="批量选中">
+                            <input
+                              type="checkbox"
+                              checked={isBatchSelected}
+                              onChange={(e) => toggleBatchClipSelection(clip.id, e.target.checked)}
+                            />
+                          </label>
+                        )}
+                        <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
                           <input
                             type="checkbox"
-                            checked={isBatchSelected}
-                            onChange={(e) => toggleBatchClipSelection(clip.id, e.target.checked)}
+                            checked={clip.enabled !== false}
+                            onChange={(e) => { ensurePausedForEdit(); updateAnimationClip(clip.id, { enabled: e.target.checked }); }}
                           />
                         </label>
-                      )}
-
-                      {/* 启用开关 */}
-                      <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
-                        <input
-                          type="checkbox"
-                          checked={clip.enabled !== false}
-                          onChange={(e) => { ensurePausedForEdit(); updateAnimationClip(clip.id, { enabled: e.target.checked }); }}
-                        />
-                      </label>
-
-                      {/* 删除 */}
-                      <button
-                        className="tl-clip-del"
-                        data-tooltip="删除片段"
-                        onClick={(e) => { e.stopPropagation(); ensurePausedForEdit(); removeAnimationClip(clip.id); }}
-                      >
-                        ✕
-                      </button>
-
-                      {/* 展开箭头 */}
-                      <span className="tl-clip-arrow">{isExpanded ? '▲' : '▼'}</span>
+                        <button
+                          className="tl-clip-del"
+                          data-tooltip="删除片段"
+                          onClick={(e) => { e.stopPropagation(); ensurePausedForEdit(); removeAnimationClip(clip.id); }}
+                        >
+                          ✕
+                        </button>
+                        <span className="tl-clip-arrow">{isExpanded ? '▲' : '▼'}</span>
+                      </div>
                     </div>
 
                     {/* ── 展开详情：6列布局 */}

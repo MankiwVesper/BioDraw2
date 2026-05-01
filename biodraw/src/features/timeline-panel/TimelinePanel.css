@@ -125,7 +125,9 @@
   grid-template-columns: 62px 1fr 154px;
   column-gap: 8px;
   align-items: center;
-  padding: 5px 12px 5px 12px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 4px 12px;
   background: var(--panel-bg);
   flex-shrink: 0;
 }
@@ -180,7 +182,9 @@
   grid-template-columns: 62px 1fr 154px;
   column-gap: 8px;
   align-items: center;
-  padding: 4px 12px 6px 12px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 4px 12px;
   border-bottom: 1px solid var(--border-color);
   background: var(--panel-bg);
   flex-shrink: 0;
@@ -258,7 +262,9 @@
   grid-template-columns: 62px 1fr 154px;
   column-gap: 8px;
   align-items: center;
-  padding: 5px 12px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 4px 12px;
   background: var(--panel-bg);
   flex-shrink: 0;
 }
@@ -269,7 +275,9 @@
   grid-template-columns: 62px 1fr 154px;
   column-gap: 8px;
   align-items: center;
-  padding: 4px 12px 6px;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 4px 12px;
   border-bottom: 1px solid var(--border-color);
   background: var(--panel-bg);
   flex-shrink: 0;
@@ -659,10 +667,11 @@
 
 /* ── 紧凑行 ────────────────────────────────────────── */
 .tl-clip-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 56px 1fr 148px;
+  column-gap: 8px;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  padding: 4px 5px;
   cursor: pointer;
   min-height: 32px;
   user-select: none;
@@ -670,6 +679,22 @@
 
 .tl-clip-row:hover {
   background: rgba(15, 23, 42, 0.02);
+}
+
+/* col1：色点 + 类型名 */
+.tl-clip-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+/* col3：时长 + 控件 */
+.tl-clip-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
 }
 
 /* 类型色点 */
@@ -693,8 +718,8 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--text-main);
-  min-width: 60px;
   white-space: nowrap;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 3px;
