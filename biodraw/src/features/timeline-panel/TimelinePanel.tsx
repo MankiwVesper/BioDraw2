@@ -1,4 +1,5 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
@@ -332,7 +333,8 @@ export function TimelinePanel() {
   const distHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleHideDistPopup = useCallback(() => {
-    distHideTimer.current = setTimeout(() => setDistPopup(null), 150);
+    if (distHideTimer.current) clearTimeout(distHideTimer.current);
+    distHideTimer.current = setTimeout(() => setDistPopup(null), 300);
   }, []);
 
   const cancelHideDistPopup = useCallback(() => {
@@ -347,23 +349,29 @@ export function TimelinePanel() {
 
   const distMarkers = useMemo(() => {
     const safeT = Math.max(1, globalDurationMs);
-    const groups = new Map<number, Array<{ id: string; name: string }>>();
+    const groups = new Map<number, Map<string, { name: string; clipCount: number }>>();
     animations.forEach((clip) => {
       const obj = objects.find((o) => o.id === clip.objectId);
       if (!obj) return;
       const t = clip.startTimeMs;
-      if (!groups.has(t)) groups.set(t, []);
-      const arr = groups.get(t)!;
-      if (!arr.find((e) => e.id === obj.id)) arr.push({ id: obj.id, name: obj.name });
+      if (!groups.has(t)) groups.set(t, new Map());
+      const objMap = groups.get(t)!;
+      if (!objMap.has(obj.id)) objMap.set(obj.id, { name: obj.name, clipCount: 0 });
+      objMap.get(obj.id)!.clipCount += 1;
     });
     return Array.from(groups.entries())
       .sort(([a], [b]) => a - b)
-      .map(([timeMs, elements], idx) => ({
-        timeMs,
-        elements,
-        leftPct: Math.min(100, (timeMs / safeT) * 100),
-        color: DIST_COLORS[idx % DIST_COLORS.length],
-      }));
+      .map(([timeMs, objMap], idx) => {
+        const elements = Array.from(objMap.entries()).map(([id, { name, clipCount }]) => ({ id, name, clipCount }));
+        const clipCount = elements.reduce((sum, e) => sum + e.clipCount, 0);
+        return {
+          timeMs,
+          elements,
+          clipCount,
+          leftPct: Math.min(100, (timeMs / safeT) * 100),
+          color: DIST_COLORS[idx % DIST_COLORS.length],
+        };
+      });
   }, [animations, objects, globalDurationMs]);
 
   const selectedBatchClips = useMemo(
@@ -1084,20 +1092,27 @@ export function TimelinePanel() {
               {m.elements.length > 1 && (
                 <span className="tl-dist-marker-count">{m.elements.length}</span>
               )}
+              {m.clipCount > m.elements.length && (
+                <span className="tl-dist-marker-clip-count">{m.clipCount}</span>
+              )}
             </div>
           ))}
           <div className="tl-dist-playhead" style={{ left: cursorPercent }} />
         </div>
         <span className="tl-dist-count">
-          {distMarkers.length > 0 ? `${distMarkers.length} 个事件` : ''}
+          {distMarkers.length > 0 ? (() => {
+            const totalElements = new Set(distMarkers.flatMap((m) => m.elements.map((e) => e.id))).size;
+            const totalClips = distMarkers.reduce((sum, m) => sum + m.clipCount, 0);
+            return `${totalElements} 个元素 ${totalClips} 个动画`;
+          })() : ''}
         </span>
       </div>
 
-      {/* 元素分布轴悬浮弹窗（fixed，不受 overflow 裁剪） */}
+      {/* 元素分布轴悬浮弹窗：portal 至 document.body，完全脱离组件树的 overflow/transform 影响 */}
       {distPopup && (() => {
         const m = distMarkers.find((x) => x.timeMs === distPopup.timeMs);
         if (!m) return null;
-        return (
+        return createPortal(
           <div
             className="tl-dist-popup"
             style={{ left: distPopup.x, top: distPopup.y }}
@@ -1111,10 +1126,12 @@ export function TimelinePanel() {
                 className="tl-dist-popup-item"
                 onClick={() => { selectObject(el.id); setDistPopup(null); }}
               >
-                {el.name}
+                <span>{el.name}</span>
+                <span className="tl-dist-popup-clip-count">{el.clipCount} 个动画</span>
               </div>
             ))}
-          </div>
+          </div>,
+          document.body,
         );
       })()}
 
