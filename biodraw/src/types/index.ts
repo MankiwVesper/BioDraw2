@@ -115,6 +115,12 @@ export type SceneObjectMeta = {
   notes?: string;
 };
 
+export type AppearSegment = {
+  id: Id;
+  startMs: number;
+  endMs: number;
+};
+
 export type SceneObject = {
   id: Id;
   type: SceneObjectType;
@@ -147,10 +153,15 @@ export type SceneObject = {
   pathIds?: Id[];
   animationIds: Id[];
 
-  // 元素出现窗口：currentTimeMs ∈ [appearStartMs, appearEndMs] 时该对象渲染，否则隐藏。
-  // 二者均缺省时视为整段动画都显示。
+  // 元素出现窗口（旧版单段语义，保留以兼容旧场景）：
+  // currentTimeMs ∈ [appearStartMs, appearEndMs] 时该对象渲染。
   appearStartMs?: number;
   appearEndMs?: number;
+
+  // 元素出现段集合（多段语义）：currentTimeMs 落入任一段则渲染。
+  // 优先级：appearSegments > appearStartMs/appearEndMs > 整段显示。
+  // 段之间不允许重叠；保持 startMs < endMs。
+  appearSegments?: AppearSegment[];
 
   meta?: SceneObjectMeta;
   data?: Record<string, unknown>; // Holds LabelObjectData, ArrowObjectData, etc.
@@ -221,6 +232,8 @@ export type AnimationClipBase = {
   durationMs: number;
   easing?: EasingType;
   enabled?: boolean;
+  // 所属元素出现段 id；缺省时表示未绑定（旧数据或临时态），运行时可按时间归属推断。
+  segmentId?: Id;
 };
 
 export type NumericKeyframe = {

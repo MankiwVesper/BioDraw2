@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { AnimationClip, SceneObject } from '../types';
+import type { AnimationClip, AppearSegment, SceneObject } from '../types';
 
 const MAX_HISTORY = 50;
 
@@ -95,6 +95,10 @@ interface EditorState {
   updateAnimationClip: (id: string, updates: Partial<AnimationClip>) => void;
   removeAnimationClip: (id: string) => void;
   copyAnimationClipsToObjects: (sourceObjectId: string, targetObjectIds: string[]) => void;
+
+  addAppearSegment: (objectId: string, segment: AppearSegment) => void;
+  removeAppearSegments: (objectId: string, segmentIds: string[]) => void;
+  updateAppearSegment: (objectId: string, segmentId: string, updates: { startMs?: number; endMs?: number }) => void;
   setGlobalDurationMs: (durationMs: number) => void;
   setCurrentTimeMs: (timeMs: number) => void;
   play: () => void;
@@ -125,6 +129,7 @@ interface EditorState {
   expandedAnimationClipId: string | null;
   setExpandedAnimationClipId: (id: string | null) => void;
   patchAnimationClipSilent: (id: string, updates: Partial<AnimationClip>) => void;
+  materializeAppearSegmentsSilent: (objectId: string, fallbackEndMs: number) => void;
 
   hasUnsavedChanges: boolean;
   currentFileName: string | null;
@@ -211,8 +216,16 @@ export const useEditorStore = create<EditorState>()(
     addSceneObject: (obj) =>
       set((state) => {
         pushHistory(state);
-        state.objects.push(obj);
-        state.selectedIds = [obj.id];
+        const next: SceneObject = { ...obj };
+        if (!next.appearSegments || next.appearSegments.length === 0) {
+          next.appearSegments = [{
+            id: crypto.randomUUID(),
+            startMs: 0,
+            endMs: state.globalDurationMs,
+          }];
+        }
+        state.objects.push(next);
+        state.selectedIds = [next.id];
       }),
 
     removeSceneObject: (id) =>
@@ -397,11 +410,69 @@ export const useEditorStore = create<EditorState>()(
               ...cloneDeep(clip),
               id: crypto.randomUUID(),
               objectId: targetId,
+              // 不沿用源对象的 segmentId（目标对象的段集合不同）；若需要落入段内由调用方后续 clamp。
+              segmentId: undefined,
             };
             state.animations.push(newClip);
             targetObj.animationIds = Array.from(
               new Set([...(targetObj.animationIds || []), newClip.id]),
             );
+          }
+        }
+      }),
+
+    addAppearSegment: (objectId, segment) =>
+      set((state) => {
+        const obj = state.objects.find((o) => o.id === objectId);
+        if (!obj) return;
+        pushHistory(state);
+        const list = obj.appearSegments ? [...obj.appearSegments] : [];
+        list.push({ ...segment });
+        list.sort((a, b) => a.startMs - b.startMs);
+        obj.appearSegments = list;
+      }),
+
+    removeAppearSegments: (objectId, segmentIds) =>
+      set((state) => {
+        if (segmentIds.length === 0) return;
+        const obj = state.objects.find((o) => o.id === objectId);
+        if (!obj || !obj.appearSegments) return;
+        const idSet = new Set(segmentIds);
+        pushHistory(state);
+        obj.appearSegments = obj.appearSegments.filter((s) => !idSet.has(s.id));
+        // 连带删除归属这些段的动画片段
+        const removedClipIds = new Set(
+          state.animations
+            .filter((a) => a.objectId === objectId && a.segmentId !== undefined && idSet.has(a.segmentId))
+            .map((a) => a.id),
+        );
+        if (removedClipIds.size > 0) {
+          state.animations = state.animations.filter((a) => !removedClipIds.has(a.id));
+          obj.animationIds = (obj.animationIds || []).filter((cid) => !removedClipIds.has(cid));
+        }
+      }),
+
+    updateAppearSegment: (objectId, segmentId, updates) =>
+      set((state) => {
+        const obj = state.objects.find((o) => o.id === objectId);
+        if (!obj || !obj.appearSegments) return;
+        const idx = obj.appearSegments.findIndex((s) => s.id === segmentId);
+        if (idx === -1) return;
+        pushHistory(state);
+        const next = { ...obj.appearSegments[idx] };
+        if (updates.startMs !== undefined) next.startMs = updates.startMs;
+        if (updates.endMs !== undefined) next.endMs = updates.endMs;
+        obj.appearSegments[idx] = next;
+        obj.appearSegments.sort((a, b) => a.startMs - b.startMs);
+        // 段范围变化后，将归属此段的 clip 时间夹入新范围。
+        for (let i = 0; i < state.animations.length; i += 1) {
+          const c = state.animations[i];
+          if (c.objectId !== objectId || c.segmentId !== segmentId) continue;
+          const newStart = Math.max(next.startMs, Math.min(next.endMs - 1, c.startTimeMs));
+          const newEnd = Math.min(next.endMs, Math.max(newStart + 1, c.startTimeMs + c.durationMs));
+          const newDur = Math.max(1, newEnd - newStart);
+          if (newStart !== c.startTimeMs || newDur !== c.durationMs) {
+            state.animations[i] = { ...c, startTimeMs: newStart, durationMs: newDur };
           }
         }
       }),
@@ -667,6 +738,11 @@ export const useEditorStore = create<EditorState>()(
           x: src.x + 20,
           y: src.y + 20,
           animationIds: [],
+          // 段集合需要重新分配 id（避免与源对象段 id 冲突，便于后续归属判断）
+          appearSegments: (src.appearSegments ?? []).map((s) => ({
+            ...s,
+            id: crypto.randomUUID(),
+          })),
         };
         state.objects.push(newObj);
         state.selectedIds = [newObj.id];
@@ -734,6 +810,19 @@ export const useEditorStore = create<EditorState>()(
         if (idx !== -1) {
           state.animations[idx] = { ...state.animations[idx], ...updates } as AnimationClip;
         }
+      }),
+
+    materializeAppearSegmentsSilent: (objectId, fallbackEndMs) =>
+      set((state) => {
+        const obj = state.objects.find((o) => o.id === objectId);
+        if (!obj) return;
+        if (obj.appearSegments && obj.appearSegments.length > 0) return;
+        // 兼容旧数据：根据 appearStartMs/appearEndMs 落地为单段；都缺省时用 [0, fallback]
+        obj.appearSegments = [{
+          id: crypto.randomUUID(),
+          startMs: obj.appearStartMs ?? 0,
+          endMs: obj.appearEndMs ?? fallbackEndMs,
+        }];
       }),
 
     undo: () =>

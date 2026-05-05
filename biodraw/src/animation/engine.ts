@@ -227,10 +227,17 @@ export const buildAnimatedPreviewObjects = (
 
   const result: SceneObject[] = [];
   for (const obj of objects) {
-    // 出现窗口硬切：currentTimeMs 不在窗口内 → 不输出该对象
-    const startMs = obj.appearStartMs ?? 0;
-    const endMs = obj.appearEndMs ?? Infinity;
-    if (currentTimeMs < startMs || currentTimeMs > endMs) continue;
+    // 出现窗口硬切：优先按多段语义判定，回退到旧版单段语义。
+    if (obj.appearSegments && obj.appearSegments.length > 0) {
+      const inAnySegment = obj.appearSegments.some(
+        (seg) => currentTimeMs >= seg.startMs && currentTimeMs <= seg.endMs,
+      );
+      if (!inAnySegment) continue;
+    } else {
+      const startMs = obj.appearStartMs ?? 0;
+      const endMs = obj.appearEndMs ?? Infinity;
+      if (currentTimeMs < startMs || currentTimeMs > endMs) continue;
+    }
 
     const clips = (clipsByObjectId.get(obj.id) || [])
       .filter((clip) => clip.type !== 'stateChange')
