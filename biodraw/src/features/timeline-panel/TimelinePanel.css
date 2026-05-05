@@ -188,6 +188,7 @@
   border-bottom: 1px solid var(--border-color);
   background: var(--panel-bg);
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .tl-overall-tick {
@@ -242,18 +243,112 @@
   z-index: 10;
 }
 
+/* 轴体：overflow visible 允许三角形向上溢出 */
 .tl-overall-thumbs {
-  flex: 1;
+  position: relative;
   min-width: 0;
   height: 20px;
   border: 1px dashed var(--border-color);
   border-radius: 4px;
-  display: flex;
-  align-items: center;
-  padding: 0 6px;
+  overflow: visible;
+  background: transparent;
+}
+
+/* 内部竖线标记（作为三角形的包含块） */
+.tl-dist-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  cursor: pointer;
+  z-index: 1;
+  overflow: visible;
+}
+
+/* 三角旗：渲染为 marker 的子元素，与 marker 同坐标系，天然对齐
+   left:50% = 1px（marker 中心）；margin-left:-4px 将 border-left 外沿拉到 marker 中心左侧 4px
+   → 视觉中心恰好落在 marker 中心 */
+.tl-dist-tri-flag {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-left: -4px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 6px solid;
+  cursor: pointer;
+}
+
+.tl-dist-marker-count {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 7px;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 0 2px rgba(0,0,0,0.4);
+}
+
+/* 播放头 */
+.tl-dist-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  margin-left: -1px;
+  background: var(--primary-color, #3b82f6);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 悬浮弹窗（fixed：不受任何祖先 overflow 裁剪，x/y 由 inline style 注入视口坐标） */
+.tl-dist-popup {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 6px));
+  z-index: 9999;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 5px 8px;
+  min-width: 80px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+  pointer-events: auto;
+}
+
+.tl-dist-popup-time {
   font-size: 9px;
   color: var(--text-muted);
-  background: transparent;
+  margin-bottom: 3px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.tl-dist-popup-item {
+  font-size: 11px;
+  color: var(--text-main);
+  padding: 2px 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tl-dist-popup-item:hover {
+  color: var(--primary-color, #3b82f6);
+}
+
+/* 右列元素计数 */
+.tl-dist-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  justify-self: end;
+  display: flex;
+  align-items: center;
 }
 
 /* ── 第二大行：元素时间轴行 ──────────────────────── */

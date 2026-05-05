@@ -39,6 +39,14 @@ const CLIP_TYPE_LABELS: Record<string, string> = {
 
 const getClipTypeLabel = (type: string) => CLIP_TYPE_LABELS[type] ?? type;
 
+// 元素分布轴标记颜色（20 种亮丽色轮流取用）
+const DIST_COLORS = [
+  '#FF6B6B', '#FF9F43', '#FECA57', '#48DBFB', '#1DD1A1',
+  '#FF6B81', '#F8B739', '#3DC1D3', '#7BED9F', '#70A1FF',
+  '#FF4757', '#2ED573', '#1E90FF', '#FF6348', '#A29BFE',
+  '#FD79A8', '#00CEC9', '#FF9FF3', '#54A0FF', '#FFDD59',
+];
+
 const BATCH_EASING_OPTS: Array<{ value: AnimationClip['easing'] | ''; label: string }> = [
   { value: '', label: '不修改' },
   { value: 'linear', label: '线性' },
@@ -289,6 +297,7 @@ export function TimelinePanel() {
   const setExpandedAnimationClipId = useEditorStore((s) => s.setExpandedAnimationClipId);
   const copyAnimationClipsToObjects = useEditorStore((s) => s.copyAnimationClipsToObjects);
   const startClipPreview = useEditorStore((s) => s.startClipPreview);
+  const selectObject = useEditorStore((s) => s.selectObject);
 
   // ── 派生状态
   const selectedObject = useMemo(
@@ -317,6 +326,45 @@ export function TimelinePanel() {
   );
 
   const batchSelectedClipIdSet = useMemo(() => new Set(batchSelectedClipIds), [batchSelectedClipIds]);
+
+  // ── 元素分布轴状态
+  const [distPopup, setDistPopup] = useState<{ timeMs: number; x: number; y: number } | null>(null);
+  const distHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleHideDistPopup = useCallback(() => {
+    distHideTimer.current = setTimeout(() => setDistPopup(null), 150);
+  }, []);
+
+  const cancelHideDistPopup = useCallback(() => {
+    if (distHideTimer.current) { clearTimeout(distHideTimer.current); distHideTimer.current = null; }
+  }, []);
+
+  const openDistPopup = useCallback((timeMs: number, el: HTMLElement) => {
+    cancelHideDistPopup();
+    const rect = el.getBoundingClientRect();
+    setDistPopup({ timeMs, x: rect.left + rect.width / 2, y: rect.top });
+  }, [cancelHideDistPopup]);
+
+  const distMarkers = useMemo(() => {
+    const safeT = Math.max(1, globalDurationMs);
+    const groups = new Map<number, Array<{ id: string; name: string }>>();
+    animations.forEach((clip) => {
+      const obj = objects.find((o) => o.id === clip.objectId);
+      if (!obj) return;
+      const t = clip.startTimeMs;
+      if (!groups.has(t)) groups.set(t, []);
+      const arr = groups.get(t)!;
+      if (!arr.find((e) => e.id === obj.id)) arr.push({ id: obj.id, name: obj.name });
+    });
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([timeMs, elements], idx) => ({
+        timeMs,
+        elements,
+        leftPct: Math.min(100, (timeMs / safeT) * 100),
+        color: DIST_COLORS[idx % DIST_COLORS.length],
+      }));
+  }, [animations, objects, globalDurationMs]);
 
   const selectedBatchClips = useMemo(
     () => selectedObjectClips.filter((c) => batchSelectedClipIdSet.has(c.id)),
@@ -1014,13 +1062,61 @@ export function TimelinePanel() {
         </div>
       </div>
 
-      {/* ── 行 2：元素分布轴（所有元素的出现窗口缩略带） ── */}
+      {/* ── 行 2：元素分布轴 ── */}
       <div className="tl-overall-thumbs-row">
         <span className="tl-overall-label">元素分布轴</span>
-        <div className="tl-overall-thumbs" data-tooltip="后续将在此显示所有元素的出现窗口缩略带">
-          <span>元素出现窗口缩略带（待完善）</span>
+        <div className="tl-overall-thumbs">
+          {distMarkers.map((m) => (
+            <div
+              key={m.timeMs}
+              className="tl-dist-marker"
+              style={{ left: `${m.leftPct}%`, backgroundColor: m.color }}
+              onMouseEnter={(e) => openDistPopup(m.timeMs, e.currentTarget)}
+              onMouseLeave={scheduleHideDistPopup}
+            >
+              {/* 三角旗作为 marker 子元素，与 marker 同坐标系，精确对齐 */}
+              <div
+                className="tl-dist-tri-flag"
+                style={{ borderTopColor: m.color }}
+                onMouseEnter={(e) => { cancelHideDistPopup(); openDistPopup(m.timeMs, e.currentTarget.parentElement as HTMLElement); }}
+                onMouseLeave={scheduleHideDistPopup}
+              />
+              {m.elements.length > 1 && (
+                <span className="tl-dist-marker-count">{m.elements.length}</span>
+              )}
+            </div>
+          ))}
+          <div className="tl-dist-playhead" style={{ left: cursorPercent }} />
         </div>
+        <span className="tl-dist-count">
+          {distMarkers.length > 0 ? `${distMarkers.length} 个事件` : ''}
+        </span>
       </div>
+
+      {/* 元素分布轴悬浮弹窗（fixed，不受 overflow 裁剪） */}
+      {distPopup && (() => {
+        const m = distMarkers.find((x) => x.timeMs === distPopup.timeMs);
+        if (!m) return null;
+        return (
+          <div
+            className="tl-dist-popup"
+            style={{ left: distPopup.x, top: distPopup.y }}
+            onMouseEnter={cancelHideDistPopup}
+            onMouseLeave={scheduleHideDistPopup}
+          >
+            <div className="tl-dist-popup-time">{(m.timeMs / 1000).toFixed(2)}s</div>
+            {m.elements.map((el) => (
+              <div
+                key={el.id}
+                className="tl-dist-popup-item"
+                onClick={() => { selectObject(el.id); setDistPopup(null); }}
+              >
+                {el.name}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* ── 第二大行：元素时间轴区块（仅选中元素时显示） ── */}
       {selectedObject && (() => {
