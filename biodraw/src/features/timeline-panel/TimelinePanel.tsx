@@ -402,11 +402,16 @@ export function TimelinePanel() {
     });
   }, [effectiveSegments]);
 
+  useEffect(() => {
+    if (selectedSegmentIds.length !== 1) setShowBatchPanel(false);
+  }, [selectedSegmentIds.length]);
+
   const toggleSegmentSelection = (segId: string, additive: boolean) => {
     setSelectedSegmentIds((prev) => {
       if (additive) {
         return prev.includes(segId) ? prev.filter((id) => id !== segId) : [...prev, segId];
       }
+      if (prev.length === 1 && prev[0] === segId) return [];
       return [segId];
     });
   };
@@ -530,6 +535,13 @@ export function TimelinePanel() {
     () => selectedObjectClips.filter((c) => batchSelectedClipIdSet.has(c.id)),
     [selectedObjectClips, batchSelectedClipIdSet],
   );
+
+  // 选中的批量 clip 中有不属于当前选中段的动画时，禁止统一设置开始时刻
+  const batchStartDisabled = useMemo(() => {
+    if (selectedSegmentIds.length !== 1) return true;
+    const activeSegId = selectedSegmentIds[0];
+    return selectedBatchClips.some((c) => c.segmentId !== activeSegId);
+  }, [selectedBatchClips, selectedSegmentIds]);
 
   const conflictMeta = useMemo(() => {
     const conflictIds = new Set<string>();
@@ -792,8 +804,9 @@ export function TimelinePanel() {
 
   const applyBatchEdits = () => {
     if (selectedBatchClips.length === 0) return;
+    // 开始时刻：跨段选中时忽略
     const rawStart = batchStartInput.trim();
-    const hasStart = rawStart.length > 0;
+    const hasStart = rawStart.length > 0 && !batchStartDisabled;
     const parsedStart = hasStart ? parseInt(rawStart, 10) : NaN;
     if (hasStart && Number.isNaN(parsedStart)) return;
     const rawDuration = batchDurationInput.trim();
@@ -804,7 +817,7 @@ export function TimelinePanel() {
     const hasEnabled = batchEnabledInput !== '';
     if (!hasStart && !hasDuration && !hasEasing && !hasEnabled) return;
     const nextStart = hasStart ? Math.max(0, parsedStart) : null;
-    const nextDuration = hasDuration ? clampPositive(parsedDuration, 1000) : null;
+    const desiredDuration = hasDuration ? clampPositive(parsedDuration, 1000) : null;
     const nextEnabled = hasEnabled ? batchEnabledInput === 'enabled' : null;
     const nextEasing = hasEasing ? batchEasingInput : null;
     ensurePausedForEdit();
@@ -812,9 +825,19 @@ export function TimelinePanel() {
     for (const clip of selectedBatchClips) {
       const upd: Partial<AnimationClip> = {};
       const effectiveStart = nextStart !== null ? nextStart : clip.startTimeMs;
-      const effectiveDuration = nextDuration !== null ? nextDuration : clip.durationMs;
+      // 时长：若超出所属段范围则铺满该段（从该动画开始时刻到段末尾）
+      let effectiveDuration = clip.durationMs;
+      if (desiredDuration !== null) {
+        const seg = effectiveSegments.find((s) => s.id === clip.segmentId);
+        if (seg) {
+          const maxDur = Math.max(1, seg.endMs - effectiveStart);
+          effectiveDuration = Math.min(desiredDuration, maxDur);
+        } else {
+          effectiveDuration = desiredDuration;
+        }
+      }
       if (nextStart !== null && clip.startTimeMs !== nextStart) upd.startTimeMs = nextStart;
-      if (nextDuration !== null && clip.durationMs !== nextDuration) upd.durationMs = nextDuration;
+      if (effectiveDuration !== clip.durationMs) upd.durationMs = effectiveDuration;
       if (nextEasing && (clip.easing || 'linear') !== nextEasing) upd.easing = nextEasing;
       const clipEnabled = clip.enabled !== false;
       if (nextEnabled !== null && clipEnabled !== nextEnabled) upd.enabled = nextEnabled;
@@ -1417,8 +1440,8 @@ export function TimelinePanel() {
         );
       })()}
 
-      {/* ── 第二大行：元素时间轴区块（仅选中元素时显示） ── */}
-      {selectedObject && (() => {
+      {/* ── 第二大行：元素时间轴区块（仅单选元素时显示） ── */}
+      {selectedObject && selectedIds.length === 1 && (() => {
         const safeT = Math.max(1, globalDurationMs);
         return (
           <>
@@ -1448,10 +1471,12 @@ export function TimelinePanel() {
                 const fillStyle: CSSProperties = {
                   left: leftPct,
                   width: widthPct,
-                  background: hexAlpha(color, isSelected ? 0.42 : 0.28),
-                  borderLeft: `${isSelected ? 2 : 1}px solid ${color}`,
-                  borderRight: `${isSelected ? 2 : 1}px solid ${color}`,
-                  boxShadow: isSelected ? `0 0 0 2px ${hexAlpha(color, 0.55)}` : undefined,
+                  background: hexAlpha(color, isSelected ? 0.68 : 0.25),
+                  borderLeft: `${isSelected ? 3 : 1}px solid ${color}`,
+                  borderRight: `${isSelected ? 3 : 1}px solid ${color}`,
+                  borderTop: isSelected ? `2px solid ${color}` : undefined,
+                  borderBottom: isSelected ? `2px solid ${color}` : undefined,
+                  boxShadow: isSelected ? `0 0 0 2px ${color}, inset 0 0 6px ${hexAlpha(color, 0.25)}` : undefined,
                   zIndex: isSelected ? 2 : 1,
                 };
                 const handleStyle: CSSProperties = { background: hexAlpha(color, 0.7) };
@@ -1667,7 +1692,12 @@ export function TimelinePanel() {
                 <button
                   className={`tl-btn${showBatchPanel ? ' is-active' : ''}`}
                   onClick={() => setShowBatchPanel((p) => !p)}
-                  data-tooltip="批量修改选中的动画片段"
+                  disabled={selectedSegmentIds.length !== 1}
+                  data-tooltip={
+                    selectedSegmentIds.length === 0 ? '请先选中一个时间片段' :
+                    selectedSegmentIds.length > 1 ? '选中多片段时不可用，请只选中一个' :
+                    '批量修改当前片段内的动画'
+                  }
                 >
                   批量修改
                 </button>
@@ -1757,12 +1787,16 @@ export function TimelinePanel() {
                         </div>
                       </div>
                       {/* 开始 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, opacity: batchStartDisabled ? 0.4 : 1 }}
+                        data-tooltip={batchStartDisabled ? '选中的动画来自不同时间片段，无法统一设置开始时刻' : undefined}
+                      >
                         <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0, width: 23 }}>开始</span>
                         <input
                           type="number" min={0} value={batchStartInput} placeholder="—"
+                          disabled={batchStartDisabled}
                           onChange={(e) => setBatchStartInput(e.target.value)}
-                          style={{ width: 72, flexShrink: 0, height: 24, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', padding: '0 4px', background: 'var(--bg-color)', color: 'var(--text-main)', boxSizing: 'border-box' }}
+                          style={{ width: 72, flexShrink: 0, height: 24, fontSize: 11, borderRadius: 4, border: '1px solid var(--border-color)', padding: '0 4px', background: 'var(--bg-color)', color: 'var(--text-main)', boxSizing: 'border-box', cursor: batchStartDisabled ? 'not-allowed' : undefined }}
                         />
                       </div>
                       {/* 时长 */}
@@ -1866,7 +1900,7 @@ export function TimelinePanel() {
       })()}
 
       {/* ── 主体 ── */}
-      {!selectedObject ? (
+      {(!selectedObject || selectedIds.length > 1) ? (
         <div className="tl-placeholder">选中画布上的对象，即可在此处管理动画片段<br/><span style={{fontSize:11,opacity:0.6}}>也可在右侧检查器「动画片段」区域快速添加</span></div>
       ) : selectedSegmentIds.length > 1 ? (
         <div className="tl-placeholder">已选中 {selectedSegmentIds.length} 个时间片段，无法显示动画详情<br/><span style={{fontSize:11,opacity:0.6}}>仅选中一个片段以编辑其动画</span></div>
