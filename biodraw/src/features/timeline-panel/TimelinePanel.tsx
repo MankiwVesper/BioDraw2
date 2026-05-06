@@ -1055,7 +1055,7 @@ export function TimelinePanel() {
     event.stopPropagation();
   };
 
-  // ── 拖拽逻辑（保持原有完整实现）
+  // ── 拖拽逻辑
   const startClipDrag = (clip: AnimationClip, event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     const trackEl = clipTrackRefs.current.get(clip.id);
@@ -1063,31 +1063,46 @@ export function TimelinePanel() {
     const rect = trackEl.getBoundingClientRect();
     if (rect.width <= 0) return;
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    // 轨道 0~100% 映射到段范围，offset 必须在段坐标系下计算
+    const seg = effectiveSegments.find((s) => s.id === clip.segmentId);
+    const segLo = seg?.startMs ?? 0;
+    const segHi = seg?.endMs ?? globalDurationMs;
+    const pointerMs = segLo + ratio * Math.max(1, segHi - segLo);
     ensurePausedForEdit();
-    setDragState({ clipId: clip.id, mode: 'move', offsetMs: ratio * globalDurationMs - clip.startTimeMs, fixedEndMs: clip.startTimeMs + clip.durationMs, previewStartMs: clip.startTimeMs, previewDurationMs: clip.durationMs, snapGuideMs: null });
+    setDragState({ clipId: clip.id, mode: 'move', offsetMs: pointerMs - clip.startTimeMs, fixedEndMs: clip.startTimeMs + clip.durationMs, previewStartMs: clip.startTimeMs, previewDurationMs: clip.durationMs, snapGuideMs: null });
     event.preventDefault(); event.stopPropagation();
   };
   const startClipResizeStart = (clip: AnimationClip, event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
+    event.stopPropagation(); // 阻止冒泡到父级 tl-track-fill 触发 startClipDrag
     const trackEl = clipTrackRefs.current.get(clip.id);
     if (!trackEl) return;
     const rect = trackEl.getBoundingClientRect();
     if (rect.width <= 0) return;
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const seg = effectiveSegments.find((s) => s.id === clip.segmentId);
+    const segLo = seg?.startMs ?? 0;
+    const segHi = seg?.endMs ?? globalDurationMs;
+    const pointerMs = segLo + ratio * Math.max(1, segHi - segLo);
     ensurePausedForEdit();
-    setDragState({ clipId: clip.id, mode: 'resize-start', offsetMs: ratio * globalDurationMs - clip.startTimeMs, fixedEndMs: clip.startTimeMs + clip.durationMs, previewStartMs: clip.startTimeMs, previewDurationMs: clip.durationMs, snapGuideMs: null });
-    event.preventDefault(); event.stopPropagation();
+    setDragState({ clipId: clip.id, mode: 'resize-start', offsetMs: pointerMs - clip.startTimeMs, fixedEndMs: clip.startTimeMs + clip.durationMs, previewStartMs: clip.startTimeMs, previewDurationMs: clip.durationMs, snapGuideMs: null });
+    event.preventDefault();
   };
   const startClipResizeEnd = (clip: AnimationClip, event: React.MouseEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
+    event.stopPropagation(); // 阻止冒泡到父级 tl-track-fill 触发 startClipDrag
     const trackEl = clipTrackRefs.current.get(clip.id);
     if (!trackEl) return;
     const rect = trackEl.getBoundingClientRect();
     if (rect.width <= 0) return;
     const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const seg = effectiveSegments.find((s) => s.id === clip.segmentId);
+    const segLo = seg?.startMs ?? 0;
+    const segHi = seg?.endMs ?? globalDurationMs;
+    const pointerMs = segLo + ratio * Math.max(1, segHi - segLo);
     ensurePausedForEdit();
-    setDragState({ clipId: clip.id, mode: 'resize-end', offsetMs: ratio * globalDurationMs - (clip.startTimeMs + clip.durationMs), fixedEndMs: clip.startTimeMs + clip.durationMs, previewStartMs: clip.startTimeMs, previewDurationMs: clip.durationMs, snapGuideMs: null });
-    event.preventDefault(); event.stopPropagation();
+    setDragState({ clipId: clip.id, mode: 'resize-end', offsetMs: pointerMs - (clip.startTimeMs + clip.durationMs), fixedEndMs: clip.startTimeMs + clip.durationMs, previewStartMs: clip.startTimeMs, previewDurationMs: clip.durationMs, snapGuideMs: null });
+    event.preventDefault();
   };
 
   // ── 副作用
@@ -1479,7 +1494,12 @@ export function TimelinePanel() {
                   boxShadow: isSelected ? `0 0 0 2px ${color}, inset 0 0 6px ${hexAlpha(color, 0.25)}` : undefined,
                   zIndex: isSelected ? 2 : 1,
                 };
-                const handleStyle: CSSProperties = { background: hexAlpha(color, 0.7) };
+                // handle 需向外偏移 borderW，使 ew-resize 区域覆盖到 border 外沿，
+                // 否则 border 条带会显示 grab 光标，用户感觉"在片段外部仍是小手"
+                const borderW = isSelected ? 3 : 1;
+                const handleBg = hexAlpha(color, 0.7);
+                const handleLStyle: CSSProperties = { background: handleBg, left: -borderW };
+                const handleRStyle: CSSProperties = { background: handleBg, right: -borderW };
                 return (
                   <div
                     key={seg.id}
@@ -1492,7 +1512,7 @@ export function TimelinePanel() {
                   >
                     <div
                       className="tl-element-handle-l"
-                      style={handleStyle}
+                      style={handleLStyle}
                       onMouseDown={(e) => {
                         toggleSegmentSelection(seg.id, e.shiftKey || e.ctrlKey || e.metaKey);
                         startWindowDrag('resize-start', seg, e);
@@ -1500,7 +1520,7 @@ export function TimelinePanel() {
                     />
                     <div
                       className="tl-element-handle-r"
-                      style={handleStyle}
+                      style={handleRStyle}
                       onMouseDown={(e) => {
                         toggleSegmentSelection(seg.id, e.shiftKey || e.ctrlKey || e.metaKey);
                         startWindowDrag('resize-end', seg, e);

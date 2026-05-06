@@ -28,7 +28,10 @@
       "Bash(git -C D:/Projects/BioDraw2 status)",
       "Bash(git -C D:/Projects/BioDraw2 diff --stat)",
       "Bash(git stash *)",
-      "Bash(npx eslint *)"
+      "Bash(npx eslint *)",
+      "Bash(grep -n \"//\" /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.tsx)",
+      "Bash(git *)",
+      "Bash(npx --prefix biodraw tsc --project biodraw/tsconfig.app.json --pretty false)"
     ]
   }
 }
