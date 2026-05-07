@@ -406,6 +406,11 @@ export function TimelinePanel() {
     if (selectedSegmentIds.length !== 1) setShowBatchPanel(false);
   }, [selectedSegmentIds.length]);
 
+  // 段选中变化时关闭删除确认弹窗，防止切换片段时旧的确认状态残留
+  useEffect(() => {
+    setShowDeleteSegmentConfirm(false);
+  }, [selectedSegmentIds]);
+
   const toggleSegmentSelection = (segId: string, additive: boolean) => {
     setSelectedSegmentIds((prev) => {
       if (additive) {
@@ -1972,12 +1977,17 @@ export function TimelinePanel() {
                 const segRange = Math.max(1, segHi - segLo);
                 const toSegPct = (ms: number) => Math.max(0, Math.min(100, ((ms - segLo) / segRange) * 100));
                 const inSeg = (ms: number) => ms >= segLo && ms <= segHi;
-                const playheadPct = `${toSegPct(currentTimeMs)}%`;
                 const showPlayhead = inSeg(currentTimeMs);
-                const snapGuidePct = isSnapping ? `${toSegPct(dragState?.snapGuideMs ?? 0)}%` : '0%';
-                const cursorSnapPct = isCursorSnapping ? `${toSegPct(cursorSnapGuideMs ?? 0)}%` : '0%';
+                const toPixelLeft = (pct: number) => {
+                  const el = clipTrackRefs.current.get(clip.id);
+                  if (!el) return `${pct}%`;
+                  const dpr = window.devicePixelRatio || 1;
+                  return `${Math.round(pct / 100 * el.offsetWidth * dpr) / dpr}px`;
+                };
+                const playheadLeft = toPixelLeft(toSegPct(currentTimeMs));
                 const showGuide = isSnapping || isCursorSnapping;
-                const guidePct = isSnapping ? snapGuidePct : cursorSnapPct;
+                const guideRawPct = isSnapping ? toSegPct(dragState?.snapGuideMs ?? 0) : toSegPct(cursorSnapGuideMs ?? 0);
+                const guideLeft = showGuide ? toPixelLeft(guideRawPct) : '0%';
                 // 段坐标系下 clip 自身位置/宽度
                 const clipLeftPct = `${toSegPct(effStart)}%`;
                 const clipEndMs = Math.min(segHi, effStart + effDuration);
@@ -2017,7 +2027,7 @@ export function TimelinePanel() {
                       </div>
 
                       {/* col2：轨道条 */}
-                      <div className="tl-track-scroll">
+                      <div className="tl-track-scroll" onClick={(e) => e.stopPropagation()}>
                         <div
                           className="tl-track"
                           style={{ width: `${timelineZoom}%` }}
@@ -2025,19 +2035,21 @@ export function TimelinePanel() {
                           ref={(node) => { if (node) clipTrackRefs.current.set(clip.id, node); else clipTrackRefs.current.delete(clip.id); }}
                         >
                           {showPlayhead && (
-                            <div className="tl-track-playhead" style={{ left: playheadPct }} />
+                            <div className="tl-track-playhead" style={{ left: playheadLeft }} />
                           )}
                           {showGuide && (
-                            <div className={`tl-track-guide${isCursorSnapping ? ' is-cursor' : ''}`} style={{ left: guidePct }} />
+                            <div className={`tl-track-guide${isCursorSnapping ? ' is-cursor' : ''}`} style={{ left: guideLeft }} />
                           )}
                           <div
                             className={`tl-track-fill tl-type-fill-${clip.type}${isDragging ? ' is-dragging' : ''}${isSnapping ? ' is-snapped' : ''}`}
                             style={{ left: clipLeftPct, width: clipWidthPct }}
                             onMouseDown={(e) => startClipDrag(clip, e)}
-                            onClick={(e) => e.stopPropagation()}
                           >
                             <div className="tl-track-handle-l" onMouseDown={(e) => startClipResizeStart(clip, e)} onClick={(e) => e.stopPropagation()} />
                             <div className="tl-track-handle-r" onMouseDown={(e) => startClipResizeEnd(clip, e)} onClick={(e) => e.stopPropagation()} />
+                            <span className="tl-track-fill-label">
+                              {(effStart / 1000).toFixed(3)}~{((effStart + effDuration) / 1000).toFixed(3)}s
+                            </span>
                           </div>
                         </div>
                       </div>
