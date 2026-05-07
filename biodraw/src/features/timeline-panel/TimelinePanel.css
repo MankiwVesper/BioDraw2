@@ -505,6 +505,28 @@
 
 .tl-element-window.is-dragging { cursor: grabbing; }
 
+@keyframes tl-marching-ants {
+  to { background-position: 10px 0, 100% 10px, -10px 100%, 0 -10px; }
+}
+
+/* 选中片段：顺时针行进的蚂蚁线边框 */
+.tl-element-window.is-selected::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  pointer-events: none;
+  z-index: 5;
+  background-image:
+    repeating-linear-gradient(90deg,  var(--seg-color) 0, var(--seg-color) 5px, transparent 5px, transparent 10px),
+    repeating-linear-gradient(180deg, var(--seg-color) 0, var(--seg-color) 5px, transparent 5px, transparent 10px),
+    repeating-linear-gradient(90deg,  var(--seg-color) 0, var(--seg-color) 5px, transparent 5px, transparent 10px),
+    repeating-linear-gradient(180deg, var(--seg-color) 0, var(--seg-color) 5px, transparent 5px, transparent 10px);
+  background-size: 10px 2px, 2px 10px, 10px 2px, 2px 10px;
+  background-position: 0 0, 100% 0, 0 100%, 0 0;
+  background-repeat: repeat-x, repeat-y, repeat-x, repeat-y;
+  animation: tl-marching-ants 0.6s linear infinite;
+}
+
 .tl-element-window-label {
   pointer-events: none;
   white-space: nowrap;

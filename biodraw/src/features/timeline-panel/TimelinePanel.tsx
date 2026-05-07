@@ -1508,23 +1508,18 @@ export function TimelinePanel() {
                 const widthPct = `${Math.max(0, Math.min(100, ((segEnd - segStart) / safeT) * 100))}%`;
                 const color = SEGMENT_COLORS[idx % SEGMENT_COLORS.length];
                 const isSelected = selectedSegmentIds.includes(seg.id);
-                const fillStyle: CSSProperties = {
+                const fillStyle = {
+                  '--seg-color': color,
                   left: leftPct,
                   width: widthPct,
-                  background: hexAlpha(color, isSelected ? 0.68 : 0.25),
-                  borderLeft: `${isSelected ? 3 : 1}px solid ${color}`,
-                  borderRight: `${isSelected ? 3 : 1}px solid ${color}`,
-                  borderTop: isSelected ? `2px solid ${color}` : undefined,
-                  borderBottom: isSelected ? `2px solid ${color}` : undefined,
-                  boxShadow: isSelected ? `0 0 0 2px ${color}, inset 0 0 6px ${hexAlpha(color, 0.25)}` : undefined,
+                  background: hexAlpha(color, 0.25),
+                  borderLeft: `1px solid ${color}`,
+                  borderRight: `1px solid ${color}`,
                   zIndex: isSelected ? 2 : 1,
-                };
-                // handle 需向外偏移 borderW，使 ew-resize 区域覆盖到 border 外沿，
-                // 否则 border 条带会显示 grab 光标，用户感觉"在片段外部仍是小手"
-                const borderW = isSelected ? 3 : 1;
+                } as CSSProperties;
                 const handleBg = hexAlpha(color, 0.7);
-                const handleLStyle: CSSProperties = { background: handleBg, left: -borderW };
-                const handleRStyle: CSSProperties = { background: handleBg, right: -borderW };
+                const handleLStyle: CSSProperties = { background: handleBg, left: -1 };
+                const handleRStyle: CSSProperties = { background: handleBg, right: -1 };
                 return (
                   <div
                     key={seg.id}
