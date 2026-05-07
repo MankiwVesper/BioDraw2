@@ -94,6 +94,7 @@ interface EditorState {
   addAnimationClip: (clip: AnimationClip) => void;
   updateAnimationClip: (id: string, updates: Partial<AnimationClip>) => void;
   removeAnimationClip: (id: string) => void;
+  reorderAnimationClips: (orderedIds: string[]) => void;
   copyAnimationClipsToObjects: (sourceObjectId: string, targetObjectIds: string[]) => void;
 
   addAppearSegment: (objectId: string, segment: AppearSegment) => void;
@@ -394,6 +395,23 @@ export const useEditorStore = create<EditorState>()(
           }
         }
         state.animations = state.animations.filter((a) => a.id !== id);
+      }),
+
+    reorderAnimationClips: (orderedIds) =>
+      set((state) => {
+        if (orderedIds.length < 2) return;
+        pushHistory(state);
+        const idSet = new Set(orderedIds);
+        const positions = state.animations
+          .map((a, i) => (idSet.has(a.id) ? i : -1))
+          .filter((i) => i !== -1)
+          .sort((a, b) => a - b);
+        const clips = orderedIds
+          .map((id) => state.animations.find((a) => a.id === id))
+          .filter((c): c is AnimationClip => c !== undefined);
+        clips.forEach((clip, i) => {
+          state.animations[positions[i]] = clip;
+        });
       }),
 
     copyAnimationClipsToObjects: (sourceObjectId, targetObjectIds) =>

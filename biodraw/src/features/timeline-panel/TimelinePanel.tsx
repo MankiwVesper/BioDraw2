@@ -297,6 +297,7 @@ export function TimelinePanel() {
   const addSegmentDialogRef = useRef<HTMLDivElement>(null);
   const deleteSegmentConfirmRef = useRef<HTMLDivElement>(null);
   const [clipTimeWarning, setClipTimeWarning] = useState<{ clipId: string } | null>(null);
+  const [clipListDrag, setClipListDrag] = useState<{ clipId: string; fromIndex: number; toIndex: number } | null>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const copyDialogRef = useRef<HTMLDivElement>(null);
   const batchPanelRef = useRef<HTMLDivElement>(null);
@@ -325,6 +326,7 @@ export function TimelinePanel() {
   const updateAppearSegment = useEditorStore((s) => s.updateAppearSegment);
   const materializeAppearSegmentsSilent = useEditorStore((s) => s.materializeAppearSegmentsSilent);
   const patchAnimationClipSilent = useEditorStore((s) => s.patchAnimationClipSilent);
+  const reorderAnimationClips = useEditorStore((s) => s.reorderAnimationClips);
 
   // ── 派生状态
   const selectedObject = useMemo(
@@ -345,9 +347,7 @@ export function TimelinePanel() {
   const selectedObjectClips = useMemo(
     () =>
       selectedObject
-        ? animations
-            .filter((c) => c.objectId === selectedObject.id)
-            .sort((a, b) => a.startTimeMs - b.startTimeMs)
+        ? animations.filter((c) => c.objectId === selectedObject.id)
         : [],
     [animations, selectedObject],
   );
@@ -580,22 +580,7 @@ export function TimelinePanel() {
     };
   }, [selectedObjectClips, dragState]);
 
-  const displayObjectClips = useMemo(() => {
-    if (conflictMeta.ids.size === 0) return selectedObjectClips;
-    return [...selectedObjectClips]
-      .map((clip, index) => ({
-        clip, index,
-        isConflict: conflictMeta.ids.has(clip.id),
-        conflictLevel: conflictMeta.domainsByClipId.get(clip.id)?.length || 0,
-      }))
-      .sort((a, b) => {
-        if (a.isConflict !== b.isConflict) return a.isConflict ? -1 : 1;
-        if (a.conflictLevel !== b.conflictLevel) return b.conflictLevel - a.conflictLevel;
-        if (a.clip.startTimeMs !== b.clip.startTimeMs) return a.clip.startTimeMs - b.clip.startTimeMs;
-        return a.index - b.index;
-      })
-      .map((item) => item.clip);
-  }, [selectedObjectClips, conflictMeta]);
+  const displayObjectClips = selectedObjectClips;
 
   // 选中段范围内的 clips（动画设计区只显示这些）
   const segmentScopedClips = useMemo(() => {
@@ -885,6 +870,12 @@ export function TimelinePanel() {
     });
     if (maxEnd > globalDurationMs) setGlobalDurationMs(maxEnd + 1000);
     if (lastMoved) setFlashClipId(lastMoved);
+  };
+
+  const sortClipsByStartTime = () => {
+    if (segmentScopedClips.length < 2) return;
+    const sorted = [...segmentScopedClips].sort((a, b) => a.startTimeMs - b.startTimeMs);
+    reorderAnimationClips(sorted.map((c) => c.id));
   };
 
   // ── 字段更新（按所属段范围 clamp，超出时设置警告）
@@ -1306,6 +1297,35 @@ export function TimelinePanel() {
     return () => window.removeEventListener('mousedown', handler);
   }, [showDeleteSegmentConfirm]);
 
+  // 动画列表手动拖拽排序
+  useEffect(() => {
+    if (!clipListDrag) return;
+    const onMove = (e: MouseEvent) => {
+      let newToIndex = clipListDrag.fromIndex;
+      let found = false;
+      for (let i = 0; i < segmentScopedClips.length; i++) {
+        const el = clipCardRefs.current.get(segmentScopedClips[i].id);
+        if (!el) continue;
+        const rect = el.getBoundingClientRect();
+        if (e.clientY < rect.top + rect.height / 2) { newToIndex = i; found = true; break; }
+      }
+      if (!found) newToIndex = segmentScopedClips.length - 1;
+      if (newToIndex !== clipListDrag.toIndex) setClipListDrag((prev) => prev ? { ...prev, toIndex: newToIndex } : null);
+    };
+    const onUp = () => {
+      if (clipListDrag.fromIndex !== clipListDrag.toIndex) {
+        const newOrder = segmentScopedClips.map((c) => c.id);
+        const [moved] = newOrder.splice(clipListDrag.fromIndex, 1);
+        newOrder.splice(clipListDrag.toIndex, 0, moved);
+        reorderAnimationClips(newOrder);
+      }
+      setClipListDrag(null);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [clipListDrag, segmentScopedClips, reorderAnimationClips]);
+
   // 点击下拉容器外部时收起下拉
   useEffect(() => {
     if (!batchEasingDropOpen && !batchStateDropOpen) return;
@@ -1527,7 +1547,7 @@ export function TimelinePanel() {
                       }}
                     />
                     <span className="tl-element-window-label">
-                      {(segStart / 1000).toFixed(2)}s ~ {(segEnd / 1000).toFixed(2)}s
+                      {(segStart / 1000).toFixed(3)}s ~ {(segEnd / 1000).toFixed(3)}s
                     </span>
                   </div>
                 );
@@ -1546,7 +1566,7 @@ export function TimelinePanel() {
                   <button
                     className={`tl-btn${showAddSegmentDialog ? ' is-active' : ''}`}
                     disabled={!defaultNewSegmentRange}
-                    data-tooltip={defaultNewSegmentRange ? '为当前元素增加一个出现时间段' : '没有可用的空闲时间区间'}
+                    data-tooltip={defaultNewSegmentRange ? '为当前元素增加时间片段' : '没有可用的空闲时间区间'}
                     onClick={() => (showAddSegmentDialog ? setShowAddSegmentDialog(false) : openAddSegmentDialog())}
                   >
                     增加片段
@@ -1555,47 +1575,40 @@ export function TimelinePanel() {
                     <div style={{
                       position: 'absolute', top: '100%', right: 0, zIndex: 200,
                       background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
-                      borderRadius: 6, padding: 8, minWidth: 200,
+                      borderRadius: 6, padding: '6px 8px',
                       boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
                     }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>设置片段时间范围（ms）</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                          <span style={{ width: 36 }}>起始</span>
-                          <input
-                            type="number" min={0} max={globalDurationMs}
-                            value={addSegStartInput}
-                            onChange={(e) => setAddSegStartInput(e.target.value)}
-                            style={{ flex: 1, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
-                          />
-                        </label>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-                          <span style={{ width: 36 }}>结束</span>
-                          <input
-                            type="number" min={0} max={globalDurationMs}
-                            value={addSegEndInput}
-                            onChange={(e) => setAddSegEndInput(e.target.value)}
-                            style={{ flex: 1, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
-                          />
-                        </label>
-                        {addSegmentInputError && (
-                          <div style={{ fontSize: 11, color: '#ef4444' }}>{addSegmentInputError}</div>
-                        )}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                        <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>起始</span>
+                        <input
+                          type="number" min={0} max={globalDurationMs}
+                          value={addSegStartInput}
+                          onChange={(e) => setAddSegStartInput(e.target.value)}
+                          style={{ width: 64, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
+                        />
+                        <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>结束</span>
+                        <input
+                          type="number" min={0} max={globalDurationMs}
+                          value={addSegEndInput}
+                          onChange={(e) => setAddSegEndInput(e.target.value)}
+                          style={{ width: 64, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
+                        />
                         <button
                           disabled={!!addSegmentInputError}
                           onClick={submitAddSegment}
                           style={{
-                            marginTop: 4, width: '100%', height: 26,
+                            height: 24, padding: '0 8px',
                             background: addSegmentInputError ? 'var(--bg-color)' : 'var(--primary-color)',
                             color: addSegmentInputError ? 'var(--text-muted)' : '#fff',
                             border: addSegmentInputError ? '1px solid var(--border-color)' : 'none',
-                            borderRadius: 5, cursor: addSegmentInputError ? 'not-allowed' : 'pointer',
-                            fontSize: 12, fontWeight: 600,
+                            borderRadius: 4, cursor: addSegmentInputError ? 'not-allowed' : 'pointer',
+                            fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
                           }}
-                        >
-                          确认添加
-                        </button>
+                        >确认</button>
                       </div>
+                      {addSegmentInputError && (
+                        <div style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>{addSegmentInputError}</div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1701,21 +1714,30 @@ export function TimelinePanel() {
               {selectedObject.name || '未命名对象'}
             </span>
 
-            {/* 中列：冲突修复 + 批量修改 + 复制动画 */}
+            {/* 中列：冲突修复 + 动画排序 + 批量修改 + 复制动画 */}
             <div className="tl-zoom-row-actions">
               {conflictMeta.ids.size > 0 && (
                 <button className="tl-conflict-btn" onClick={autoResolveConflicts} data-tooltip={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
                   ⚠ {conflictMeta.ids.size} 个冲突 · 修复
                 </button>
               )}
+              <button
+                className="tl-btn"
+                onClick={sortClipsByStartTime}
+                disabled={segmentScopedClips.length < 2}
+                data-tooltip={segmentScopedClips.length < 2 ? '至少需要2个动画片段才需要排序' : '按照动画片段的开始时刻从早到晚排序'}
+              >
+                动画排序
+              </button>
               <div style={{ position: 'relative' }} ref={batchPanelRef}>
                 <button
                   className={`tl-btn${showBatchPanel ? ' is-active' : ''}`}
                   onClick={() => setShowBatchPanel((p) => !p)}
-                  disabled={selectedSegmentIds.length !== 1}
+                  disabled={selectedSegmentIds.length !== 1 || segmentScopedClips.length < 2}
                   data-tooltip={
                     selectedSegmentIds.length === 0 ? '请先选中一个时间片段' :
                     selectedSegmentIds.length > 1 ? '选中多片段时不可用，请只选中一个' :
+                    segmentScopedClips.length < 2 ? '至少需要2个动画片段才需要批量修改' :
                     '批量修改当前片段内的动画'
                   }
                 >
@@ -1937,7 +1959,7 @@ export function TimelinePanel() {
                 此片段尚无动画。点击上方「添加动画」，或在右侧检查器快速添加
               </div>
             ) : (
-              segmentScopedClips.map((clip) => {
+              segmentScopedClips.map((clip, clipIndex) => {
                 const isExpanded = expandedClipId === clip.id;
                 const effStart = dragState?.clipId === clip.id ? dragState.previewStartMs : clip.startTimeMs;
                 const effDuration = dragState?.clipId === clip.id ? dragState.previewDurationMs : clip.durationMs;
@@ -1976,6 +1998,8 @@ export function TimelinePanel() {
                       isConflict ? 'is-conflict' : '',
                       isBatchSelected ? 'is-batch-selected' : '',
                       isExpanded ? 'is-expanded' : '',
+                      clipListDrag?.clipId === clip.id ? 'is-list-dragging' : '',
+                      (clipListDrag && clipListDrag.toIndex === clipIndex && clipListDrag.clipId !== clip.id) ? 'is-drop-target' : '',
                     ].filter(Boolean).join(' ')}
                     ref={(node) => { if (node) clipCardRefs.current.set(clip.id, node); else clipCardRefs.current.delete(clip.id); }}
                   >
@@ -1989,9 +2013,6 @@ export function TimelinePanel() {
                         <span className={`tl-type-dot tl-type-${clip.type}`} data-tooltip={getClipTypeLabel(clip.type)} />
                         <span className="tl-clip-type-name">
                           {getClipTypeLabel(clip.type)}
-                          {isConflict && (
-                            <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
-                          )}
                         </span>
                       </div>
 
@@ -2021,8 +2042,11 @@ export function TimelinePanel() {
                         </div>
                       </div>
 
-                      {/* col3：时长 + 批量选中 + 启用 + 删除 + 展开箭头 */}
+                      {/* col3：冲突标记 + 时长 + 批量选中 + 启用 + 删除 + 展开箭头 */}
                       <div className="tl-clip-ctrl">
+                        {isConflict && (
+                          <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
+                        )}
                         <span className="tl-clip-dur">{effDuration}ms</span>
                         <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
                           <input
@@ -2039,6 +2063,16 @@ export function TimelinePanel() {
                           ✕
                         </button>
                         <span className="tl-clip-arrow">{isExpanded ? '▲' : '▼'}</span>
+                        <span
+                          className="tl-clip-drag-handle"
+                          data-tooltip="拖动调整顺序"
+                          onMouseDown={(e) => {
+                            e.stopPropagation();
+                            setClipListDrag({ clipId: clip.id, fromIndex: clipIndex, toIndex: clipIndex });
+                          }}
+                        >
+                          ⠿
+                        </span>
                       </div>
                     </div>
 
@@ -2196,11 +2230,11 @@ export function TimelinePanel() {
                         {/* ── 基础操作 */}
                         <div className="tl-ops-col">
                           <span className="tl-col-header">基础操作</span>
-                          <button className="tl-btn tl-btn-sm" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(clip.startTimeMs); }}>跳到</button>
-                          <button className="tl-btn tl-btn-sm" onClick={() => duplicateClip(clip)}>复制</button>
+                          <button className="tl-btn tl-btn-sm" data-tooltip="跳到动画开始的时刻" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(clip.startTimeMs); }}>跳到</button>
+                          <button className="tl-btn tl-btn-sm" data-tooltip="复制一份动画片段" onClick={() => duplicateClip(clip)}>复制</button>
                           <button
                             className="tl-btn tl-btn-sm"
-                            data-tooltip="只播放此动画片段的时间范围"
+                            data-tooltip="只播放此动画片段"
                             onClick={() => startClipPreview(clip.id)}
                           >
                             预览
