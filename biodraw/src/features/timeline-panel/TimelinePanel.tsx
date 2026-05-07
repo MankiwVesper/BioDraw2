@@ -2049,37 +2049,39 @@ export function TimelinePanel() {
                         </div>
                       </div>
 
-                      {/* col3：冲突标记 + 时长 + 批量选中 + 启用 + 删除 + 展开箭头 */}
+                      {/* col3：冲突标记 + 时长 + 图标控件组 */}
                       <div className="tl-clip-ctrl">
                         {isConflict && (
                           <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
                         )}
-                        <span className="tl-clip-dur">{effDuration}ms</span>
-                        <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
-                          <input
-                            type="checkbox"
-                            checked={clip.enabled !== false}
-                            onChange={(e) => { ensurePausedForEdit(); updateAnimationClip(clip.id, { enabled: e.target.checked }); }}
-                          />
-                        </label>
-                        <button
-                          className="tl-clip-del"
-                          data-tooltip="删除片段"
-                          onClick={(e) => { e.stopPropagation(); ensurePausedForEdit(); removeAnimationClip(clip.id); }}
-                        >
-                          ✕
-                        </button>
-                        <span className="tl-clip-arrow">{isExpanded ? '▲' : '▼'}</span>
-                        <span
-                          className="tl-clip-drag-handle"
-                          data-tooltip="拖动调整顺序"
-                          onMouseDown={(e) => {
-                            e.stopPropagation();
-                            setClipListDrag({ clipId: clip.id, fromIndex: clipIndex, toIndex: clipIndex });
-                          }}
-                        >
-                          ⠿
-                        </span>
+                        <span className="tl-clip-dur" data-tooltip="动画片段时长">{effDuration}ms</span>
+                        <div className="tl-clip-icon-group">
+                          <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
+                            <input
+                              type="checkbox"
+                              checked={clip.enabled !== false}
+                              onChange={(e) => { ensurePausedForEdit(); updateAnimationClip(clip.id, { enabled: e.target.checked }); }}
+                            />
+                          </label>
+                          <button
+                            className="tl-clip-del"
+                            data-tooltip="删除片段"
+                            onClick={(e) => { e.stopPropagation(); ensurePausedForEdit(); removeAnimationClip(clip.id); }}
+                          >
+                            ✕
+                          </button>
+                          <span className="tl-clip-arrow">{isExpanded ? '▲' : '▼'}</span>
+                          <span
+                            className="tl-clip-drag-handle"
+                            data-tooltip="拖动调整顺序"
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              setClipListDrag({ clipId: clip.id, fromIndex: clipIndex, toIndex: clipIndex });
+                            }}
+                          >
+                            ⠿
+                          </span>
+                        </div>
                       </div>
                     </div>
 
