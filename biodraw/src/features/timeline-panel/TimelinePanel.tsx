@@ -303,6 +303,7 @@ export function TimelinePanel() {
   const batchPanelRef = useRef<HTMLDivElement>(null);
   const batchEasingDropRef = useRef<HTMLDivElement>(null);
   const batchStateDropRef = useRef<HTMLDivElement>(null);
+  const clipDragHappenedRef = useRef(false);
 
   // ── Store 订阅
   const objects = useEditorStore((s) => s.objects);
@@ -968,7 +969,27 @@ export function TimelinePanel() {
     return ticks;
   }, [globalDurationMs, rulerIntervalMs]);
 
+  const elementRulerTicks = useMemo(() => {
+    const half = rulerIntervalMs / 2;
+    const ticks: number[] = [];
+    for (let ms = half; ms < globalDurationMs; ms += rulerIntervalMs) {
+      ticks.push(Math.round(ms));
+    }
+    return ticks;
+  }, [globalDurationMs, rulerIntervalMs]);
+
+  // 小刻度线（1/5 间距，跳过已有大刻度位置）
+  const minorRulerTicks = useMemo(() => {
+    const step = Math.round(rulerIntervalMs / 5);
+    const ticks: number[] = [];
+    for (let ms = step; ms < globalDurationMs; ms += step) {
+      if (ms % rulerIntervalMs !== 0) ticks.push(ms);
+    }
+    return ticks;
+  }, [globalDurationMs, rulerIntervalMs]);
+
   const seekByTrackClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (clipDragHappenedRef.current) { clipDragHappenedRef.current = false; return; }
     const rect = event.currentTarget.getBoundingClientRect();
     if (rect.width <= 0) return;
     ensurePausedForEdit();
@@ -1142,6 +1163,7 @@ export function TimelinePanel() {
   useEffect(() => {
     if (!dragState) return;
     const handleMove = (e: MouseEvent) => {
+      clipDragHappenedRef.current = true;
       const trackEl = clipTrackRefs.current.get(dragState.clipId);
       if (!trackEl) return;
       const rect = trackEl.getBoundingClientRect();
@@ -1188,6 +1210,7 @@ export function TimelinePanel() {
         }
       }
       setDragState(null);
+      setTimeout(() => { clipDragHappenedRef.current = false; }, 0);
     };
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
@@ -1325,6 +1348,7 @@ export function TimelinePanel() {
         reorderAnimationClips(newOrder);
       }
       setClipListDrag(null);
+      setTimeout(() => { clipDragHappenedRef.current = false; }, 0);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -1377,17 +1401,18 @@ export function TimelinePanel() {
           ref={overallTrackRef}
           onMouseDown={startOverallScrub}
         >
-          {rulerTicks.map((ms, idx) => {
+          {minorRulerTicks.map((ms) => (
+            <div key={ms} className="tl-overall-minor-tick" style={{ left: `${globalDurationMs > 0 ? (ms / globalDurationMs) * 100 : 0}%` }} />
+          ))}
+          {rulerTicks.map((ms) => {
             const pct = globalDurationMs > 0 ? (ms / globalDurationMs) * 100 : 0;
-            const labelStyle = idx === 0
-              ? { transform: 'translateX(4px)' }
-              : idx === rulerTicks.length - 1
-                ? { transform: 'translateX(calc(-100% - 4px))' }
-                : undefined;
             return (
               <div key={ms} className="tl-overall-tick" style={{ left: `${pct}%` }}>
                 <div className="tl-overall-tick-line" />
-                <span className="tl-overall-tick-label" style={labelStyle}>
+                <span
+                  className="tl-overall-tick-label"
+                  style={ms === 0 ? { transform: 'translateX(2px)' } : undefined}
+                >
                   {ms >= 1000 ? `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s` : `${ms}ms`}
                 </span>
               </div>
@@ -1534,7 +1559,7 @@ export function TimelinePanel() {
                       className="tl-element-handle-l"
                       style={handleLStyle}
                       onMouseDown={(e) => {
-                        toggleSegmentSelection(seg.id, e.shiftKey || e.ctrlKey || e.metaKey);
+                        setSelectedSegmentIds((prev) => prev.includes(seg.id) ? prev : [seg.id]);
                         startWindowDrag('resize-start', seg, e);
                       }}
                     />
@@ -1542,7 +1567,7 @@ export function TimelinePanel() {
                       className="tl-element-handle-r"
                       style={handleRStyle}
                       onMouseDown={(e) => {
-                        toggleSegmentSelection(seg.id, e.shiftKey || e.ctrlKey || e.metaKey);
+                        setSelectedSegmentIds((prev) => prev.includes(seg.id) ? prev : [seg.id]);
                         startWindowDrag('resize-end', seg, e);
                       }}
                     />
@@ -1552,6 +1577,17 @@ export function TimelinePanel() {
                   </div>
                 );
               })}
+              {minorRulerTicks.map((ms) => (
+                <div key={ms} className="tl-element-minor-tick" style={{ left: `${(ms / safeT) * 100}%` }} />
+              ))}
+              {elementRulerTicks.map((ms) => (
+                <div key={ms} className="tl-element-ruler-tick" style={{ left: `${(ms / safeT) * 100}%` }}>
+                  <div className="tl-element-ruler-tick-line" />
+                  <span className="tl-element-ruler-tick-label">
+                    {ms >= 1000 ? `${(ms / 1000).toFixed(ms % 1000 === 0 ? 0 : 1)}s` : `${ms}ms`}
+                  </span>
+                </div>
+              ))}
               <span className="tl-element-tick tl-element-tick-start">0s</span>
               <span className="tl-element-tick tl-element-tick-end">
                 {(globalDurationMs / 1000).toFixed(globalDurationMs % 1000 === 0 ? 0 : 1)}s
@@ -2011,7 +2047,10 @@ export function TimelinePanel() {
                     {/* ── 紧凑行（始终可见） */}
                     <div
                       className="tl-clip-row"
-                      onClick={() => setExpandedClipId(isExpanded ? null : clip.id)}
+                      onClick={() => {
+                        if (clipDragHappenedRef.current) { clipDragHappenedRef.current = false; return; }
+                        setExpandedClipId(isExpanded ? null : clip.id);
+                      }}
                     >
                       {/* col1：类型色点 + 类型名 */}
                       <div className="tl-clip-label">
@@ -2076,6 +2115,7 @@ export function TimelinePanel() {
                             data-tooltip="拖动调整顺序"
                             onMouseDown={(e) => {
                               e.stopPropagation();
+                              clipDragHappenedRef.current = true;
                               setClipListDrag({ clipId: clip.id, fromIndex: clipIndex, toIndex: clipIndex });
                             }}
                           >
