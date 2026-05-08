@@ -1200,6 +1200,21 @@
   max-width: calc(100% - 16px);
 }
 
+/* 标签内联编辑输入框（时间片段 / 动画 clip 双击编辑） */
+.tl-label-time-input {
+  width: 30px;
+  font-size: inherit;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: inherit;
+  background: transparent;
+  border: none;
+  padding: 0;
+  outline: none;
+  text-align: center;
+  vertical-align: middle;
+}
+
 /* 拖拽手柄 */
 .tl-track-handle-l,
 .tl-track-handle-r {
