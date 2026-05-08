@@ -99,7 +99,7 @@ interface EditorState {
 
   addAppearSegment: (objectId: string, segment: AppearSegment) => void;
   removeAppearSegments: (objectId: string, segmentIds: string[]) => void;
-  updateAppearSegment: (objectId: string, segmentId: string, updates: { startMs?: number; endMs?: number }) => void;
+  updateAppearSegment: (objectId: string, segmentId: string, updates: { startMs?: number; endMs?: number }, translateClipsBy?: number) => void;
   setGlobalDurationMs: (durationMs: number) => void;
   setCurrentTimeMs: (timeMs: number) => void;
   play: () => void;
@@ -470,7 +470,7 @@ export const useEditorStore = create<EditorState>()(
         }
       }),
 
-    updateAppearSegment: (objectId, segmentId, updates) =>
+    updateAppearSegment: (objectId, segmentId, updates, translateClipsBy) =>
       set((state) => {
         const obj = state.objects.find((o) => o.id === objectId);
         if (!obj || !obj.appearSegments) return;
@@ -482,15 +482,24 @@ export const useEditorStore = create<EditorState>()(
         if (updates.endMs !== undefined) next.endMs = updates.endMs;
         obj.appearSegments[idx] = next;
         obj.appearSegments.sort((a, b) => a.startMs - b.startMs);
-        // 段范围变化后，将归属此段的 clip 时间夹入新范围。
         for (let i = 0; i < state.animations.length; i += 1) {
           const c = state.animations[i];
           if (c.objectId !== objectId || c.segmentId !== segmentId) continue;
-          const newStart = Math.max(next.startMs, Math.min(next.endMs - 1, c.startTimeMs));
-          const newEnd = Math.min(next.endMs, Math.max(newStart + 1, c.startTimeMs + c.durationMs));
-          const newDur = Math.max(1, newEnd - newStart);
-          if (newStart !== c.startTimeMs || newDur !== c.durationMs) {
-            state.animations[i] = { ...c, startTimeMs: newStart, durationMs: newDur };
+          if (translateClipsBy !== undefined && translateClipsBy !== 0) {
+            // 整体移动段：clip 随段平移，保持段内相对位置
+            const translated = c.startTimeMs + translateClipsBy;
+            const newStart = Math.max(next.startMs, Math.min(next.endMs - c.durationMs, translated));
+            if (newStart !== c.startTimeMs) {
+              state.animations[i] = { ...c, startTimeMs: newStart };
+            }
+          } else {
+            // 调整边缘大小：将 clip 夹入新范围，可能截断
+            const newStart = Math.max(next.startMs, Math.min(next.endMs - 1, c.startTimeMs));
+            const newEnd = Math.min(next.endMs, Math.max(newStart + 1, c.startTimeMs + c.durationMs));
+            const newDur = Math.max(1, newEnd - newStart);
+            if (newStart !== c.startTimeMs || newDur !== c.durationMs) {
+              state.animations[i] = { ...c, startTimeMs: newStart, durationMs: newDur };
+            }
           }
         }
       }),

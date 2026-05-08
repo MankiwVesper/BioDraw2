@@ -304,6 +304,8 @@ export function TimelinePanel() {
   const batchEasingDropRef = useRef<HTMLDivElement>(null);
   const batchStateDropRef = useRef<HTMLDivElement>(null);
   const clipDragHappenedRef = useRef(false);
+  const windowDragMovedRef = useRef(false);
+  const pendingSegSelectRef = useRef<{ segId: string; additive: boolean } | null>(null);
 
   // ── Store 订阅
   const objects = useEditorStore((s) => s.objects);
@@ -981,12 +983,27 @@ export function TimelinePanel() {
     return ticks;
   }, [globalDurationMs, rulerIntervalMs]);
 
-  // 小刻度线（1/5 间距，跳过已有大刻度位置）
+  // 动画时间轴小刻度（1/5 间距，跳过动画大刻度位置即 rulerIntervalMs 整数倍）
   const minorRulerTicks = useMemo(() => {
     const step = Math.round(rulerIntervalMs / 5);
     const ticks: number[] = [];
     for (let ms = step; ms < globalDurationMs; ms += step) {
       if (ms % rulerIntervalMs !== 0) ticks.push(ms);
+    }
+    return ticks;
+  }, [globalDurationMs, rulerIntervalMs]);
+
+  // 元素时间轴小刻度（1/5 间距，跳过元素大刻度位置即半间距倍数）
+  const elementMinorRulerTicks = useMemo(() => {
+    const half = rulerIntervalMs / 2;
+    const step = Math.round(rulerIntervalMs / 5);
+    const elementMajorSet = new Set<number>();
+    for (let ms = half; ms < globalDurationMs; ms += rulerIntervalMs) {
+      elementMajorSet.add(Math.round(ms));
+    }
+    const ticks: number[] = [];
+    for (let ms = step; ms < globalDurationMs; ms += step) {
+      if (!elementMajorSet.has(Math.round(ms))) ticks.push(Math.round(ms));
     }
     return ticks;
   }, [globalDurationMs, rulerIntervalMs]);
@@ -1224,6 +1241,7 @@ export function TimelinePanel() {
   useEffect(() => {
     if (!windowDragState) return;
     const handleMove = (e: MouseEvent) => {
+      windowDragMovedRef.current = true;
       const trackEl = elementTrackRef.current;
       if (!trackEl) return;
       const rect = trackEl.getBoundingClientRect();
@@ -1250,13 +1268,26 @@ export function TimelinePanel() {
     };
     const handleUp = () => {
       const next = windowDragState;
+      const moved = windowDragMovedRef.current;
+      windowDragMovedRef.current = false;
+      // 未发生移动 → 是点击行为，此时才应用选中/取消选中
+      if (!moved && pendingSegSelectRef.current) {
+        const { segId, additive } = pendingSegSelectRef.current;
+        setSelectedSegmentIds((prev) => {
+          if (additive) return prev.includes(segId) ? prev.filter((id) => id !== segId) : [...prev, segId];
+          return prev.includes(segId) ? [] : [segId];
+        });
+      }
+      pendingSegSelectRef.current = null;
       if (next) {
         const ns = Math.max(0, Math.min(globalDurationMs, next.previewStartMs));
         const ne = Math.max(ns + 1, Math.min(globalDurationMs, next.previewEndMs));
         const target = objects.find((o) => o.id === next.objectId);
         const seg = target?.appearSegments?.find((s) => s.id === next.segmentId);
         if (target && seg && (seg.startMs !== ns || seg.endMs !== ne)) {
-          updateAppearSegment(next.objectId, next.segmentId, { startMs: ns, endMs: ne });
+          // 整体移动时传入平移量，让内部 clip 随段平移；resize 时不传（clamp 逻辑）
+          const translateClipsBy = next.mode === 'move' ? ns - seg.startMs : undefined;
+          updateAppearSegment(next.objectId, next.segmentId, { startMs: ns, endMs: ne }, translateClipsBy);
         }
       }
       setWindowDragState(null);
@@ -1554,7 +1585,8 @@ export function TimelinePanel() {
                     className={`tl-element-window${isDragging ? ' is-dragging' : ''}${isSelected ? ' is-selected' : ''}`}
                     style={fillStyle}
                     onMouseDown={(e) => {
-                      toggleSegmentSelection(seg.id, e.shiftKey || e.ctrlKey || e.metaKey);
+                      // 不在 mousedown 时立即切换选中态，延迟到 mouseup 时判断是否发生了拖动
+                      pendingSegSelectRef.current = { segId: seg.id, additive: e.shiftKey || e.ctrlKey || e.metaKey };
                       startWindowDrag('move', seg, e);
                     }}
                   >
@@ -1562,7 +1594,7 @@ export function TimelinePanel() {
                       className="tl-element-handle-l"
                       style={handleLStyle}
                       onMouseDown={(e) => {
-                        setSelectedSegmentIds((prev) => prev.includes(seg.id) ? prev : [seg.id]);
+                        pendingSegSelectRef.current = { segId: seg.id, additive: false };
                         startWindowDrag('resize-start', seg, e);
                       }}
                     />
@@ -1570,7 +1602,7 @@ export function TimelinePanel() {
                       className="tl-element-handle-r"
                       style={handleRStyle}
                       onMouseDown={(e) => {
-                        setSelectedSegmentIds((prev) => prev.includes(seg.id) ? prev : [seg.id]);
+                        pendingSegSelectRef.current = { segId: seg.id, additive: false };
                         startWindowDrag('resize-end', seg, e);
                       }}
                     />
@@ -1580,7 +1612,7 @@ export function TimelinePanel() {
                   </div>
                 );
               })}
-              {minorRulerTicks.map((ms) => (
+              {elementMinorRulerTicks.map((ms) => (
                 <div key={ms} className="tl-element-minor-tick" style={{ left: `${(ms / safeT) * 100}%` }} />
               ))}
               {elementRulerTicks.map((ms) => (
