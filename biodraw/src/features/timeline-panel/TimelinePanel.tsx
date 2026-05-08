@@ -353,11 +353,13 @@ export function TimelinePanel() {
     [animations, selectedObject],
   );
 
-  // 选中对象的有效段集合：始终保证至少一个段（兼容旧数据）。
-  // 如果对象的持久态无段，则衍生一个虚拟段供渲染；首次拖拽前会通过 materialize 动作落地。
+  // 选中对象的有效段集合。
+  // appearSegments === undefined → 旧数据，衍生虚拟段兼容；
+  // appearSegments === []       → 用户主动删完，返回空数组，不再自动补段；
+  // appearSegments.length > 0  → 正常情况，按序返回。
   const effectiveSegments = useMemo<AppearSegment[]>(() => {
     if (!selectedObject) return [];
-    if (selectedObject.appearSegments && selectedObject.appearSegments.length > 0) {
+    if (selectedObject.appearSegments) {
       return [...selectedObject.appearSegments].sort((a, b) => a.startMs - b.startMs);
     }
     return [{
@@ -367,10 +369,11 @@ export function TimelinePanel() {
     }];
   }, [selectedObject, globalDurationMs]);
 
-  // 选中对象若无段，落地为单段（避免后续编辑路径分叉）
+  // 兼容旧数据：对象从未初始化过段（字段为 undefined）时才落地；
+  // 用户主动删完后 appearSegments === []，不应重新创建。
   useEffect(() => {
     if (!selectedObject) return;
-    if (!selectedObject.appearSegments || selectedObject.appearSegments.length === 0) {
+    if (!selectedObject.appearSegments) {
       materializeAppearSegmentsSilent(selectedObject.id, globalDurationMs);
     }
   }, [selectedObject, globalDurationMs, materializeAppearSegmentsSilent]);
