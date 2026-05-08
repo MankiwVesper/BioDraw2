@@ -54,6 +54,30 @@
   flex-shrink: 0;
   justify-self: end;
   align-self: center;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 1px 3px;
+  transition: background 0.1s, color 0.1s;
+}
+.tl-time-display:hover {
+  background: var(--hover-bg, rgba(0,0,0,0.06));
+  color: var(--text-main);
+}
+
+.tl-time-input {
+  width: 50px;
+  height: 18px;
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-main);
+  padding: 0 4px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  outline: none;
 }
 
 .tl-zoom-range {

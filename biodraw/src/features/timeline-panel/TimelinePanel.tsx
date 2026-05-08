@@ -298,6 +298,9 @@ export function TimelinePanel() {
   const deleteSegmentConfirmRef = useRef<HTMLDivElement>(null);
   const [clipTimeWarning, setClipTimeWarning] = useState<{ clipId: string } | null>(null);
   const [clipListDrag, setClipListDrag] = useState<{ clipId: string; fromIndex: number; toIndex: number } | null>(null);
+  const [isTimeEditing, setIsTimeEditing] = useState(false);
+  const [timeEditValue, setTimeEditValue] = useState('');
+  const timeEditCancelledRef = useRef(false);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const copyDialogRef = useRef<HTMLDivElement>(null);
   const batchPanelRef = useRef<HTMLDivElement>(null);
@@ -649,6 +652,22 @@ export function TimelinePanel() {
   };
 
   const ensurePausedForEdit = () => { if (playbackStatus === 'playing') pause(); };
+
+  const startTimeEdit = () => {
+    timeEditCancelledRef.current = false;
+    setTimeEditValue((currentTimeMs / 1000).toFixed(3));
+    setIsTimeEditing(true);
+  };
+  const commitTimeEdit = (raw: string) => {
+    if (!timeEditCancelledRef.current) {
+      const parsed = parseFloat(raw);
+      if (!isNaN(parsed)) {
+        ensurePausedForEdit();
+        setCurrentTimeMs(Math.round(Math.max(0, Math.min(globalDurationMs, parsed * 1000))));
+      }
+    }
+    setIsTimeEditing(false);
+  };
 
   // 解析"添加动画"应归属的段：优先用单选段；否则取第一段并将其设为选中。
   const resolveSegmentForNewClip = (): AppearSegment | null => {
@@ -1460,9 +1479,30 @@ export function TimelinePanel() {
           )}
         </div>
         <div className="tl-row-ctrl">
-          <span className="tl-time-display">{(currentTimeMs / 1000).toFixed(2)}s</span>
+          {isTimeEditing ? (
+            <input
+              className="tl-time-input tl-input-nospin"
+              type="number"
+              value={timeEditValue}
+              min={0}
+              max={globalDurationMs / 1000}
+              step={0.001}
+              onChange={(e) => setTimeEditValue(e.target.value)}
+              onBlur={(e) => commitTimeEdit(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
+                if (e.key === 'Escape') { timeEditCancelledRef.current = true; e.currentTarget.blur(); }
+              }}
+              autoFocus
+              onFocus={(e) => e.target.select()}
+            />
+          ) : (
+            <span className="tl-time-display" onClick={startTimeEdit} data-tooltip="点击之后输入想要跳转的时刻">
+              {(currentTimeMs / 1000).toFixed(3)}s
+            </span>
+          )}
           <span className="tl-row-divider" />
-          <span className="tl-label">动画时长/ms</span>
+          <span className="tl-label">时长/ms</span>
           <input
             className="tl-input-sm tl-input-nospin"
             type="number"
