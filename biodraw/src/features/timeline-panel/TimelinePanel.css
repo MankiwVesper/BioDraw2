@@ -750,26 +750,48 @@
 .tl-add-menu {
   position: absolute;
   right: 0;
+  left: calc(-100% - 4px);
   top: calc(100% + 4px);
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
   z-index: 100;
-  width: 220px;
   padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.tl-add-menu-section {
-  font-size: 10px;
+.tl-add-menu-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin: -2px -2px 0;
+  gap: 0;
+}
+
+.tl-add-menu-tab {
+  flex: 1;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-bottom: 2px solid transparent;
+  color: var(--text-main);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: -1px;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.tl-add-menu-tab.is-active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
   font-weight: 600;
-  color: var(--text-muted);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 4px 2px 2px;
+}
+
+.tl-add-menu-tab:hover:not(.is-active) {
+  color: var(--text-main);
 }
 
 .tl-add-menu-grid {
@@ -781,15 +803,15 @@
 .tl-add-menu-item {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   height: 28px;
   border: 1px solid var(--border-color);
   background: var(--bg-color);
   color: var(--text-main);
   border-radius: 6px;
-  padding: 0 8px;
+  padding: 0 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 11px;
   transition: border-color 0.12s, background 0.12s;
 }
 
@@ -1047,8 +1069,8 @@
 
 /* 类型色点 */
 .tl-type-dot {
-  width: 8px;
-  height: 8px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
   flex-shrink: 0;
 }

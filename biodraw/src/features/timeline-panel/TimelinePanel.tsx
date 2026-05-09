@@ -286,6 +286,7 @@ export function TimelinePanel() {
   // ── 新增 UI 状态
   const [expandedClipId, setExpandedClipId] = useState<string | null>(null);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [addMenuTab, setAddMenuTab] = useState<'basic' | 'template'>('basic');
   const [showBatchPanel, setShowBatchPanel] = useState(false);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyTargetIds, setCopyTargetIds] = useState<string[]>([]);
@@ -1915,47 +1916,52 @@ export function TimelinePanel() {
                 <button className="tl-add-btn" onClick={() => setShowAddMenu((p) => !p)}>添加动画</button>
                 {showAddMenu && (
                   <div className="tl-add-menu">
-                    <div className="tl-add-menu-section">基础动画</div>
-                    <div className="tl-add-menu-grid">
-                      {([
-                        { type: 'move', label: '移动' },
-                        { type: 'moveAlongPath', label: '曲线移动' },
-                        { type: 'fade', label: '淡入淡出' },
-                        { type: 'scale', label: '缩放' },
-                        { type: 'rotate', label: '旋转' },
-                        { type: 'shake', label: '抖动' },
-                      ] as const).map((item) => (
-                        <button key={item.type} className="tl-add-menu-item" onClick={() => { createClip(item.type); setShowAddMenu(false); }}>
-                          <span className={`tl-type-dot tl-type-${item.type}`} />
-                          {item.label}
-                        </button>
-                      ))}
+                    <div className="tl-add-menu-tabs">
+                      {(['basic', 'template'] as const).map((tab) => {
+                        const label = { basic: '基础动画', template: '通用模板' }[tab];
+                        return (
+                          <button
+                            key={tab}
+                            className={`tl-add-menu-tab${addMenuTab === tab ? ' is-active' : ''}`}
+                            onClick={() => setAddMenuTab(tab)}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
-                    <div className="tl-add-menu-section">通用模板</div>
-                    <div className="tl-add-menu-grid">
-                      {([
-                        { key: 'fadeIn', label: '淡入' },
-                        { key: 'bounceIn', label: '弹跳进入' },
-                        { key: 'moveFadeIn', label: '平移淡入' },
-                        { key: 'fadeOut', label: '淡出消失' },
-                        { key: 'moveFadeOut', label: '移动消失' },
-                      ] as const).map((item) => (
-                        <button key={item.key} className="tl-add-menu-item tl-add-menu-template" onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}>
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="tl-add-menu-section">生物场景</div>
-                    <div className="tl-add-menu-grid">
-                      {([
-                        { key: 'crossMembrane', label: '跨膜移动' },
-                        { key: 'endocytosis', label: '胞吞入胞' },
-                      ] as const).map((item) => (
-                        <button key={item.key} className="tl-add-menu-item tl-add-menu-template tl-add-menu-bio" onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}>
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
+                    {addMenuTab === 'basic' && (
+                      <div className="tl-add-menu-grid">
+                        {([
+                          { type: 'move', label: '移动' },
+                          { type: 'moveAlongPath', label: '曲线移动' },
+                          { type: 'fade', label: '淡入淡出' },
+                          { type: 'scale', label: '缩放' },
+                          { type: 'rotate', label: '旋转' },
+                          { type: 'shake', label: '抖动' },
+                        ] as const).map((item) => (
+                          <button key={item.type} className="tl-add-menu-item" onClick={() => { createClip(item.type); setShowAddMenu(false); }}>
+                            <span className={`tl-type-dot tl-type-${item.type}`} />
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {addMenuTab === 'template' && (
+                      <div className="tl-add-menu-grid">
+                        {([
+                          { key: 'fadeIn', label: '淡入' },
+                          { key: 'bounceIn', label: '弹跳进入' },
+                          { key: 'moveFadeIn', label: '平移淡入' },
+                          { key: 'fadeOut', label: '淡出消失' },
+                          { key: 'moveFadeOut', label: '移动消失' },
+                        ] as const).map((item) => (
+                          <button key={item.key} className="tl-add-menu-item tl-add-menu-template" onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}>
+                            {item.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
