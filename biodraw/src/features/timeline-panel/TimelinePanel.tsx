@@ -309,6 +309,18 @@ export function TimelinePanel() {
   const [segLabelStart, setSegLabelStart] = useState('');
   const [segLabelEnd, setSegLabelEnd] = useState('');
   const segLabelCancelledRef = useRef(false);
+  const clipLabelEditingRef = useRef(false);
+  const clipLabelStartRef = useRef('');
+  const clipLabelEndRef = useRef('');
+  const clipLabelSpanRef = useRef<HTMLSpanElement>(null);
+  const clipLabelCommitRef = useRef<(s: string, e: string) => void>(() => {});
+  const clipLabelWidthRef = useRef<number | null>(null);
+  const segLabelEditingRef = useRef(false);
+  const segLabelStartRef = useRef('');
+  const segLabelEndRef = useRef('');
+  const segLabelSpanRef = useRef<HTMLSpanElement>(null);
+  const segLabelCommitRef = useRef<(s: string, e: string) => void>(() => {});
+  const segLabelWidthRef = useRef<number | null>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const copyDialogRef = useRef<HTMLDivElement>(null);
   const batchPanelRef = useRef<HTMLDivElement>(null);
@@ -676,13 +688,19 @@ export function TimelinePanel() {
     setIsTimeEditing(false);
   };
 
-  const startClipLabelEdit = (clipId: string, effStart: number, effDuration: number) => {
+  const startClipLabelEdit = (clipId: string, effStart: number, effDuration: number, displayWidth: number) => {
     clipLabelCancelledRef.current = false;
-    setClipLabelStart((effStart / 1000).toFixed(3));
-    setClipLabelEnd(((effStart + effDuration) / 1000).toFixed(3));
+    clipLabelEditingRef.current = true;
+    clipLabelWidthRef.current = displayWidth;
+    clipLabelStartRef.current = (effStart / 1000).toFixed(3);
+    clipLabelEndRef.current = ((effStart + effDuration) / 1000).toFixed(3);
+    setClipLabelStart(clipLabelStartRef.current);
+    setClipLabelEnd(clipLabelEndRef.current);
     setClipLabelEditId(clipId);
   };
   const commitClipLabelEdit = (startVal: string, endVal: string) => {
+    if (!clipLabelEditingRef.current) return;
+    clipLabelEditingRef.current = false;
     if (!clipLabelCancelledRef.current) {
       const clip = animations.find((c) => c.id === clipLabelEditId);
       if (clip) {
@@ -704,13 +722,19 @@ export function TimelinePanel() {
     setClipLabelEditId(null);
   };
 
-  const startSegLabelEdit = (segId: string, segStart: number, segEnd: number) => {
+  const startSegLabelEdit = (segId: string, segStart: number, segEnd: number, displayWidth: number) => {
     segLabelCancelledRef.current = false;
-    setSegLabelStart((segStart / 1000).toFixed(3));
-    setSegLabelEnd((segEnd / 1000).toFixed(3));
+    segLabelEditingRef.current = true;
+    segLabelWidthRef.current = displayWidth;
+    segLabelStartRef.current = (segStart / 1000).toFixed(3);
+    segLabelEndRef.current = (segEnd / 1000).toFixed(3);
+    setSegLabelStart(segLabelStartRef.current);
+    setSegLabelEnd(segLabelEndRef.current);
     setSegLabelEditId(segId);
   };
   const commitSegLabelEdit = (startVal: string, endVal: string) => {
+    if (!segLabelEditingRef.current) return;
+    segLabelEditingRef.current = false;
     if (!segLabelCancelledRef.current && selectedObject) {
       const seg = effectiveSegments.find((s) => s.id === segLabelEditId);
       if (seg) {
@@ -1471,6 +1495,30 @@ export function TimelinePanel() {
     return () => document.removeEventListener('mousedown', handler);
   }, [batchEasingDropOpen, batchStateDropOpen]);
 
+  clipLabelCommitRef.current = commitClipLabelEdit;
+  segLabelCommitRef.current = commitSegLabelEdit;
+
+  useEffect(() => {
+    if (!clipLabelEditId) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (clipLabelSpanRef.current && !clipLabelSpanRef.current.contains(e.target as Node)) {
+        clipLabelCommitRef.current(clipLabelStartRef.current, clipLabelEndRef.current);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown, { capture: true });
+    return () => document.removeEventListener('mousedown', handleMouseDown, { capture: true });
+  }, [clipLabelEditId]);
+
+  useEffect(() => {
+    if (!segLabelEditId) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (segLabelSpanRef.current && !segLabelSpanRef.current.contains(e.target as Node)) {
+        segLabelCommitRef.current(segLabelStartRef.current, segLabelEndRef.current);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown, { capture: true });
+    return () => document.removeEventListener('mousedown', handleMouseDown, { capture: true });
+  }, [segLabelEditId]);
 
   // 同步当前展开的 move/moveAlongPath 片段到 store，供画布路径叠加层使用
   useEffect(() => {
@@ -1697,46 +1745,48 @@ export function TimelinePanel() {
                       onMouseDown={(e) => { startWindowDrag('resize-end', seg, e); }}
                     />
                     {segLabelEditId === seg.id ? (
-                      <span className="tl-element-window-label" style={{ pointerEvents: 'auto' }}>
+                      <span ref={segLabelSpanRef} className="tl-element-window-label"
+                        style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: segLabelWidthRef.current ?? undefined }}>
                         <input
                           className="tl-label-time-input tl-input-nospin"
                           type="number" step={0.001}
+                          style={{ flex: 1, width: 'auto', minWidth: 0 }}
                           value={segLabelStart}
-                          onChange={(e) => setSegLabelStart(e.target.value)}
+                          onChange={(e) => { segLabelStartRef.current = e.target.value; setSegLabelStart(e.target.value); }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onBlur={(e) => {
                             if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
-                            commitSegLabelEdit(e.target.value, segLabelEnd);
+                            commitSegLabelEdit(e.target.value, segLabelEndRef.current);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') e.currentTarget.blur();
                             if (e.key === 'Escape') { segLabelCancelledRef.current = true; e.currentTarget.blur(); }
                           }}
                           autoFocus onFocus={(e) => e.target.select()}
-                        />
-                        ~
-                        <input
+                        />s ~ <input
                           className="tl-label-time-input tl-input-nospin"
                           type="number" step={0.001}
+                          style={{ flex: 1, width: 'auto', minWidth: 0 }}
                           value={segLabelEnd}
-                          onChange={(e) => setSegLabelEnd(e.target.value)}
+                          onChange={(e) => { segLabelEndRef.current = e.target.value; setSegLabelEnd(e.target.value); }}
                           onMouseDown={(e) => e.stopPropagation()}
                           onBlur={(e) => {
                             if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
-                            commitSegLabelEdit(segLabelStart, e.target.value);
+                            commitSegLabelEdit(segLabelStartRef.current, e.target.value);
                           }}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') e.currentTarget.blur();
                             if (e.key === 'Escape') { segLabelCancelledRef.current = true; e.currentTarget.blur(); }
                           }}
                           onFocus={(e) => e.target.select()}
-                        />
+                        />s
                       </span>
                     ) : (
                       <span
                         className="tl-element-window-label"
                         style={{ pointerEvents: 'auto' }}
-                        onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); startSegLabelEdit(seg.id, segStart, segEnd); }}
+                        data-tooltip="双击时间标签进行编辑"
+                        onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); startSegLabelEdit(seg.id, segStart, segEnd, (e.currentTarget as HTMLElement).offsetWidth); }}
                       >
                         {(segStart / 1000).toFixed(3)}s ~ {(segEnd / 1000).toFixed(3)}s
                       </span>
@@ -2249,47 +2299,50 @@ export function TimelinePanel() {
                             <div className="tl-track-handle-l" onMouseDown={(e) => startClipResizeStart(clip, e)} onClick={(e) => e.stopPropagation()} />
                             <div className="tl-track-handle-r" onMouseDown={(e) => startClipResizeEnd(clip, e)} onClick={(e) => e.stopPropagation()} />
                             {clipLabelEditId === clip.id ? (
-                              <span className="tl-track-fill-label" style={{ pointerEvents: 'auto' }} onClick={(e) => e.stopPropagation()}>
+                              <span ref={clipLabelSpanRef} className="tl-track-fill-label"
+                                style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: clipLabelWidthRef.current ?? undefined }}
+                                onClick={(e) => e.stopPropagation()}>
                                 <input
                                   className="tl-label-time-input tl-input-nospin"
                                   type="number" step={0.001}
+                                  style={{ flex: 1, width: 'auto', minWidth: 0 }}
                                   value={clipLabelStart}
-                                  onChange={(e) => setClipLabelStart(e.target.value)}
+                                  onChange={(e) => { clipLabelStartRef.current = e.target.value; setClipLabelStart(e.target.value); }}
                                   onMouseDown={(e) => e.stopPropagation()}
                                   onBlur={(e) => {
                                     if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
-                                    commitClipLabelEdit(e.target.value, clipLabelEnd);
+                                    commitClipLabelEdit(e.target.value, clipLabelEndRef.current);
                                   }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') e.currentTarget.blur();
                                     if (e.key === 'Escape') { clipLabelCancelledRef.current = true; e.currentTarget.blur(); }
                                   }}
                                   autoFocus onFocus={(e) => e.target.select()}
-                                />
-                                ~
-                                <input
+                                />s~<input
                                   className="tl-label-time-input tl-input-nospin"
                                   type="number" step={0.001}
+                                  style={{ flex: 1, width: 'auto', minWidth: 0 }}
                                   value={clipLabelEnd}
-                                  onChange={(e) => setClipLabelEnd(e.target.value)}
+                                  onChange={(e) => { clipLabelEndRef.current = e.target.value; setClipLabelEnd(e.target.value); }}
                                   onMouseDown={(e) => e.stopPropagation()}
                                   onBlur={(e) => {
                                     if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
-                                    commitClipLabelEdit(clipLabelStart, e.target.value);
+                                    commitClipLabelEdit(clipLabelStartRef.current, e.target.value);
                                   }}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') e.currentTarget.blur();
                                     if (e.key === 'Escape') { clipLabelCancelledRef.current = true; e.currentTarget.blur(); }
                                   }}
                                   onFocus={(e) => e.target.select()}
-                                />
+                                />s
                               </span>
                             ) : (
                               <span
                                 className="tl-track-fill-label"
                                 style={{ pointerEvents: 'auto' }}
+                                data-tooltip="双击时间标签进行编辑"
                                 onClick={(e) => e.stopPropagation()}
-                                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); startClipLabelEdit(clip.id, effStart, effDuration); }}
+                                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); startClipLabelEdit(clip.id, effStart, effDuration, (e.currentTarget as HTMLElement).offsetWidth); }}
                               >
                                 {(effStart / 1000).toFixed(3)}s~{((effStart + effDuration) / 1000).toFixed(3)}s
                               </span>
