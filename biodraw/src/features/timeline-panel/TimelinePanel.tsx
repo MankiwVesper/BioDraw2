@@ -1826,42 +1826,45 @@ export function TimelinePanel() {
                   </button>
                   {showAddSegmentDialog && (
                     <div style={{
-                      position: 'absolute', top: '100%', right: 0, zIndex: 200,
+                      position: 'absolute', top: '100%', left: 0, right: 'calc(-100% - 4px)', zIndex: 200,
                       background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                       borderRadius: 6, padding: '6px 8px',
                       boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                      display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12,
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                        <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>起始</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>起始时刻/ms</span>
                         <input
                           type="number" min={0} max={globalDurationMs}
                           value={addSegStartInput}
                           onChange={(e) => setAddSegStartInput(e.target.value)}
-                          style={{ width: 64, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
+                          style={{ flex: 1, minWidth: 0, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
                         />
-                        <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>结束</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>结束时刻/ms</span>
                         <input
                           type="number" min={0} max={globalDurationMs}
                           value={addSegEndInput}
                           onChange={(e) => setAddSegEndInput(e.target.value)}
-                          style={{ width: 64, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
+                          style={{ flex: 1, minWidth: 0, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
                         />
-                        <button
-                          disabled={!!addSegmentInputError}
-                          onClick={submitAddSegment}
-                          style={{
-                            height: 24, padding: '0 8px',
-                            background: addSegmentInputError ? 'var(--bg-color)' : 'var(--primary-color)',
-                            color: addSegmentInputError ? 'var(--text-muted)' : '#fff',
-                            border: addSegmentInputError ? '1px solid var(--border-color)' : 'none',
-                            borderRadius: 4, cursor: addSegmentInputError ? 'not-allowed' : 'pointer',
-                            fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap',
-                          }}
-                        >确认</button>
                       </div>
                       {addSegmentInputError && (
-                        <div style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>{addSegmentInputError}</div>
+                        <div style={{ fontSize: 11, color: '#ef4444' }}>{addSegmentInputError}</div>
                       )}
+                      <button
+                        disabled={!!addSegmentInputError}
+                        onClick={submitAddSegment}
+                        style={{
+                          width: '100%', height: 24, padding: 0,
+                          background: addSegmentInputError ? 'var(--bg-color)' : 'var(--primary-color)',
+                          color: addSegmentInputError ? 'var(--text-muted)' : '#fff',
+                          border: addSegmentInputError ? '1px solid var(--border-color)' : 'none',
+                          borderRadius: 4, cursor: addSegmentInputError ? 'not-allowed' : 'pointer',
+                          fontSize: 12,
+                        }}
+                      >确认</button>
                     </div>
                   )}
                 </div>
@@ -1878,8 +1881,9 @@ export function TimelinePanel() {
                     <div style={{
                       position: 'absolute', top: '100%', right: 0, zIndex: 200,
                       background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
-                      borderRadius: 6, padding: 10, minWidth: 220,
+                      borderRadius: 6, padding: 10,
                       boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                      whiteSpace: 'nowrap',
                     }}>
                       <div style={{ fontSize: 12, color: 'var(--text-main)', marginBottom: 8 }}>
                         确认删除选中的 {selectedSegmentIds.length} 个时间片段？
@@ -1896,13 +1900,11 @@ export function TimelinePanel() {
                           取消
                         </button>
                         <button
+                          className="tl-btn tl-btn-sm"
                           onClick={submitDeleteSegments}
-                          style={{
-                            flex: 1, height: 24, fontSize: 12, fontWeight: 600,
-                            background: '#ef4444', color: '#fff', border: 'none', borderRadius: 5, cursor: 'pointer',
-                          }}
+                          style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none' }}
                         >
-                          确认删除
+                          删除
                         </button>
                       </div>
                     </div>
@@ -1982,7 +1984,9 @@ export function TimelinePanel() {
               >
                 动画排序
               </button>
-              <div style={{ position: 'relative' }} ref={batchPanelRef}>
+              {/* 外层 wrapper：为「复制动画」弹窗提供统一定位上下文，使其左边界与「批量修改」左边界对齐 */}
+              <div style={{ position: 'relative', display: 'flex', gap: 6, alignItems: 'center' }}>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={batchPanelRef}>
                 <button
                   className={`tl-btn${showBatchPanel ? ' is-active' : ''}`}
                   onClick={() => setShowBatchPanel((p) => !p)}
@@ -2123,7 +2127,8 @@ export function TimelinePanel() {
                   </div>
                 )}
               </div>
-              <div style={{ position: 'relative' }} ref={copyDialogRef}>
+              {/* display:contents 使该 div 从布局中消失，弹窗锚点升到外层 wrapper；但 DOM 包含关系不变，click-outside 检测仍有效 */}
+              <div ref={copyDialogRef} style={{ display: 'contents' }}>
                 <button
                   className={`tl-btn${showCopyDialog ? ' is-active' : ''}`}
                   disabled={selectedObjectClips.length === 0 || objects.length <= 1}
@@ -2134,15 +2139,16 @@ export function TimelinePanel() {
                 </button>
                 {showCopyDialog && (
                   <div style={{
-                    position: 'absolute', top: '100%', right: 0, zIndex: 200,
+                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
-                    borderRadius: 6, padding: '8px', minWidth: 180,
+                    borderRadius: 6, padding: '8px',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                    height: 170, display: 'flex', flexDirection: 'column', overflow: 'hidden',
                   }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600 }}>选择目标对象</div>
-                    <div style={{ maxHeight: 160, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600, flexShrink: 0 }}>选择目标对象</div>
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
                       {objects.filter((o) => o.id !== selectedObject.id).map((o) => (
-                        <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '3px 4px', borderRadius: 6, fontSize: 12 }}
+                        <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '0 4px', borderRadius: 6, fontSize: 12, height: 24, flexShrink: 0 }}
                           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
                           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                         >
@@ -2153,6 +2159,7 @@ export function TimelinePanel() {
                               if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
                               else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
                             }}
+                            style={{ width: 13, height: 13, flexShrink: 0, cursor: 'pointer' }}
                           />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name || '未命名'}</span>
                         </label>
@@ -2162,11 +2169,11 @@ export function TimelinePanel() {
                       disabled={copyTargetIds.length === 0}
                       onClick={() => { copyAnimationClipsToObjects(selectedObject.id, copyTargetIds); setShowCopyDialog(false); setCopyTargetIds([]); }}
                       style={{
-                        marginTop: 8, width: '100%', padding: '5px 0',
+                        marginTop: 6, width: '100%', height: 20, padding: 0, flexShrink: 0,
                         background: copyTargetIds.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
                         color: copyTargetIds.length === 0 ? 'var(--text-muted)' : '#fff',
-                        border: 'none', borderRadius: 6, cursor: copyTargetIds.length === 0 ? 'not-allowed' : 'pointer',
-                        fontSize: 12, fontWeight: 600,
+                        border: 'none', borderRadius: 4, cursor: copyTargetIds.length === 0 ? 'not-allowed' : 'pointer',
+                        fontSize: 11,
                       }}
                     >
                       确认复制 {copyTargetIds.length > 0 ? `(${copyTargetIds.length})` : ''}
@@ -2174,6 +2181,7 @@ export function TimelinePanel() {
                   </div>
                 )}
               </div>
+              </div>{/* 外层 wrapper 结束 */}
             </div>
 
             {/* 右列：缩放滑块 */}
@@ -2356,7 +2364,7 @@ export function TimelinePanel() {
                         {isConflict && (
                           <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
                         )}
-                        <span className="tl-clip-dur" data-tooltip="动画片段时长">{effDuration}ms</span>
+                        <span className="tl-clip-dur" data-tooltip="动画片段时长">{(effDuration / 1000).toFixed(3)}s</span>
                         <div className="tl-clip-icon-group">
                           <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
                             <input
