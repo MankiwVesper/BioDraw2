@@ -297,7 +297,7 @@ export function TimelinePanel() {
   const [showDeleteSegmentConfirm, setShowDeleteSegmentConfirm] = useState(false);
   const addSegmentDialogRef = useRef<HTMLDivElement>(null);
   const deleteSegmentConfirmRef = useRef<HTMLDivElement>(null);
-  const [clipTimeWarning, setClipTimeWarning] = useState<{ clipId: string } | null>(null);
+  const [clipDurationWarnId, setClipDurationWarnId] = useState<string | null>(null);
   const [clipListDrag, setClipListDrag] = useState<{ clipId: string; fromIndex: number; toIndex: number } | null>(null);
   const [isTimeEditing, setIsTimeEditing] = useState(false);
   const [timeEditValue, setTimeEditValue] = useState('');
@@ -453,7 +453,7 @@ export function TimelinePanel() {
   // 计算"增加片段"的默认值：取最早空闲区间，长度 ≥ T/10 则用 T/10，否则用整段空闲。
   const defaultNewSegmentRange = useMemo(() => {
     if (!selectedObject) return null;
-    const desiredLen = Math.max(1, Math.round(globalDurationMs / 10));
+    const desiredLen = 2000;
     const sorted = [...effectiveSegments]
       .filter((s) => s.id !== '__virtual__')
       .sort((a, b) => a.startMs - b.startMs);
@@ -482,7 +482,7 @@ export function TimelinePanel() {
     const startMs = parseInt(addSegStartInput, 10);
     const endMs = parseInt(addSegEndInput, 10);
     if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return;
-    if (startMs < 0 || endMs > globalDurationMs || startMs >= endMs) return;
+    if (startMs < 0 || endMs > globalDurationMs || startMs >= endMs || endMs - startMs < 1000) return;
     const overlap = effectiveSegments.some(
       (s) => s.id !== '__virtual__' && Math.max(s.startMs, startMs) < Math.min(s.endMs, endMs),
     );
@@ -510,6 +510,7 @@ export function TimelinePanel() {
     if (startMs < 0) return '起始时间不能为负';
     if (endMs > globalDurationMs) return `结束时间不能超过 ${globalDurationMs}ms`;
     if (startMs >= endMs) return '结束时间必须大于起始时间';
+    if (endMs - startMs < 1000) return '片段时长不能小于 1000ms';
     const overlap = effectiveSegments.some(
       (s) => s.id !== '__virtual__' && Math.max(s.startMs, startMs) < Math.min(s.endMs, endMs),
     );
@@ -713,10 +714,10 @@ export function TimelinePanel() {
           let startMs = Math.max(0, rawStartMs);
           let endMs = rawEndMs;
           if (seg) {
-            startMs = Math.max(seg.startMs, Math.min(seg.endMs - 1, startMs));
-            endMs = Math.min(seg.endMs, Math.max(startMs + 1, endMs));
+            startMs = Math.max(seg.startMs, Math.min(seg.endMs - 1000, startMs));
+            endMs = Math.min(seg.endMs, Math.max(startMs + 1000, endMs));
           }
-          updateAnimationClip(clip.id, { startTimeMs: startMs, durationMs: Math.max(1, endMs - startMs) });
+          updateAnimationClip(clip.id, { startTimeMs: startMs, durationMs: Math.max(1000, endMs - startMs) });
         }
       }
     }
@@ -743,8 +744,8 @@ export function TimelinePanel() {
         const rawEndMs = Math.round(parseFloat(endVal) * 1000);
         if (!isNaN(rawStartMs) && !isNaN(rawEndMs) && rawEndMs > rawStartMs) {
           ensurePausedForEdit();
-          const startMs = Math.max(0, Math.min(globalDurationMs - 1, rawStartMs));
-          const endMs = Math.max(startMs + 1, Math.min(globalDurationMs, rawEndMs));
+          const startMs = Math.max(0, Math.min(globalDurationMs - 1000, rawStartMs));
+          const endMs = Math.max(startMs + 1000, Math.min(globalDurationMs, rawEndMs));
           updateAppearSegment(selectedObject.id, seg.id, { startMs, endMs });
         }
       }
@@ -1011,7 +1012,6 @@ export function TimelinePanel() {
       const maxDur = seg.endMs - clampedStart;
       const clampedDur = Math.max(1, Math.min(clip.durationMs, maxDur));
       if (clampedStart !== desired || clampedDur !== clip.durationMs) {
-        setClipTimeWarning({ clipId: clip.id });
       }
       const updates: Partial<AnimationClip> = { startTimeMs: clampedStart };
       if (clampedDur !== clip.durationMs) updates.durationMs = clampedDur;
@@ -1019,8 +1019,8 @@ export function TimelinePanel() {
     } else {
       const desired = Math.max(1, parsed);
       const maxDur = Math.max(1, seg.endMs - clip.startTimeMs);
-      const clampedDur = Math.max(1, Math.min(desired, maxDur));
-      if (clampedDur !== desired) setClipTimeWarning({ clipId: clip.id });
+      const clampedDur = Math.max(1000, Math.min(desired, maxDur));
+      if (desired < 1000) setClipDurationWarnId(clip.id); else setClipDurationWarnId(null);
       updateAnimationClip(clip.id, { durationMs: clampedDur });
     }
   };
@@ -1269,12 +1269,6 @@ export function TimelinePanel() {
   }, [cursorSnapGuideMs]);
 
   useEffect(() => {
-    if (!clipTimeWarning) return;
-    const t = window.setTimeout(() => setClipTimeWarning(null), 3000);
-    return () => window.clearTimeout(t);
-  }, [clipTimeWarning]);
-
-  useEffect(() => {
     if (!isCursorDragging) return;
     const stop = () => setIsCursorDragging(false);
     window.addEventListener('mouseup', stop);
@@ -1313,18 +1307,18 @@ export function TimelinePanel() {
         setDragState((p) => p ? { ...p, previewStartMs: next, snapGuideMs: guide } : p);
       } else if (dragState.mode === 'resize-start') {
         const snapped = applySnap(Math.round(pointerMs - dragState.offsetMs));
-        const nextStart = Math.max(segLo, Math.min(snapped.value, Math.max(segLo, dragState.fixedEndMs - 1)));
-        setDragState((p) => p ? { ...p, previewStartMs: nextStart, previewDurationMs: Math.max(1, dragState.fixedEndMs - nextStart), snapGuideMs: snapped.snapped ? snapped.value : null } : p);
+        const nextStart = Math.max(segLo, Math.min(snapped.value, Math.max(segLo, dragState.fixedEndMs - 1000)));
+        setDragState((p) => p ? { ...p, previewStartMs: nextStart, previewDurationMs: Math.max(1000, dragState.fixedEndMs - nextStart), snapGuideMs: snapped.snapped ? snapped.value : null } : p);
       } else {
         const snapped = applySnap(Math.round(pointerMs - dragState.offsetMs));
-        const nextEnd = Math.max(dragState.previewStartMs + 1, Math.min(segHi, snapped.value));
-        setDragState((p) => p ? { ...p, previewDurationMs: Math.max(1, nextEnd - dragState.previewStartMs), snapGuideMs: snapped.snapped ? snapped.value : null } : p);
+        const nextEnd = Math.max(dragState.previewStartMs + 1000, Math.min(segHi, snapped.value));
+        setDragState((p) => p ? { ...p, previewDurationMs: Math.max(1000, nextEnd - dragState.previewStartMs), snapGuideMs: snapped.snapped ? snapped.value : null } : p);
       }
     };
     const handleUp = () => {
       const clip = animations.find((c) => c.id === dragState.clipId);
       if (clip) {
-        const ns = Math.max(0, dragState.previewStartMs), nd = Math.max(1, dragState.previewDurationMs);
+        const ns = Math.max(0, dragState.previewStartMs), nd = Math.max(1000, dragState.previewDurationMs);
         if (ns !== clip.startTimeMs || nd !== clip.durationMs) {
           ensurePausedForEdit();
           updateAnimationClip(clip.id, { startTimeMs: ns, durationMs: nd });
@@ -1361,10 +1355,10 @@ export function TimelinePanel() {
           return { ...p, previewStartMs: ns, previewEndMs: ns + len };
         }
         if (p.mode === 'resize-start') {
-          const ns = Math.max(lo, Math.min(p.previewEndMs - 1, Math.round(pointerMs - p.offsetMs)));
+          const ns = Math.max(lo, Math.min(p.previewEndMs - 1000, Math.round(pointerMs - p.offsetMs)));
           return { ...p, previewStartMs: ns };
         }
-        const ne = Math.max(p.previewStartMs + 1, Math.min(hi, Math.round(pointerMs - p.offsetMs)));
+        const ne = Math.max(p.previewStartMs + 1000, Math.min(hi, Math.round(pointerMs - p.offsetMs)));
         return { ...p, previewEndMs: ne };
       });
     };
@@ -1373,7 +1367,7 @@ export function TimelinePanel() {
       windowDragMovedRef.current = false;
       if (next) {
         const ns = Math.max(0, Math.min(globalDurationMs, next.previewStartMs));
-        const ne = Math.max(ns + 1, Math.min(globalDurationMs, next.previewEndMs));
+        const ne = Math.max(ns + 1000, Math.min(globalDurationMs, next.previewEndMs));
         const target = objects.find((o) => o.id === next.objectId);
         const seg = target?.appearSegments?.find((s) => s.id === next.segmentId);
         if (target && seg && (seg.startMs !== ns || seg.endMs !== ne)) {
@@ -1739,11 +1733,13 @@ export function TimelinePanel() {
                       className="tl-element-handle-l"
                       style={handleLStyle}
                       onMouseDown={(e) => { startWindowDrag('resize-start', seg, e); }}
+                      data-tooltip="拖动以调整片段起点，片段时长不小于1s"
                     />
                     <div
                       className="tl-element-handle-r"
                       style={handleRStyle}
                       onMouseDown={(e) => { startWindowDrag('resize-end', seg, e); }}
+                      data-tooltip="拖动以调整片段终点，片段时长不小于1s"
                     />
                     {segLabelEditId === seg.id ? (
                       <span ref={segLabelSpanRef} className="tl-element-window-label"
@@ -1786,7 +1782,7 @@ export function TimelinePanel() {
                       <span
                         className="tl-element-window-label"
                         style={{ pointerEvents: 'auto' }}
-                        data-tooltip="双击时间标签进行编辑"
+                        data-tooltip="双击时间标签进行编辑，片段时长不小于1s"
                         onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); startSegLabelEdit(seg.id, segStart, segEnd, (e.currentTarget as HTMLElement).offsetWidth); }}
                       >
                         {(segStart / 1000).toFixed(3)}s ~ {(segEnd / 1000).toFixed(3)}s
@@ -2214,7 +2210,7 @@ export function TimelinePanel() {
       ) : selectedSegmentIds.length > 1 ? (
         <div className="tl-placeholder">已选中 {selectedSegmentIds.length} 个时间片段，无法显示动画详情<br/><span style={{fontSize:11,opacity:0.6}}>仅选中一个片段以编辑其动画</span></div>
       ) : selectedSegmentIds.length === 0 ? (
-        <div className="tl-placeholder">请先在元素时间轴上选中一个时间片段以编辑动画<br/><span style={{fontSize:11,opacity:0.6}}>或点击「添加动画」由系统自动选中第一个片段</span></div>
+        <div className="tl-body"><div className="tl-placeholder">请先在元素时间轴上选中一个时间片段以编辑动画<br/><span style={{fontSize:11,opacity:0.6}}>或点击「添加动画」由系统自动选中第一个片段</span></div></div>
       ) : (
         <div className="tl-body">
 
@@ -2222,8 +2218,8 @@ export function TimelinePanel() {
           <div className="tl-clip-list">
 
             {segmentScopedClips.length === 0 ? (
-              <div className="tl-placeholder tl-placeholder-sm">
-                此片段尚无动画。点击上方「添加动画」，或在右侧检查器快速添加
+              <div className="tl-placeholder">
+                此片段尚无动画；点击上方「添加动画」进入动画设计
               </div>
             ) : (
               segmentScopedClips.map((clip, clipIndex) => {
@@ -2310,8 +2306,8 @@ export function TimelinePanel() {
                             style={{ left: clipLeftPct, width: clipWidthPct }}
                             onMouseDown={clipLabelEditId === clip.id ? undefined : (e) => startClipDrag(clip, e)}
                           >
-                            <div className="tl-track-handle-l" onMouseDown={(e) => startClipResizeStart(clip, e)} onClick={(e) => e.stopPropagation()} />
-                            <div className="tl-track-handle-r" onMouseDown={(e) => startClipResizeEnd(clip, e)} onClick={(e) => e.stopPropagation()} />
+                            <div className="tl-track-handle-l" onMouseDown={(e) => startClipResizeStart(clip, e)} onClick={(e) => e.stopPropagation()} data-tooltip="拖动以调整动画起点，时长不小于1s" />
+                            <div className="tl-track-handle-r" onMouseDown={(e) => startClipResizeEnd(clip, e)} onClick={(e) => e.stopPropagation()} data-tooltip="拖动以调整动画终点，时长不小于1s" />
                             {clipLabelEditId === clip.id ? (
                               <span ref={clipLabelSpanRef} className="tl-track-fill-label"
                                 style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: clipLabelWidthRef.current ?? undefined }}
@@ -2354,7 +2350,7 @@ export function TimelinePanel() {
                               <span
                                 className="tl-track-fill-label"
                                 style={{ pointerEvents: 'auto' }}
-                                data-tooltip="双击时间标签进行编辑"
+                                data-tooltip="双击时间标签进行编辑，动画时长不小于1s"
                                 onClick={(e) => e.stopPropagation()}
                                 onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); startClipLabelEdit(clip.id, effStart, effDuration, (e.currentTarget as HTMLElement).offsetWidth); }}
                               >
@@ -2414,12 +2410,14 @@ export function TimelinePanel() {
                             <span className="tl-col-header-centered">时间设置</span>
                             <div className="tl-time-subcol-body">
                               <label className="tl-detail-label">开始(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effStart} onChange={(e) => updateClipNumberField(clip, 'startTimeMs', e.target.value)} /></label>
-                              <label className="tl-detail-label">时长(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effDuration} onChange={(e) => updateClipNumberField(clip, 'durationMs', e.target.value)} /></label>
-                              {clipTimeWarning?.clipId === clip.id && (
-                                <div className="tl-segment-time-warn">
-                                  时间设置需与元素时间轴中时间片段保持一致，如需继续调整请先修改对应时间片段
-                                </div>
-                              )}
+                              <div style={{ position: 'relative' }}>
+                                <label className="tl-detail-label">时长(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effDuration} onChange={(e) => updateClipNumberField(clip, 'durationMs', e.target.value)} /></label>
+                                {clipDurationWarnId === clip.id && (
+                                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, fontSize: 11, color: '#ef4444', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10 }}>
+                                    片段时长不能小于 1000ms
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
 
