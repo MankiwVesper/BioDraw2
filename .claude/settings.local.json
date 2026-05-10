@@ -31,7 +31,9 @@
       "Bash(npx eslint *)",
       "Bash(grep -n \"//\" /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.tsx)",
       "Bash(git *)",
-      "Bash(npx --prefix biodraw tsc --project biodraw/tsconfig.app.json --pretty false)"
+      "Bash(npx --prefix biodraw tsc --project biodraw/tsconfig.app.json --pretty false)",
+      "Bash(grep -v \"^[0-9]*:\\\\s*//\")",
+      "Bash(npx --prefix biodraw tsc --project biodraw/tsconfig.app.json --pretty false --noEmit)"
     ]
   }
 }
