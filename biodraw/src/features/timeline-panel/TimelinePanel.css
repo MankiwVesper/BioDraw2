@@ -36,6 +36,18 @@
   font-size: 12px;
 }
 
+.tl-input-sm:focus,
+.tl-time-input:focus,
+.tl-dialog-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.tl-dialog-input:focus {
+  border-color: var(--primary-color) !important;
+}
+
 .tl-input-nospin[type=number]::-webkit-inner-spin-button,
 .tl-input-nospin[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;

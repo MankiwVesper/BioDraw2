@@ -102,6 +102,8 @@ const formatBezierValue = (value: number) => {
 const buildBezierEasingValue = (x1: number, y1: number, x2: number, y2: number) =>
   `cubic-bezier(${formatBezierValue(x1)},${formatBezierValue(y1)},${formatBezierValue(x2)},${formatBezierValue(y2)})` as AnimationClip['easing'];
 
+type BezierControlIndex = 0 | 1 | 2 | 3;
+
 const getEasingPreviewPath = (x1: number, y1: number, x2: number, y2: number) => {
   const w = 88, h = 52, sx = 4, sy = h - 4, ex = w - 4, ey = 4;
   const c1x = sx + (ex - sx) * x1, c1y = sy - (sy - ey) * y1;
@@ -305,6 +307,13 @@ export function TimelinePanel() {
   const [clipLabelEditId, setClipLabelEditId] = useState<string | null>(null);
   const [clipLabelStart, setClipLabelStart] = useState('');
   const [clipLabelEnd, setClipLabelEnd] = useState('');
+  const [clipTimeDrafts, setClipTimeDrafts] = useState<
+    Record<string, Partial<Record<'startTimeMs' | 'durationMs', string>>>
+  >({});
+  const [payloadNumberDrafts, setPayloadNumberDrafts] = useState<Record<string, Record<string, string>>>({});
+  const [bezierControlDrafts, setBezierControlDrafts] = useState<
+    Record<string, Partial<Record<BezierControlIndex, string>>>
+  >({});
   const clipLabelCancelledRef = useRef(false);
   const [segLabelEditId, setSegLabelEditId] = useState<string | null>(null);
   const [segLabelStart, setSegLabelStart] = useState('');
@@ -353,6 +362,7 @@ export function TimelinePanel() {
   const materializeAppearSegmentsSilent = useEditorStore((s) => s.materializeAppearSegmentsSilent);
   const patchAnimationClipSilent = useEditorStore((s) => s.patchAnimationClipSilent);
   const reorderAnimationClips = useEditorStore((s) => s.reorderAnimationClips);
+  const [durationDraft, setDurationDraft] = useState(String(globalDurationMs));
 
   // ── 派生状态
   const selectedObject = useMemo(
@@ -475,6 +485,46 @@ export function TimelinePanel() {
     setAddSegStartInput(String(defaultNewSegmentRange.startMs));
     setAddSegEndInput(String(defaultNewSegmentRange.endMs));
     setShowAddSegmentDialog(true);
+  };
+
+  const sanitizeMsInput = (rawValue: string) =>
+    rawValue.replace(/\D/g, '').slice(0, 5);
+
+  const updateAddSegmentInput = (
+    field: 'start' | 'end',
+    rawValue: string,
+  ) => {
+    const nextValue = sanitizeMsInput(rawValue);
+    if (field === 'start') setAddSegStartInput(nextValue);
+    else setAddSegEndInput(nextValue);
+  };
+
+  const adjustAddSegmentInputByWheel = (
+    field: 'start' | 'end',
+    e: React.WheelEvent<HTMLInputElement>,
+  ) => {
+    e.preventDefault();
+    const currentValue = field === 'start' ? addSegStartInput : addSegEndInput;
+    const fallback = field === 'start' ? 0 : globalDurationMs;
+    const parsed = Number.parseInt(currentValue, 10);
+    const baseMs = Number.isFinite(parsed) ? parsed : fallback;
+    const deltaMs = e.deltaY < 0 ? 1 : -1;
+    const nextMs = Math.max(0, Math.min(globalDurationMs, baseMs + deltaMs));
+
+    if (field === 'start') setAddSegStartInput(String(nextMs));
+    else setAddSegEndInput(String(nextMs));
+  };
+
+  const commitAddSegmentInput = (field: 'start' | 'end') => {
+    const currentValue = field === 'start' ? addSegStartInput : addSegEndInput;
+    if (currentValue === '') return;
+
+    const parsed = Number.parseInt(currentValue, 10);
+    if (!Number.isFinite(parsed)) return;
+
+    const nextValue = String(Math.max(0, Math.min(globalDurationMs, parsed)));
+    if (field === 'start') setAddSegStartInput(nextValue);
+    else setAddSegEndInput(nextValue);
   };
 
   const submitAddSegment = () => {
@@ -674,6 +724,43 @@ export function TimelinePanel() {
 
   const ensurePausedForEdit = () => { if (playbackStatus === 'playing') pause(); };
 
+  useEffect(() => {
+    setDurationDraft(String(globalDurationMs));
+  }, [globalDurationMs]);
+
+  const commitDurationDraft = () => {
+    const parsed = Number.parseInt(durationDraft, 10);
+    if (!Number.isFinite(parsed)) {
+      setDurationDraft(String(globalDurationMs));
+      return;
+    }
+    const nextDurationMs = Math.max(1000, Math.min(99999, parsed));
+    ensurePausedForEdit();
+    setGlobalDurationMs(nextDurationMs);
+    setDurationDraft(String(nextDurationMs));
+  };
+
+  const updateDurationDraft = (rawValue: string) => {
+    const nextDraft = rawValue.replace(/\D/g, '').slice(0, 5);
+    setDurationDraft(nextDraft);
+
+    const parsed = Number.parseInt(nextDraft, 10);
+    if (!Number.isFinite(parsed) || parsed < 1000) return;
+
+    const nextDurationMs = Math.min(99999, parsed);
+    ensurePausedForEdit();
+    setGlobalDurationMs(nextDurationMs);
+  };
+  const sanitizeSecondsInput = (rawValue: string) => {
+    const cleaned = rawValue.replace(/[^\d.]/g, '');
+    const dotIndex = cleaned.indexOf('.');
+    if (dotIndex === -1) return cleaned;
+
+    const whole = cleaned.slice(0, dotIndex);
+    const fraction = cleaned.slice(dotIndex + 1).replace(/\./g, '').slice(0, 3);
+    return `${whole}.${fraction}`;
+  };
+
   const startTimeEdit = () => {
     timeEditCancelledRef.current = false;
     setTimeEditValue((currentTimeMs / 1000).toFixed(3));
@@ -684,12 +771,23 @@ export function TimelinePanel() {
       const parsed = parseFloat(raw);
       if (!isNaN(parsed)) {
         ensurePausedForEdit();
-        setCurrentTimeMs(Math.round(Math.max(0, Math.min(globalDurationMs, parsed * 1000))));
+        const nextTimeMs = Math.round(Math.max(0, Math.min(globalDurationMs, parsed * 1000)));
+        setCurrentTimeMs(nextTimeMs);
+        setTimeEditValue((nextTimeMs / 1000).toFixed(3));
       }
     }
     setIsTimeEditing(false);
   };
+  const updateTimeEditValue = (rawValue: string) => {
+    const nextValue = sanitizeSecondsInput(rawValue);
+    setTimeEditValue(nextValue);
 
+    const parsed = parseFloat(nextValue);
+    if (isNaN(parsed)) return;
+
+    ensurePausedForEdit();
+    setCurrentTimeMs(Math.round(Math.max(0, Math.min(globalDurationMs, parsed * 1000))));
+  };
   const startClipLabelEdit = (clipId: string, effStart: number, effDuration: number, displayWidth: number) => {
     clipLabelCancelledRef.current = false;
     clipLabelEditingRef.current = true;
@@ -1025,6 +1123,46 @@ export function TimelinePanel() {
     }
   };
 
+  const clearClipTimeDraft = (clipId: string, field: 'startTimeMs' | 'durationMs') => {
+    setClipTimeDrafts((prev) => {
+      const current = prev[clipId];
+      if (!current || current[field] === undefined) return prev;
+      const nextFields = { ...current };
+      delete nextFields[field];
+      if (Object.keys(nextFields).length === 0) {
+        const next = { ...prev };
+        delete next[clipId];
+        return next;
+      }
+      return { ...prev, [clipId]: nextFields };
+    });
+  };
+
+  const updateClipTimeDraft = (
+    clip: AnimationClip,
+    field: 'startTimeMs' | 'durationMs',
+    rawValue: string,
+  ) => {
+    const nextValue = sanitizeMsInput(rawValue);
+    setClipTimeDrafts((prev) => ({
+      ...prev,
+      [clip.id]: {
+        ...(prev[clip.id] || {}),
+        [field]: nextValue,
+      },
+    }));
+    if (nextValue === '') return;
+    updateClipNumberField(clip, field, nextValue);
+  };
+
+  const commitClipTimeDraft = (clip: AnimationClip, field: 'startTimeMs' | 'durationMs') => {
+    const draft = clipTimeDrafts[clip.id]?.[field];
+    if (draft !== undefined && draft !== '') {
+      updateClipNumberField(clip, field, String(Number.parseInt(draft, 10)));
+    }
+    clearClipTimeDraft(clip.id, field);
+  };
+
   const coordFields = new Set(['fromX', 'fromY', 'toX', 'toY', 'controlX', 'controlY', 'baseX', 'baseY']);
 
   const updatePayloadNumberField = (clip: AnimationClip, field: string, rawValue: string) => {
@@ -1038,6 +1176,94 @@ export function TimelinePanel() {
       : coordFields.has(field) ? Math.round(parsed)
       : parsed;
     updateAnimationClip(clip.id, { payload: { ...(clip.payload as Record<string, number>), [field]: next } } as Partial<AnimationClip>);
+  };
+
+  const clearPayloadNumberDraft = (clipId: string, field: string) => {
+    setPayloadNumberDrafts((prev) => {
+      const current = prev[clipId];
+      if (!current || current[field] === undefined) return prev;
+      const nextFields = { ...current };
+      delete nextFields[field];
+      if (Object.keys(nextFields).length === 0) {
+        const next = { ...prev };
+        delete next[clipId];
+        return next;
+      }
+      return { ...prev, [clipId]: nextFields };
+    });
+  };
+
+  type PayloadNumberDraftOptions = {
+    allowNegative?: boolean;
+    integer?: boolean;
+    min?: number;
+    max?: number;
+  };
+
+  const normalizePayloadNumberDraft = (
+    rawValue: string,
+    options?: PayloadNumberDraftOptions,
+    forceFormat = false,
+  ) => {
+    const parsed = Number.parseFloat(rawValue);
+    if (!Number.isFinite(parsed)) return rawValue;
+
+    const min = options?.min ?? (options?.allowNegative ? undefined : 0);
+    const max = options?.max;
+    let nextValue = parsed;
+    if (min !== undefined) nextValue = Math.max(min, nextValue);
+    if (max !== undefined) nextValue = Math.min(max, nextValue);
+    if (options?.integer !== false) nextValue = Math.round(nextValue);
+
+    return forceFormat || nextValue !== parsed ? String(nextValue) : rawValue;
+  };
+
+  const updatePayloadNumberDraft = (
+    clip: AnimationClip,
+    field: string,
+    rawValue: string,
+    options?: PayloadNumberDraftOptions,
+  ) => {
+    const nextValue = normalizePayloadNumberDraft(rawValue, options);
+    setPayloadNumberDrafts((prev) => ({
+      ...prev,
+      [clip.id]: {
+        ...(prev[clip.id] || {}),
+        [field]: nextValue,
+      },
+    }));
+    updatePayloadNumberField(clip, field, nextValue);
+  };
+
+  const commitPayloadNumberDraft = (
+    clip: AnimationClip,
+    field: string,
+    input?: HTMLInputElement,
+    options?: PayloadNumberDraftOptions,
+  ) => {
+    const draft = input?.value ?? payloadNumberDrafts[clip.id]?.[field];
+    if (draft !== undefined && draft !== '') {
+      const normalizedValue = normalizePayloadNumberDraft(draft, options, true);
+      updatePayloadNumberField(clip, field, normalizedValue);
+      if (input) input.value = normalizedValue;
+    }
+    clearPayloadNumberDraft(clip.id, field);
+  };
+
+  const handlePayloadNumberKeyDown = (
+    clipId: string,
+    field: string,
+    e: React.KeyboardEvent<HTMLInputElement>,
+    options?: PayloadNumberDraftOptions,
+  ) => {
+    if (e.key === 'e' || e.key === 'E' || e.key === '+' || (!options?.allowNegative && e.key === '-')) {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      clearPayloadNumberDraft(clipId, field);
+      e.currentTarget.blur();
+    }
   };
 
   const updateClipPayload = (clip: AnimationClip, payloadUpdates: Record<string, unknown>) => {
@@ -1060,6 +1286,77 @@ export function TimelinePanel() {
   };
 
   // ── 时间轴标尺刻度计算 ───────────────────────────────────────
+  const getBezierControlBounds = (idx: BezierControlIndex) =>
+    idx === 0 || idx === 2 ? { min: 0, max: 1 } : { min: -2, max: 2 };
+
+  const normalizeBezierControlDraft = (idx: BezierControlIndex, rawValue: string) => {
+    const parsed = Number.parseFloat(rawValue);
+    if (!Number.isFinite(parsed)) return rawValue;
+    const { min, max } = getBezierControlBounds(idx);
+    const clamped = Math.max(min, Math.min(max, parsed));
+    return clamped === parsed ? rawValue : String(formatBezierValue(clamped));
+  };
+
+  const clearBezierControlDraft = (clipId: string, idx: BezierControlIndex) => {
+    setBezierControlDrafts((prev) => {
+      const current = prev[clipId];
+      if (!current || current[idx] === undefined) return prev;
+      const nextFields = { ...current };
+      delete nextFields[idx];
+      if (Object.keys(nextFields).length === 0) {
+        const next = { ...prev };
+        delete next[clipId];
+        return next;
+      }
+      return { ...prev, [clipId]: nextFields };
+    });
+  };
+
+  const updateBezierControlDraft = (clip: AnimationClip, idx: BezierControlIndex, rawValue: string) => {
+    const nextValue = normalizeBezierControlDraft(idx, rawValue);
+    setBezierControlDrafts((prev) => ({
+      ...prev,
+      [clip.id]: {
+        ...(prev[clip.id] || {}),
+        [idx]: nextValue,
+      },
+    }));
+    updateClipBezierControlPoint(clip, idx, nextValue);
+  };
+
+  const commitBezierControlDraft = (
+    clip: AnimationClip,
+    idx: BezierControlIndex,
+    fallbackValue: number,
+    input?: HTMLInputElement,
+  ) => {
+    const draft = input?.value ?? bezierControlDrafts[clip.id]?.[idx];
+    const parsed = Number.parseFloat(draft ?? '');
+    const { min, max } = getBezierControlBounds(idx);
+    const normalizedValue = Number.isFinite(parsed)
+      ? String(formatBezierValue(Math.max(min, Math.min(max, parsed))))
+      : String(formatBezierValue(fallbackValue));
+
+    updateClipBezierControlPoint(clip, idx, normalizedValue);
+    if (input) input.value = normalizedValue;
+    clearBezierControlDraft(clip.id, idx);
+  };
+
+  const handleBezierControlKeyDown = (
+    clipId: string,
+    idx: BezierControlIndex,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === 'e' || e.key === 'E' || e.key === '+' || ((idx === 0 || idx === 2) && e.key === '-')) {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === 'Escape') {
+      clearBezierControlDraft(clipId, idx);
+      e.currentTarget.blur();
+    }
+  };
+
   const rulerIntervalMs = useMemo(() => {
     const trackWidthPx = 600 * (timelineZoom / 100);
     const msPerPx = globalDurationMs / Math.max(1, trackWidthPx);
@@ -1574,13 +1871,15 @@ export function TimelinePanel() {
             <input
               className="tl-time-input tl-input-nospin"
               type="number"
-              value={timeEditValue}
+              inputMode="decimal"
               min={0}
               max={globalDurationMs / 1000}
               step={0.001}
-              onChange={(e) => setTimeEditValue(e.target.value)}
+              value={timeEditValue}
+              onChange={(e) => updateTimeEditValue(e.target.value)}
               onBlur={(e) => commitTimeEdit(e.target.value)}
               onKeyDown={(e) => {
+                if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') { e.preventDefault(); return; }
                 if (e.key === 'Enter') e.currentTarget.blur();
                 if (e.key === 'Escape') { timeEditCancelledRef.current = true; e.currentTarget.blur(); }
               }}
@@ -1597,9 +1896,23 @@ export function TimelinePanel() {
           <input
             className="tl-input-sm tl-input-nospin"
             type="number"
+            inputMode="numeric"
             min={1000}
-            value={globalDurationMs}
-            onChange={(e) => { ensurePausedForEdit(); setGlobalDurationMs(parseInt(e.target.value || '1000', 10)); }}
+            max={99999}
+            step={1}
+            value={durationDraft}
+            onChange={(e) => {
+              updateDurationDraft(e.target.value);
+            }}
+            onBlur={commitDurationDraft}
+            onKeyDown={(e) => {
+              if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-' || e.key === '.') { e.preventDefault(); return; }
+              if (e.key === 'Enter') e.currentTarget.blur();
+              if (e.key === 'Escape') {
+                setDurationDraft(String(globalDurationMs));
+                e.currentTarget.blur();
+              }
+            }}
             style={{ width: 50 }}
           />
         </div>
@@ -1832,18 +2145,36 @@ export function TimelinePanel() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>起始时刻/ms</span>
                         <input
-                          type="number" min={0} max={globalDurationMs}
+                          className="tl-dialog-input"
+                          type="text"
+                          inputMode="numeric"
                           value={addSegStartInput}
-                          onChange={(e) => setAddSegStartInput(e.target.value)}
+                          onChange={(e) => updateAddSegmentInput('start', e.target.value)}
+                          onWheel={(e) => adjustAddSegmentInputByWheel('start', e)}
+                          onBlur={() => commitAddSegmentInput('start')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !addSegmentInputError) submitAddSegment();
+                            if (e.key === 'Escape') setShowAddSegmentDialog(false);
+                          }}
+                          onFocus={(e) => e.target.select()}
                           style={{ flex: 1, minWidth: 0, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
                         />
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>结束时刻/ms</span>
                         <input
-                          type="number" min={0} max={globalDurationMs}
+                          className="tl-dialog-input"
+                          type="text"
+                          inputMode="numeric"
                           value={addSegEndInput}
-                          onChange={(e) => setAddSegEndInput(e.target.value)}
+                          onChange={(e) => updateAddSegmentInput('end', e.target.value)}
+                          onWheel={(e) => adjustAddSegmentInputByWheel('end', e)}
+                          onBlur={() => commitAddSegmentInput('end')}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !addSegmentInputError) submitAddSegment();
+                            if (e.key === 'Escape') setShowAddSegmentDialog(false);
+                          }}
+                          onFocus={(e) => e.target.select()}
                           style={{ flex: 1, minWidth: 0, height: 24, fontSize: 12, padding: '0 4px', border: '1px solid var(--border-color)', borderRadius: 4, background: 'var(--bg-color)', color: 'var(--text-main)' }}
                         />
                       </div>
@@ -2409,9 +2740,9 @@ export function TimelinePanel() {
                           <div className="tl-time-subcol">
                             <span className="tl-col-header-centered">时间设置</span>
                             <div className="tl-time-subcol-body">
-                              <label className="tl-detail-label">开始(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effStart} onChange={(e) => updateClipNumberField(clip, 'startTimeMs', e.target.value)} /></label>
+                              <label className="tl-detail-label">开始(ms)<input className="tl-input-sm tl-input-nospin" type="number" inputMode="numeric" min={0} max={99999} step={1} value={clipTimeDrafts[clip.id]?.startTimeMs ?? String(effStart)} onChange={(e) => updateClipTimeDraft(clip, 'startTimeMs', e.target.value)} onBlur={() => commitClipTimeDraft(clip, 'startTimeMs')} onKeyDown={(e) => { if (['e', 'E', '+', '-', '.'].includes(e.key)) { e.preventDefault(); return; } if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { clearClipTimeDraft(clip.id, 'startTimeMs'); e.currentTarget.blur(); } }} onFocus={(e) => e.target.select()} /></label>
                               <div style={{ position: 'relative' }}>
-                                <label className="tl-detail-label">时长(ms)<input className="tl-input-sm" type="number" min={0} max={99999} value={effDuration} onChange={(e) => updateClipNumberField(clip, 'durationMs', e.target.value)} /></label>
+                                <label className="tl-detail-label">时长(ms)<input className="tl-input-sm tl-input-nospin" type="number" inputMode="numeric" min={1000} max={99999} step={1} value={clipTimeDrafts[clip.id]?.durationMs ?? String(effDuration)} onChange={(e) => updateClipTimeDraft(clip, 'durationMs', e.target.value)} onBlur={() => commitClipTimeDraft(clip, 'durationMs')} onKeyDown={(e) => { if (['e', 'E', '+', '-', '.'].includes(e.key)) { e.preventDefault(); return; } if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') { clearClipTimeDraft(clip.id, 'durationMs'); e.currentTarget.blur(); } }} onFocus={(e) => e.target.select()} /></label>
                                 {clipDurationWarnId === clip.id && (
                                   <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, fontSize: 11, color: '#ef4444', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10 }}>
                                     片段时长不能小于 1000ms
@@ -2428,38 +2759,38 @@ export function TimelinePanel() {
                               <div className="tl-type-row">
                                 {(clip.type === 'move' || clip.type === 'moveAlongPath') && (<>
                                   <span className="tl-coord-label">起点</span>
-                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberField(clip, 'fromX', e.target.value)} /></label>
-                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.fromY)} onChange={(e) => updatePayloadNumberField(clip, 'fromY', e.target.value)} /></label>
+                                  <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromX ?? Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromX', e)} onFocus={(e) => e.target.select()} /></label>
+                                  <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromY ?? Math.round(clip.payload.fromY)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromY', e)} onFocus={(e) => e.target.select()} /></label>
                                   <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
                                 </>)}
-                                {clip.type === 'fade' && <label className="tl-detail-label">起始透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.fromOpacity} onChange={(e) => updatePayloadNumberField(clip, 'fromOpacity', e.target.value)} /></label>}
-                                {clip.type === 'scale' && (<><label className="tl-detail-label">起始缩放X<input type="number" step={0.01} value={clip.payload.fromScaleX} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleX', e.target.value)} /></label><label className="tl-detail-label">起始缩放Y<input type="number" step={0.01} value={clip.payload.fromScaleY} onChange={(e) => updatePayloadNumberField(clip, 'fromScaleY', e.target.value)} /></label></>)}
-                                {clip.type === 'rotate' && <label className="tl-detail-label">起始角度<input type="number" value={clip.payload.fromRotation} onChange={(e) => updatePayloadNumberField(clip, 'fromRotation', e.target.value)} /></label>}
-                                {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">基准X</span><input type="number" step={1} value={Math.round(clip.payload.baseX)} onChange={(e) => updatePayloadNumberField(clip, 'baseX', e.target.value)} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">基准Y</span><input type="number" step={1} value={Math.round(clip.payload.baseY)} onChange={(e) => updatePayloadNumberField(clip, 'baseY', e.target.value)} /></label></>)}
+                                {clip.type === 'fade' && <label className="tl-detail-label">起始透明度<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} max={1} step={0.01} value={payloadNumberDrafts[clip.id]?.fromOpacity ?? clip.payload.fromOpacity} onChange={(e) => updatePayloadNumberDraft(clip, 'fromOpacity', e.target.value, { integer: false, min: 0, max: 1 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromOpacity', e.currentTarget, { integer: false, min: 0, max: 1 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromOpacity', e, { integer: false, min: 0, max: 1 })} onFocus={(e) => e.target.select()} /></label>}
+                                {clip.type === 'scale' && (<><label className="tl-detail-label">起始缩放X<input className="tl-input-nospin" type="number" inputMode="decimal" step={0.01} value={payloadNumberDrafts[clip.id]?.fromScaleX ?? clip.payload.fromScaleX} onChange={(e) => updatePayloadNumberDraft(clip, 'fromScaleX', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromScaleX', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromScaleX', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label">起始缩放Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={0.01} value={payloadNumberDrafts[clip.id]?.fromScaleY ?? clip.payload.fromScaleY} onChange={(e) => updatePayloadNumberDraft(clip, 'fromScaleY', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromScaleY', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromScaleY', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label></>)}
+                                {clip.type === 'rotate' && <label className="tl-detail-label">起始角度<input className="tl-input-nospin" type="number" inputMode="decimal" value={payloadNumberDrafts[clip.id]?.fromRotation ?? clip.payload.fromRotation} onChange={(e) => updatePayloadNumberDraft(clip, 'fromRotation', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromRotation', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromRotation', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label>}
+                                {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">基准X</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.baseX ?? Math.round(clip.payload.baseX)} onChange={(e) => updatePayloadNumberDraft(clip, 'baseX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'baseX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'baseX', e)} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">基准Y</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.baseY ?? Math.round(clip.payload.baseY)} onChange={(e) => updatePayloadNumberDraft(clip, 'baseY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'baseY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'baseY', e)} onFocus={(e) => e.target.select()} /></label></>)}
                               </div>
                               <div className="tl-type-row">
                                 {clip.type === 'move' && (<>
                                   <span className="tl-coord-label">终点</span>
-                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                                  <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toX ?? Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberDraft(clip, 'toX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toX', e)} onFocus={(e) => e.target.select()} /></label>
+                                  <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toY ?? Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberDraft(clip, 'toY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toY', e)} onFocus={(e) => e.target.select()} /></label>
                                   <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
                                 </>)}
                                 {clip.type === 'moveAlongPath' && (<>
                                   <span className="tl-coord-label">控制点1</span>
-                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.control1X)} onChange={(e) => updatePayloadNumberField(clip, 'control1X', e.target.value)} /></label>
-                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.control1Y)} onChange={(e) => updatePayloadNumberField(clip, 'control1Y', e.target.value)} /></label>
+                                  <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.control1X ?? Math.round(clip.payload.control1X)} onChange={(e) => updatePayloadNumberDraft(clip, 'control1X', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'control1X', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'control1X', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
+                                  <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.control1Y ?? Math.round(clip.payload.control1Y)} onChange={(e) => updatePayloadNumberDraft(clip, 'control1Y', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'control1Y', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'control1Y', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
                                   <span className="tl-map-btn-placeholder" />
                                 </>)}
-                                {clip.type === 'fade' && <label className="tl-detail-label">结束透明度<input type="number" min={0} max={1} step={0.01} value={clip.payload.toOpacity} onChange={(e) => updatePayloadNumberField(clip, 'toOpacity', e.target.value)} /></label>}
-                                {clip.type === 'scale' && (<><label className="tl-detail-label">结束缩放X<input type="number" step={0.01} value={clip.payload.toScaleX} onChange={(e) => updatePayloadNumberField(clip, 'toScaleX', e.target.value)} /></label><label className="tl-detail-label">结束缩放Y<input type="number" step={0.01} value={clip.payload.toScaleY} onChange={(e) => updatePayloadNumberField(clip, 'toScaleY', e.target.value)} /></label></>)}
-                                {clip.type === 'rotate' && <label className="tl-detail-label">结束角度<input type="number" value={clip.payload.toRotation} onChange={(e) => updatePayloadNumberField(clip, 'toRotation', e.target.value)} /></label>}
-                                {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">振幅X</span><input type="number" min={0} value={clip.payload.amplitudeX} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeX', e.target.value)} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">振幅Y</span><input type="number" min={0} value={clip.payload.amplitudeY} onChange={(e) => updatePayloadNumberField(clip, 'amplitudeY', e.target.value)} /></label></>)}
+                                {clip.type === 'fade' && <label className="tl-detail-label">结束透明度<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} max={1} step={0.01} value={payloadNumberDrafts[clip.id]?.toOpacity ?? clip.payload.toOpacity} onChange={(e) => updatePayloadNumberDraft(clip, 'toOpacity', e.target.value, { integer: false, min: 0, max: 1 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toOpacity', e.currentTarget, { integer: false, min: 0, max: 1 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toOpacity', e, { integer: false, min: 0, max: 1 })} onFocus={(e) => e.target.select()} /></label>}
+                                {clip.type === 'scale' && (<><label className="tl-detail-label">结束缩放X<input className="tl-input-nospin" type="number" inputMode="decimal" step={0.01} value={payloadNumberDrafts[clip.id]?.toScaleX ?? clip.payload.toScaleX} onChange={(e) => updatePayloadNumberDraft(clip, 'toScaleX', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toScaleX', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toScaleX', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label">结束缩放Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={0.01} value={payloadNumberDrafts[clip.id]?.toScaleY ?? clip.payload.toScaleY} onChange={(e) => updatePayloadNumberDraft(clip, 'toScaleY', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toScaleY', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toScaleY', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label></>)}
+                                {clip.type === 'rotate' && <label className="tl-detail-label">结束角度<input className="tl-input-nospin" type="number" inputMode="decimal" value={payloadNumberDrafts[clip.id]?.toRotation ?? clip.payload.toRotation} onChange={(e) => updatePayloadNumberDraft(clip, 'toRotation', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toRotation', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toRotation', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label>}
+                                {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">振幅X</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} value={payloadNumberDrafts[clip.id]?.amplitudeX ?? clip.payload.amplitudeX} onChange={(e) => updatePayloadNumberDraft(clip, 'amplitudeX', e.target.value, { integer: false, min: 0 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'amplitudeX', e.currentTarget, { integer: false, min: 0 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'amplitudeX', e, { integer: false, min: 0 })} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">振幅Y</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} value={payloadNumberDrafts[clip.id]?.amplitudeY ?? clip.payload.amplitudeY} onChange={(e) => updatePayloadNumberDraft(clip, 'amplitudeY', e.target.value, { integer: false, min: 0 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'amplitudeY', e.currentTarget, { integer: false, min: 0 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'amplitudeY', e, { integer: false, min: 0 })} onFocus={(e) => e.target.select()} /></label></>)}
                               </div>
                               {clip.type === 'moveAlongPath' && (
                                 <div className="tl-type-row">
                                   <span className="tl-coord-label">控制点2</span>
-                                  <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.control2X)} onChange={(e) => updatePayloadNumberField(clip, 'control2X', e.target.value)} /></label>
-                                  <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.control2Y)} onChange={(e) => updatePayloadNumberField(clip, 'control2Y', e.target.value)} /></label>
+                                  <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.control2X ?? Math.round(clip.payload.control2X)} onChange={(e) => updatePayloadNumberDraft(clip, 'control2X', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'control2X', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'control2X', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
+                                  <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.control2Y ?? Math.round(clip.payload.control2Y)} onChange={(e) => updatePayloadNumberDraft(clip, 'control2Y', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'control2Y', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'control2Y', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
                                   <span className="tl-map-btn-placeholder" />
                                 </div>
                               )}
@@ -2467,11 +2798,11 @@ export function TimelinePanel() {
                                 <div className="tl-type-row">
                                   {clip.type === 'moveAlongPath' && (<>
                                     <span className="tl-coord-label">终点</span>
-                                    <label className="tl-detail-label">X<input type="number" step={1} value={Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberField(clip, 'toX', e.target.value)} /></label>
-                                    <label className="tl-detail-label">Y<input type="number" step={1} value={Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberField(clip, 'toY', e.target.value)} /></label>
+                                    <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toX ?? Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberDraft(clip, 'toX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toX', e)} onFocus={(e) => e.target.select()} /></label>
+                                    <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toY ?? Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberDraft(clip, 'toY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toY', e)} onFocus={(e) => e.target.select()} /></label>
                                     <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
                                   </>)}
-                                  {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">频率</span><input type="number" min={0} value={clip.payload.frequency} onChange={(e) => updatePayloadNumberField(clip, 'frequency', e.target.value)} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">衰减</span><input type="number" min={0} step={0.1} value={clip.payload.decay ?? 1} onChange={(e) => updatePayloadNumberField(clip, 'decay', e.target.value)} /></label></>)}
+                                  {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">频率</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} value={payloadNumberDrafts[clip.id]?.frequency ?? clip.payload.frequency} onChange={(e) => updatePayloadNumberDraft(clip, 'frequency', e.target.value, { integer: false, min: 0 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'frequency', e.currentTarget, { integer: false, min: 0 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'frequency', e, { integer: false, min: 0 })} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">衰减</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={0.1} value={payloadNumberDrafts[clip.id]?.decay ?? clip.payload.decay ?? 1} onChange={(e) => updatePayloadNumberDraft(clip, 'decay', e.target.value, { integer: false, min: 0 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'decay', e.currentTarget, { integer: false, min: 0 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'decay', e, { integer: false, min: 0 })} onFocus={(e) => e.target.select()} /></label></>)}
                                 </div>
                               )}
                             </div>
@@ -2507,7 +2838,7 @@ export function TimelinePanel() {
                           ).map((f) => (
                             <label key={f.label} className="tl-detail-label">
                               {f.label}
-                              <input type="number" min={f.min} max={f.max} step={f.step} value={formatBezierValue(f.val)} onChange={(e) => updateClipBezierControlPoint(clip, f.idx, e.target.value)} />
+                              <input className="tl-input-nospin" type="number" inputMode="decimal" min={f.min} max={f.max} step={f.step} value={bezierControlDrafts[clip.id]?.[f.idx] ?? formatBezierValue(f.val)} onChange={(e) => updateBezierControlDraft(clip, f.idx, e.target.value)} onBlur={(e) => commitBezierControlDraft(clip, f.idx, f.val, e.currentTarget)} onKeyDown={(e) => handleBezierControlKeyDown(clip.id, f.idx, e)} onFocus={(e) => e.target.select()} />
                             </label>
                           ))}
                         </div>
