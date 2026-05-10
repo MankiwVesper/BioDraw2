@@ -108,6 +108,18 @@
 
 .ip-input-group input:focus {
   border-color: var(--primary-color);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 18%, transparent);
+}
+
+.ip-input-nospin[type=number]::-webkit-inner-spin-button,
+.ip-input-nospin[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ip-input-nospin[type=number] {
+  appearance: textfield;
+  -moz-appearance: textfield;
 }
 
 /* 消除颜色选择器内部默认边距，使其铺满容器 */

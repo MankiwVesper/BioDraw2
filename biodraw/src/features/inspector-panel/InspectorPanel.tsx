@@ -5,12 +5,18 @@ import "./InspectorPanel.css";
 
 
 export function InspectorPanel() {
+  type BasicParamField = "x" | "y" | "width" | "height" | "rotation";
+
   const [activeTab, setActiveTab] = useState<"properties" | "layers">(
     "properties",
   );
   const [collapsedSections, setCollapsedSections] = useState<
     Record<string, boolean>
   >({});
+  const [basicParamDrafts, setBasicParamDrafts] = useState<
+    Partial<Record<BasicParamField, string>>
+  >({});
+  const basicParamCancelledRef = useRef<BasicParamField | null>(null);
   const toggleSection = (key: string) =>
     setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -64,6 +70,10 @@ export function InspectorPanel() {
     selectedIds.length > 0
       ? objects.find((o) => o.id === selectedIds[0])
       : null;
+
+  useEffect(() => {
+    setBasicParamDrafts({});
+  }, [selectedObj?.id]);
 
   // ── 多选对齐逻辑 ─────────────────────────────────────────────
   const selectedObjects = objects.filter((o) => selectedIds.includes(o.id));
@@ -752,6 +762,109 @@ export function InspectorPanel() {
     updateSceneObject(selectedObj.id, { [field]: num });
   };
 
+  const formatBasicParamValue = (field: BasicParamField) => {
+    if (!selectedObj) return "";
+
+    if (field === "width") {
+      return String(Math.round(selectedObj.width * (selectedObj.scaleX ?? 1)));
+    }
+    if (field === "height") {
+      return String(Math.round(selectedObj.height * (selectedObj.scaleY ?? 1)));
+    }
+    if (field === "rotation") {
+      return String(Math.round(selectedObj.rotation || 0));
+    }
+    return String(Math.round(selectedObj[field]));
+  };
+
+  const getBasicParamValue = (field: BasicParamField) =>
+    basicParamDrafts[field] ?? formatBasicParamValue(field);
+
+  const isSignedBasicParamField = (field: BasicParamField) =>
+    field === "x" || field === "y" || field === "rotation";
+
+  const sanitizeIntegerDraft = (rawValue: string, allowNegative: boolean) => {
+    const sign = allowNegative && rawValue.trimStart().startsWith("-") ? "-" : "";
+    const digits = rawValue.replace(/\D/g, "").slice(0, 5);
+    return `${sign}${digits}`;
+  };
+
+  const updateBasicParamDraft = (field: BasicParamField, rawValue: string) => {
+    if (!selectedObj) return;
+
+    if (basicParamCancelledRef.current === field) {
+      basicParamCancelledRef.current = null;
+    }
+    const nextValue = sanitizeIntegerDraft(rawValue, isSignedBasicParamField(field));
+    setBasicParamDrafts((prev) => ({ ...prev, [field]: nextValue }));
+    if (nextValue === "" || nextValue === "-") return;
+
+    if (field === "width" || field === "height") {
+      handleDimensionChange(field, nextValue);
+      return;
+    }
+    handleChange(field, nextValue);
+  };
+
+  const clearBasicParamDraft = (field: BasicParamField) => {
+    setBasicParamDrafts((prev) => {
+      if (prev[field] === undefined) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const commitBasicParamDraft = (
+    field: BasicParamField,
+    input?: HTMLInputElement,
+  ) => {
+    if (!selectedObj) return;
+
+    if (basicParamCancelledRef.current === field) {
+      basicParamCancelledRef.current = null;
+      clearBasicParamDraft(field);
+      return;
+    }
+
+    const draft = input?.value ?? basicParamDrafts[field];
+    const parsed = Number.parseInt(draft ?? "", 10);
+    if (Number.isFinite(parsed)) {
+      const normalized = String(
+        field === "width" || field === "height" ? Math.max(1, parsed) : parsed,
+      );
+      if (field === "width" || field === "height") {
+        handleDimensionChange(field, normalized);
+      } else {
+        handleChange(field, normalized);
+      }
+      if (input) input.value = normalized;
+    }
+    clearBasicParamDraft(field);
+  };
+
+  const handleBasicParamKeyDown = (
+    field: BasicParamField,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (
+      e.key === "e" ||
+      e.key === "E" ||
+      e.key === "+" ||
+      e.key === "." ||
+      (!isSignedBasicParamField(field) && e.key === "-")
+    ) {
+      e.preventDefault();
+      return;
+    }
+    if (e.key === "Enter") e.currentTarget.blur();
+    if (e.key === "Escape") {
+      basicParamCancelledRef.current = field;
+      clearBasicParamDraft(field);
+      e.currentTarget.blur();
+    }
+  };
+
   const handleStyleChange = (field: string, val: string | number) => {
     updateSceneObject(selectedObj.id, {
       style: {
@@ -1105,9 +1218,15 @@ export function InspectorPanel() {
                     style={{ flex: 1, minWidth: 0 }}
                   >
                     <input
+                      className="ip-input-nospin"
                       type="number"
-                      value={Math.round(selectedObj.x)}
-                      onChange={(e) => handleChange("x", e.target.value)}
+                      inputMode="numeric"
+                      step={1}
+                      value={getBasicParamValue("x")}
+                      onChange={(e) => updateBasicParamDraft("x", e.target.value)}
+                      onBlur={(e) => commitBasicParamDraft("x", e.currentTarget)}
+                      onKeyDown={(e) => handleBasicParamKeyDown("x", e)}
+                      onFocus={(e) => e.target.select()}
                       style={{ padding: "3px 4px", height: "24px" }}
                     />
                   </div>
@@ -1116,9 +1235,15 @@ export function InspectorPanel() {
                     style={{ flex: 1, minWidth: 0 }}
                   >
                     <input
+                      className="ip-input-nospin"
                       type="number"
-                      value={Math.round(selectedObj.y)}
-                      onChange={(e) => handleChange("y", e.target.value)}
+                      inputMode="numeric"
+                      step={1}
+                      value={getBasicParamValue("y")}
+                      onChange={(e) => updateBasicParamDraft("y", e.target.value)}
+                      onBlur={(e) => commitBasicParamDraft("y", e.currentTarget)}
+                      onKeyDown={(e) => handleBasicParamKeyDown("y", e)}
+                      onFocus={(e) => e.target.select()}
                       style={{ padding: "3px 4px", height: "24px" }}
                     />
                   </div>
@@ -1159,11 +1284,20 @@ export function InspectorPanel() {
                     style={{ flex: 1, minWidth: 0 }}
                   >
                     <input
+                      className="ip-input-nospin"
                       type="number"
-                      value={Math.round(selectedObj.width * selectedObj.scaleX)}
+                      inputMode="numeric"
+                      min={1}
+                      step={1}
+                      value={getBasicParamValue("width")}
                       onChange={(e) =>
-                        handleDimensionChange("width", e.target.value)
+                        updateBasicParamDraft("width", e.target.value)
                       }
+                      onBlur={(e) =>
+                        commitBasicParamDraft("width", e.currentTarget)
+                      }
+                      onKeyDown={(e) => handleBasicParamKeyDown("width", e)}
+                      onFocus={(e) => e.target.select()}
                       style={{ padding: "3px 4px", height: "24px" }}
                     />
                   </div>
@@ -1172,13 +1306,20 @@ export function InspectorPanel() {
                     style={{ flex: 1, minWidth: 0 }}
                   >
                     <input
+                      className="ip-input-nospin"
                       type="number"
-                      value={Math.round(
-                        selectedObj.height * selectedObj.scaleY,
-                      )}
+                      inputMode="numeric"
+                      min={1}
+                      step={1}
+                      value={getBasicParamValue("height")}
                       onChange={(e) =>
-                        handleDimensionChange("height", e.target.value)
+                        updateBasicParamDraft("height", e.target.value)
                       }
+                      onBlur={(e) =>
+                        commitBasicParamDraft("height", e.currentTarget)
+                      }
+                      onKeyDown={(e) => handleBasicParamKeyDown("height", e)}
+                      onFocus={(e) => e.target.select()}
                       style={{ padding: "3px 4px", height: "24px" }}
                     />
                   </div>
@@ -1238,9 +1379,19 @@ export function InspectorPanel() {
                     style={{ flex: 1, minWidth: 0 }}
                   >
                     <input
+                      className="ip-input-nospin"
                       type="number"
-                      value={Math.round(selectedObj.rotation || 0)}
-                      onChange={(e) => handleChange("rotation", e.target.value)}
+                      inputMode="numeric"
+                      step={1}
+                      value={getBasicParamValue("rotation")}
+                      onChange={(e) =>
+                        updateBasicParamDraft("rotation", e.target.value)
+                      }
+                      onBlur={(e) =>
+                        commitBasicParamDraft("rotation", e.currentTarget)
+                      }
+                      onKeyDown={(e) => handleBasicParamKeyDown("rotation", e)}
+                      onFocus={(e) => e.target.select()}
                       style={{ padding: "3px 4px", height: "24px" }}
                     />
                   </div>
