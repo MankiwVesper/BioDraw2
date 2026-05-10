@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Rect, Circle, Line, Text, Image as KonvaImage, Transformer, Group, RegularPolygon } from 'react-konva';
+import { Rect, Circle, Line, Text, Image as KonvaImage, Transformer, Group } from 'react-konva';
 import useImage from 'use-image';
 import type { SceneObject } from '../../types';
 import { useEditorStore } from '../../state/editorStore';
@@ -314,7 +314,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
     labelHeight: number,
     bounds: { minX: number; maxX: number; minY: number; maxY: number },
     offset: { x: number; y: number },
-    _keepOutside: boolean,
   ) => {
     const desiredX = baseX + offset.x;
     const desiredY = baseY + offset.y;
@@ -342,8 +341,8 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       maxY = centerY;
     }
 
-    let finalX = Math.max(minX, Math.min(desiredX, maxX));
-    let finalY = Math.max(minY, Math.min(desiredY, maxY));
+    const finalX = Math.max(minX, Math.min(desiredX, maxX));
+    const finalY = Math.max(minY, Math.min(desiredY, maxY));
 
     return {
       x: finalX,
@@ -359,7 +358,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
     labelWidth: number,
     labelHeight: number,
     bounds: { minX: number; maxX: number; minY: number; maxY: number },
-    keepOutside = false,
   ) => {
     const currentOffset = getNameOffset();
     const clampedPosition = clampNamePosition(
@@ -369,7 +367,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       labelHeight,
       bounds,
       currentOffset,
-      keepOutside,
     );
 
     const handleNameDragMove = (e: Konva.KonvaEventObject<DragEvent>) => {
@@ -384,7 +381,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           x: e.target.x() - baseX,
           y: e.target.y() - baseY,
         },
-        keepOutside,
       );
       e.target.position({ x: nextPosition.x, y: nextPosition.y });
       e.target.getLayer()?.batchDraw();
@@ -402,7 +398,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           x: e.target.x() - baseX,
           y: e.target.y() - baseY,
         },
-        keepOutside,
       );
       e.target.position({ x: nextPosition.x, y: nextPosition.y });
       persistNameOffset(nextPosition.offsetX, nextPosition.offsetY);
@@ -465,7 +460,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           nameLabelWidth,
           nameLabelHeight,
           nameBounds,
-          true,
         );
         const startMaterialNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
@@ -527,7 +521,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           nameLabelWidth,
           nameLabelHeight,
           nameBounds,
-          true,
         );
         const startBottomNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
@@ -593,7 +586,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           nameLabelWidth,
           nameLabelHeight,
           nameBounds,
-          true,
         );
         const startBottomNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
@@ -655,7 +647,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           nameLabelWidth,
           nameLabelHeight,
           nameBounds,
-          true,
         );
         const startBottomNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
@@ -1138,15 +1129,14 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
         }
       }
       case 'triangle': {
-        const nameYOffset = sceneObject.width / 2 + NAME_LABEL_GAP;
+        const nameYOffset = sceneObject.height / 2 + NAME_LABEL_GAP;
         const nameLabelWidth = getNameLabelWidth();
         const nameBaseX = -nameLabelWidth / 2;
-        const triangleRadius = sceneObject.width / 2;
         const nameBounds = {
-          minX: -triangleRadius,
-          maxX: triangleRadius,
-          minY: -triangleRadius,
-          maxY: triangleRadius,
+          minX: -sceneObject.width / 2,
+          maxX: sceneObject.width / 2,
+          minY: -sceneObject.height / 2,
+          maxY: sceneObject.height / 2,
         };
         const nameLayout = buildNameLabelLayout(
           nameBaseX,
@@ -1154,7 +1144,6 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           nameLabelWidth,
           nameLabelHeight,
           nameBounds,
-          true,
         );
         const startBottomNameEdit = () => {
           const scaleX = sceneObject.scaleX || 1;
@@ -1173,9 +1162,13 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
             onDblClick={startBottomNameEdit}
             onDblTap={startBottomNameEdit}
           >
-            <RegularPolygon
-              sides={3}
-              radius={sceneObject.width / 2}
+            <Line
+              points={[
+                0, -sceneObject.height / 2,
+                sceneObject.width / 2, sceneObject.height / 2,
+                -sceneObject.width / 2, sceneObject.height / 2,
+              ]}
+              closed
               fill={sceneObject.style?.fill || '#10b981'}
               stroke={sceneObject.style?.stroke || '#047857'}
               strokeWidth={sceneObject.style?.strokeWidth || 1}
