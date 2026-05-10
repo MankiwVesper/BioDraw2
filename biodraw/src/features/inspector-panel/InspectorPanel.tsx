@@ -1,10 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useEditorStore } from "../../state/editorStore";
 import { LayerPanel } from "./LayerPanel";
-import {
-  buildAnimationClip,
-} from "../../domain/clipFactory";
-import type { ClipCreatableType } from "../../domain/clipFactory";
 import "./InspectorPanel.css";
 
 
@@ -50,16 +46,6 @@ export function InspectorPanel() {
   const moveObjectToFront = useEditorStore((state) => state.moveObjectToFront);
   const moveObjectToBack = useEditorStore((state) => state.moveObjectToBack);
 
-  const animations = useEditorStore((state) => state.animations);
-  const setExpandedAnimationClipId = useEditorStore(
-    (state) => state.setExpandedAnimationClipId,
-  );
-  const addAnimationClip = useEditorStore((state) => state.addAnimationClip);
-  const setGlobalDurationMs = useEditorStore(
-    (state) => state.setGlobalDurationMs,
-  );
-  const globalDurationMs = useEditorStore((state) => state.globalDurationMs);
-  const currentTimeMs = useEditorStore((state) => state.currentTimeMs);
   const canvasWidth = useEditorStore((state) => state.canvasWidth);
   const canvasHeight = useEditorStore((state) => state.canvasHeight);
   const duplicateObject = useEditorStore((state) => state.duplicateObject);
