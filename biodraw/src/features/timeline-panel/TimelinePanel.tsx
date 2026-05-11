@@ -2172,7 +2172,7 @@ export function TimelinePanel() {
                     />
                     {segLabelEditId === seg.id ? (
                       <span ref={segLabelSpanRef} className="tl-element-window-label"
-                        style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: segLabelWidthRef.current ?? undefined }}>
+                        style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: segLabelWidthRef.current ?? undefined, boxSizing: 'border-box' }}>
                         <input
                           className="tl-label-time-input tl-input-nospin"
                           type="text"
@@ -2753,7 +2753,7 @@ export function TimelinePanel() {
                             <div className="tl-track-handle-r" onMouseDown={(e) => startClipResizeEnd(clip, e)} onClick={(e) => e.stopPropagation()} data-tooltip="拖动以调整动画终点，时长不小于1s" />
                             {clipLabelEditId === clip.id ? (
                               <span ref={clipLabelSpanRef} className="tl-track-fill-label"
-                                style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: clipLabelWidthRef.current ?? undefined }}
+                                style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: clipLabelWidthRef.current ?? undefined, boxSizing: 'border-box' }}
                                 onClick={(e) => e.stopPropagation()}>
                                 <input
                                   className="tl-label-time-input tl-input-nospin"
@@ -2816,7 +2816,7 @@ export function TimelinePanel() {
                           </label>
                           <button
                             className="tl-clip-del"
-                            data-tooltip="删除片段"
+                            data-tooltip="删除动画片段"
                             onClick={(e) => { e.stopPropagation(); ensurePausedForEdit(); removeAnimationClip(clip.id); }}
                           >
                             ✕

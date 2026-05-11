@@ -493,10 +493,10 @@ export const useEditorStore = create<EditorState>()(
               state.animations[i] = { ...c, startTimeMs: newStart };
             }
           } else {
-            // 调整边缘大小：将 clip 夹入新范围，可能截断
-            const newStart = Math.max(next.startMs, Math.min(next.endMs - 1, c.startTimeMs));
-            const newEnd = Math.min(next.endMs, Math.max(newStart + 1, c.startTimeMs + c.durationMs));
-            const newDur = Math.max(1, newEnd - newStart);
+            // 调整边缘大小：将 clip 夹入新范围，最小时长 1000ms
+            const newStart = Math.max(next.startMs, Math.min(next.endMs - 1000, c.startTimeMs));
+            const newEnd = Math.min(next.endMs, Math.max(newStart + 1000, c.startTimeMs + c.durationMs));
+            const newDur = Math.max(1000, newEnd - newStart);
             if (newStart !== c.startTimeMs || newDur !== c.durationMs) {
               state.animations[i] = { ...c, startTimeMs: newStart, durationMs: newDur };
             }
