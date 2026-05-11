@@ -331,7 +331,7 @@ export function TimelinePanel() {
   } | null>(null);
 
   // ── 新增 UI 状态
-  const [expandedClipId, setExpandedClipId] = useState<string | null>(null);
+  const [expandedClipIds, setExpandedClipIds] = useState<Set<string>>(new Set());
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [addMenuTab, setAddMenuTab] = useState<'basic' | 'template'>('basic');
   const [showBatchPanel, setShowBatchPanel] = useState(false);
@@ -1037,7 +1037,7 @@ export function TimelinePanel() {
     addAnimationClip(clip);
     syncDurationIfNeeded(clip);
     setFlashClipId(clip.id);
-    setExpandedClipId(clip.id);
+    setExpandedClipIds(prev => new Set(prev).add(clip.id));
   };
 
   // ── 预设模板
@@ -1093,7 +1093,7 @@ export function TimelinePanel() {
     });
     for (const c of adjusted) { addAnimationClip(c); syncDurationIfNeeded(c); }
     setFlashClipId(adjusted[adjusted.length - 1].id);
-    setExpandedClipId(adjusted[adjusted.length - 1].id);
+    setExpandedClipIds(prev => new Set(prev).add(adjusted[adjusted.length - 1].id));
   };
 
   const duplicateClip = (clip: AnimationClip) => {
@@ -1112,7 +1112,7 @@ export function TimelinePanel() {
     addAnimationClip(dup);
     syncDurationIfNeeded(dup);
     setFlashClipId(dup.id);
-    setExpandedClipId(dup.id);
+    setExpandedClipIds(prev => new Set(prev).add(dup.id));
   };
 
   // ── 批量操作
@@ -1964,17 +1964,19 @@ export function TimelinePanel() {
 
   // 同步当前展开的 move/moveAlongPath 片段到 store，供画布路径叠加层使用
   useEffect(() => {
-    if (!expandedClipId) {
+    if (expandedClipIds.size === 0) {
       setExpandedAnimationClipId(null);
       return;
     }
-    const clip = animations.find((a) => a.id === expandedClipId);
-    if (clip?.type === 'move' || clip?.type === 'moveAlongPath') {
-      setExpandedAnimationClipId(expandedClipId);
-    } else {
-      setExpandedAnimationClipId(null);
+    for (const id of expandedClipIds) {
+      const clip = animations.find((a) => a.id === id);
+      if (clip?.type === 'move' || clip?.type === 'moveAlongPath') {
+        setExpandedAnimationClipId(id);
+        return;
+      }
     }
-  }, [expandedClipId, animations, setExpandedAnimationClipId]);
+    setExpandedAnimationClipId(null);
+  }, [expandedClipIds, animations, setExpandedAnimationClipId]);
 
   const cursorPercent = `${Math.max(0, Math.min(100, (currentTimeMs / Math.max(1, globalDurationMs)) * 100))}%`;
   const cursorTimeLabel = `${(currentTimeMs / 1000).toFixed(2)}s`;
@@ -2700,7 +2702,7 @@ export function TimelinePanel() {
               </div>
             ) : (
               segmentScopedClips.map((clip, clipIndex) => {
-                const isExpanded = expandedClipId === clip.id;
+                const isExpanded = expandedClipIds.has(clip.id);
                 const effStart = dragState?.clipId === clip.id ? dragState.previewStartMs : clip.startTimeMs;
                 const effDuration = dragState?.clipId === clip.id ? dragState.previewDurationMs : clip.durationMs;
                 const isDragging = dragState?.clipId === clip.id;
@@ -2753,7 +2755,7 @@ export function TimelinePanel() {
                       className="tl-clip-row"
                       onClick={() => {
                         if (clipDragHappenedRef.current) { clipDragHappenedRef.current = false; return; }
-                        setExpandedClipId(isExpanded ? null : clip.id);
+                        setExpandedClipIds(prev => { const next = new Set(prev); if (next.has(clip.id)) { next.delete(clip.id); } else { next.add(clip.id); } return next; });
                       }}
                     >
                       {/* col1：类型色点 + 类型名 */}
