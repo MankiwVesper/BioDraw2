@@ -211,6 +211,7 @@ export type MotionPath = {
 export type AnimationClipType =
   | 'move'
   | 'moveAlongPath'
+  | 'polylineMove'
   | 'shake'
   | 'fade'
   | 'scale'
@@ -281,6 +282,18 @@ export type MoveClip = AnimationClipBase & {
   };
 };
 
+export type PolylineMoveClip = AnimationClipBase & {
+  type: 'polylineMove';
+  payload: {
+    fromX: number;
+    fromY: number;
+    midX: number;
+    midY: number;
+    toX: number;
+    toY: number;
+  };
+};
+
 export type ShakeClip = AnimationClipBase & {
   type: 'shake';
   payload: {
@@ -333,6 +346,7 @@ export type RotateClip = AnimationClipBase & {
 export type AnimationClip =
   | MoveClip
   | MoveAlongPathClip
+  | PolylineMoveClip
   | ShakeClip
   | StateChangeClip
   | FadeClip

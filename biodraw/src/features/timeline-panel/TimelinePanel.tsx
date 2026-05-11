@@ -30,6 +30,7 @@ type EasingPresetValue = (typeof EASING_PRESET_OPTIONS)[number]['value'];
 // 动画类型中文名
 const CLIP_TYPE_LABELS: Record<string, string> = {
   move: '移动',
+  polylineMove: '折线移动',
   moveAlongPath: '曲线移动',
   fade: '淡入淡出',
   scale: '缩放',
@@ -246,7 +247,7 @@ function EasingCurve({ ex1, ey1, ex2, ey2, onDrag }: EasingCurveProps) {
 
 const getConflictDomain = (clipType: AnimationClip['type']) => {
   switch (clipType) {
-    case 'move': case 'moveAlongPath': case 'shake': return 'position';
+    case 'move': case 'moveAlongPath': case 'polylineMove': case 'shake': return 'position';
     case 'fade': return 'opacity';
     case 'scale': return 'scale';
     case 'rotate': return 'rotation';
@@ -999,7 +1000,7 @@ export function TimelinePanel() {
   };
 
   // ── 创建动画片段
-  const createClip = (type: 'move' | 'moveAlongPath' | 'shake' | 'fade' | 'scale' | 'rotate') => {
+  const createClip = (type: 'move' | 'polylineMove' | 'moveAlongPath' | 'shake' | 'fade' | 'scale' | 'rotate') => {
     if (!selectedObject) return;
     ensurePausedForEdit();
     const seg = resolveSegmentForNewClip();
@@ -1016,6 +1017,9 @@ export function TimelinePanel() {
     switch (type) {
       case 'move':
         clip = { ...base, type: 'move', payload: { fromX: src.x, fromY: src.y, toX: src.x + 120, toY: src.y + 80 } };
+        break;
+      case 'polylineMove':
+        clip = { ...base, type: 'polylineMove', payload: { fromX: src.x, fromY: src.y, midX: src.x + 60, midY: src.y - 80, toX: src.x + 120, toY: src.y } };
         break;
       case 'moveAlongPath':
         clip = { ...base, type: 'moveAlongPath', payload: { fromX: src.x, fromY: src.y, control1X: src.x + 40, control1Y: src.y - 120, control2X: src.x + 120, control2Y: src.y - 80, toX: src.x + 160, toY: src.y } };
@@ -1313,7 +1317,7 @@ export function TimelinePanel() {
     }
   };
 
-  const coordFields = new Set(['fromX', 'fromY', 'toX', 'toY', 'controlX', 'controlY', 'baseX', 'baseY']);
+  const coordFields = new Set(['fromX', 'fromY', 'midX', 'midY', 'toX', 'toY', 'controlX', 'controlY', 'baseX', 'baseY']);
 
   const updatePayloadNumberField = (clip: AnimationClip, field: string, rawValue: string) => {
     ensurePausedForEdit();
@@ -2407,34 +2411,56 @@ export function TimelinePanel() {
                     </div>
                     {addMenuTab === 'basic' && (
                       <div className="tl-add-menu-grid">
-                        {([
-                          { type: 'move', label: '移动' },
-                          { type: 'moveAlongPath', label: '曲线移动' },
-                          { type: 'fade', label: '淡入淡出' },
-                          { type: 'scale', label: '缩放' },
-                          { type: 'rotate', label: '旋转' },
-                          { type: 'shake', label: '抖动' },
-                        ] as const).map((item) => (
-                          <button key={item.type} className="tl-add-menu-item" onClick={() => { createClip(item.type); setShowAddMenu(false); }}>
-                            <span className={`tl-type-dot tl-type-${item.type}`} />
-                            {item.label}
-                          </button>
-                        ))}
+                        <div className="tl-add-menu-col">
+                          {([
+                            { type: 'move', label: '移动' },
+                            { type: 'polylineMove', label: '折线移动' },
+                            { type: 'moveAlongPath', label: '曲线移动' },
+                            { type: 'shake', label: '抖动' },
+                          ] as const).map((item) => (
+                            <button key={item.type} className="tl-add-menu-item" onClick={() => { createClip(item.type); setShowAddMenu(false); }}>
+                              <span className={`tl-type-dot tl-type-${item.type}`} />
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="tl-add-menu-col">
+                          {([
+                            { type: 'scale', label: '缩放' },
+                            { type: 'rotate', label: '旋转' },
+                            { type: 'fade', label: '淡入淡出' },
+                          ] as const).map((item) => (
+                            <button key={item.type} className="tl-add-menu-item" onClick={() => { createClip(item.type); setShowAddMenu(false); }}>
+                              <span className={`tl-type-dot tl-type-${item.type}`} />
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                     {addMenuTab === 'template' && (
                       <div className="tl-add-menu-grid">
-                        {([
-                          { key: 'fadeIn', label: '淡入' },
-                          { key: 'bounceIn', label: '弹跳进入' },
-                          { key: 'moveFadeIn', label: '平移淡入' },
-                          { key: 'fadeOut', label: '淡出消失' },
-                          { key: 'moveFadeOut', label: '移动消失' },
-                        ] as const).map((item) => (
-                          <button key={item.key} className="tl-add-menu-item tl-add-menu-template" onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}>
-                            {item.label}
-                          </button>
-                        ))}
+                        <div className="tl-add-menu-col">
+                          {([
+                            { key: 'fadeIn', label: '淡入' },
+                            { key: 'bounceIn', label: '弹跳进入' },
+                            { key: 'moveFadeIn', label: '平移淡入' },
+                          ] as const).map((item) => (
+                            <button key={item.key} className="tl-add-menu-item tl-add-menu-template" onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="tl-add-menu-col">
+                          {([
+                            { key: 'fadeOut', label: '淡出消失' },
+                            { key: 'moveFadeOut', label: '移动消失' },
+                          ] as const).map((item) => (
+                            <button key={item.key} className="tl-add-menu-item tl-add-menu-template" onClick={() => { createPresetTemplate(item.key); setShowAddMenu(false); }}>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2901,6 +2927,12 @@ export function TimelinePanel() {
                             <span className="tl-col-header-centered">基础参数</span>
                             <div className={`tl-params-subcol-body${clip.type === 'moveAlongPath' ? ' tl-map-params' : ''}`}>
                               <div className="tl-type-row">
+                                {clip.type === 'polylineMove' && (<>
+                                  <span className="tl-coord-label">起点</span>
+                                  <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromX ?? Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromX', e)} onFocus={(e) => e.target.select()} /></label>
+                                  <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromY ?? Math.round(clip.payload.fromY)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromY', e)} onFocus={(e) => e.target.select()} /></label>
+                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                </>)}
                                 {(clip.type === 'move' || clip.type === 'moveAlongPath') && (<>
                                   <span className="tl-coord-label">起点</span>
                                   <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromX ?? Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromX', e)} onFocus={(e) => e.target.select()} /></label>
@@ -2913,6 +2945,12 @@ export function TimelinePanel() {
                                 {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">基准X</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.baseX ?? Math.round(clip.payload.baseX)} onChange={(e) => updatePayloadNumberDraft(clip, 'baseX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'baseX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'baseX', e)} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">基准Y</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.baseY ?? Math.round(clip.payload.baseY)} onChange={(e) => updatePayloadNumberDraft(clip, 'baseY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'baseY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'baseY', e)} onFocus={(e) => e.target.select()} /></label></>)}
                               </div>
                               <div className="tl-type-row">
+                                {clip.type === 'polylineMove' && (<>
+                                  <span className="tl-coord-label">中间点</span>
+                                  <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.midX ?? Math.round(clip.payload.midX)} onChange={(e) => updatePayloadNumberDraft(clip, 'midX', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'midX', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'midX', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
+                                  <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.midY ?? Math.round(clip.payload.midY)} onChange={(e) => updatePayloadNumberDraft(clip, 'midY', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'midY', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'midY', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
+                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为中间点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { midX: Math.round(selectedObjectAtCurrentTime.x), midY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                </>)}
                                 {clip.type === 'move' && (<>
                                   <span className="tl-coord-label">终点</span>
                                   <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toX ?? Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberDraft(clip, 'toX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toX', e)} onFocus={(e) => e.target.select()} /></label>
@@ -2938,8 +2976,14 @@ export function TimelinePanel() {
                                   <span className="tl-map-btn-placeholder" />
                                 </div>
                               )}
-                              {(clip.type === 'moveAlongPath' || clip.type === 'shake') && (
+                              {(clip.type === 'polylineMove' || clip.type === 'moveAlongPath' || clip.type === 'shake') && (
                                 <div className="tl-type-row">
+                                  {clip.type === 'polylineMove' && (<>
+                                    <span className="tl-coord-label">终点</span>
+                                    <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.toX ?? Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberDraft(clip, 'toX', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toX', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toX', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
+                                    <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.toY ?? Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberDraft(clip, 'toY', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toY', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toY', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
+                                    <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                  </>)}
                                   {clip.type === 'moveAlongPath' && (<>
                                     <span className="tl-coord-label">终点</span>
                                     <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toX ?? Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberDraft(clip, 'toX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toX', e)} onFocus={(e) => e.target.select()} /></label>
@@ -3015,6 +3059,9 @@ export function TimelinePanel() {
                               <span className="tl-col-header">关键帧设置</span>
                               {clip.type === 'shake' && (
                                 <span className="tl-kf-empty">抖动效果由「振幅 / 频率 / 衰减」基础参数控制，无需关键帧</span>
+                              )}
+                              {clip.type === 'polylineMove' && (
+                                <span className="tl-kf-empty">折线移动通过编辑起点、中间点、终点调整轨迹，无需关键帧</span>
                               )}
                               {clip.type === 'moveAlongPath' && (
                                 <span className="tl-kf-empty">曲线移动通过编辑两个控制点调整轨迹形状，无需关键帧</span>

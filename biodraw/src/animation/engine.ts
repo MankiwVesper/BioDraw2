@@ -153,6 +153,24 @@ const applyClip = (obj: SceneObject, timeMs: number, clip: AnimationClip): Scene
         ),
       };
     }
+    case 'polylineMove': {
+      const { fromX, fromY, midX, midY, toX, toY } = clip.payload;
+      const seg1Len = Math.sqrt((midX - fromX) ** 2 + (midY - fromY) ** 2);
+      const seg2Len = Math.sqrt((toX - midX) ** 2 + (toY - midY) ** 2);
+      const totalLen = seg1Len + seg2Len;
+      const split = totalLen > 0 ? seg1Len / totalLen : 0.5;
+      let x: number, y: number;
+      if (progress <= split) {
+        const t = split > 0 ? progress / split : 0;
+        x = fromX + (midX - fromX) * t;
+        y = fromY + (midY - fromY) * t;
+      } else {
+        const t = split < 1 ? (progress - split) / (1 - split) : 1;
+        x = midX + (toX - midX) * t;
+        y = midY + (toY - midY) * t;
+      }
+      return { ...obj, x, y };
+    }
     case 'moveAlongPath': {
       const { fromX, fromY, control1X, control1Y, control2X, control2Y, toX, toY } = clip.payload;
       return {
