@@ -401,7 +401,7 @@ export function TimelinePanel() {
   const addAnimationClip = useEditorStore((s) => s.addAnimationClip);
   const updateAnimationClip = useEditorStore((s) => s.updateAnimationClip);
   const removeAnimationClip = useEditorStore((s) => s.removeAnimationClip);
-  const setExpandedAnimationClipId = useEditorStore((s) => s.setExpandedAnimationClipId);
+  const setExpandedAnimationClipIds = useEditorStore((s) => s.setExpandedAnimationClipIds);
   const copyAnimationClipsToObjects = useEditorStore((s) => s.copyAnimationClipsToObjects);
   const startClipPreview = useEditorStore((s) => s.startClipPreview);
   const selectObject = useEditorStore((s) => s.selectObject);
@@ -1966,21 +1966,17 @@ export function TimelinePanel() {
     return () => document.removeEventListener('mousedown', handleMouseDown, { capture: true });
   }, [segLabelEditId]);
 
-  // 同步当前展开的 move/moveAlongPath 片段到 store，供画布路径叠加层使用
+  // 同步所有展开的移动类片段到 store，供画布路径叠加层使用
   useEffect(() => {
-    if (expandedClipIds.size === 0) {
-      setExpandedAnimationClipId(null);
-      return;
-    }
+    const ids: string[] = [];
     for (const id of expandedClipIds) {
       const clip = animations.find((a) => a.id === id);
-      if (clip?.type === 'move' || clip?.type === 'moveAlongPath') {
-        setExpandedAnimationClipId(id);
-        return;
+      if (clip?.type === 'move' || clip?.type === 'moveAlongPath' || clip?.type === 'polylineMove') {
+        ids.push(id);
       }
     }
-    setExpandedAnimationClipId(null);
-  }, [expandedClipIds, animations, setExpandedAnimationClipId]);
+    setExpandedAnimationClipIds(ids);
+  }, [expandedClipIds, animations, setExpandedAnimationClipIds]);
 
   const cursorPercent = `${Math.max(0, Math.min(100, (currentTimeMs / Math.max(1, globalDurationMs)) * 100))}%`;
   const cursorTimeLabel = `${(currentTimeMs / 1000).toFixed(2)}s`;
@@ -2931,13 +2927,13 @@ export function TimelinePanel() {
                                   <span className="tl-coord-label">起点</span>
                                   <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromX ?? Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromX', e)} onFocus={(e) => e.target.select()} /></label>
                                   <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromY ?? Math.round(clip.payload.fromY)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromY', e)} onFocus={(e) => e.target.select()} /></label>
-                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObject && updateClipPayload(clip, { fromX: Math.round(selectedObject.x), fromY: Math.round(selectedObject.y) })}>取当前位置</button>
                                 </>)}
                                 {(clip.type === 'move' || clip.type === 'moveAlongPath') && (<>
                                   <span className="tl-coord-label">起点</span>
                                   <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromX ?? Math.round(clip.payload.fromX)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromX', e)} onFocus={(e) => e.target.select()} /></label>
                                   <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.fromY ?? Math.round(clip.payload.fromY)} onChange={(e) => updatePayloadNumberDraft(clip, 'fromY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromY', e)} onFocus={(e) => e.target.select()} /></label>
-                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { fromX: Math.round(selectedObjectAtCurrentTime.x), fromY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为起点" onClick={() => selectedObject && updateClipPayload(clip, { fromX: Math.round(selectedObject.x), fromY: Math.round(selectedObject.y) })}>取当前位置</button>
                                 </>)}
                                 {clip.type === 'fade' && <label className="tl-detail-label">起始透明度<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} max={1} step={0.01} value={payloadNumberDrafts[clip.id]?.fromOpacity ?? clip.payload.fromOpacity} onChange={(e) => updatePayloadNumberDraft(clip, 'fromOpacity', e.target.value, { integer: false, min: 0, max: 1 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromOpacity', e.currentTarget, { integer: false, min: 0, max: 1 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromOpacity', e, { integer: false, min: 0, max: 1 })} onFocus={(e) => e.target.select()} /></label>}
                                 {clip.type === 'scale' && (<><label className="tl-detail-label">起始缩放X<input className="tl-input-nospin" type="number" inputMode="decimal" step={0.01} value={payloadNumberDrafts[clip.id]?.fromScaleX ?? clip.payload.fromScaleX} onChange={(e) => updatePayloadNumberDraft(clip, 'fromScaleX', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromScaleX', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromScaleX', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label">起始缩放Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={0.01} value={payloadNumberDrafts[clip.id]?.fromScaleY ?? clip.payload.fromScaleY} onChange={(e) => updatePayloadNumberDraft(clip, 'fromScaleY', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'fromScaleY', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'fromScaleY', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label></>)}
@@ -2949,13 +2945,13 @@ export function TimelinePanel() {
                                   <span className="tl-coord-label">中间点</span>
                                   <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.midX ?? Math.round(clip.payload.midX)} onChange={(e) => updatePayloadNumberDraft(clip, 'midX', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'midX', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'midX', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
                                   <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.midY ?? Math.round(clip.payload.midY)} onChange={(e) => updatePayloadNumberDraft(clip, 'midY', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'midY', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'midY', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
-                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为中间点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { midX: Math.round(selectedObjectAtCurrentTime.x), midY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为中间点" onClick={() => selectedObject && updateClipPayload(clip, { midX: Math.round(selectedObject.x), midY: Math.round(selectedObject.y) })}>取当前位置</button>
                                 </>)}
                                 {clip.type === 'move' && (<>
                                   <span className="tl-coord-label">终点</span>
                                   <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toX ?? Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberDraft(clip, 'toX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toX', e)} onFocus={(e) => e.target.select()} /></label>
                                   <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toY ?? Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberDraft(clip, 'toY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toY', e)} onFocus={(e) => e.target.select()} /></label>
-                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                  <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObject && updateClipPayload(clip, { toX: Math.round(selectedObject.x), toY: Math.round(selectedObject.y) })}>取当前位置</button>
                                 </>)}
                                 {clip.type === 'moveAlongPath' && (<>
                                   <span className="tl-coord-label">控制点1</span>
@@ -2982,13 +2978,13 @@ export function TimelinePanel() {
                                     <span className="tl-coord-label">终点</span>
                                     <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.toX ?? Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberDraft(clip, 'toX', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toX', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toX', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
                                     <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.toY ?? Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberDraft(clip, 'toY', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toY', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toY', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
-                                    <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                    <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObject && updateClipPayload(clip, { toX: Math.round(selectedObject.x), toY: Math.round(selectedObject.y) })}>取当前位置</button>
                                   </>)}
                                   {clip.type === 'moveAlongPath' && (<>
                                     <span className="tl-coord-label">终点</span>
                                     <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toX ?? Math.round(clip.payload.toX)} onChange={(e) => updatePayloadNumberDraft(clip, 'toX', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toX', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toX', e)} onFocus={(e) => e.target.select()} /></label>
                                     <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={1} value={payloadNumberDrafts[clip.id]?.toY ?? Math.round(clip.payload.toY)} onChange={(e) => updatePayloadNumberDraft(clip, 'toY', e.target.value)} onBlur={(e) => commitPayloadNumberDraft(clip, 'toY', e.currentTarget)} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toY', e)} onFocus={(e) => e.target.select()} /></label>
-                                    <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObjectAtCurrentTime && updateClipPayload(clip, { toX: Math.round(selectedObjectAtCurrentTime.x), toY: Math.round(selectedObjectAtCurrentTime.y) })}>取当前位置</button>
+                                    <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObject && updateClipPayload(clip, { toX: Math.round(selectedObject.x), toY: Math.round(selectedObject.y) })}>取当前位置</button>
                                   </>)}
                                   {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">频率</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} value={payloadNumberDrafts[clip.id]?.frequency ?? clip.payload.frequency} onChange={(e) => updatePayloadNumberDraft(clip, 'frequency', e.target.value, { integer: false, min: 0 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'frequency', e.currentTarget, { integer: false, min: 0 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'frequency', e, { integer: false, min: 0 })} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">衰减</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={0.1} value={payloadNumberDrafts[clip.id]?.decay ?? clip.payload.decay ?? 1} onChange={(e) => updatePayloadNumberDraft(clip, 'decay', e.target.value, { integer: false, min: 0 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'decay', e.currentTarget, { integer: false, min: 0 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'decay', e, { integer: false, min: 0 })} onFocus={(e) => e.target.select()} /></label></>)}
                                 </div>

@@ -127,8 +127,8 @@ interface EditorState {
   undo: () => void;
   redo: () => void;
 
-  expandedAnimationClipId: string | null;
-  setExpandedAnimationClipId: (id: string | null) => void;
+  expandedAnimationClipIds: string[];
+  setExpandedAnimationClipIds: (ids: string[]) => void;
   patchAnimationClipSilent: (id: string, updates: Partial<AnimationClip>) => void;
   materializeAppearSegmentsSilent: (objectId: string, fallbackEndMs: number) => void;
 
@@ -210,7 +210,7 @@ export const useEditorStore = create<EditorState>()(
     canvasWidth: 1280,
     canvasHeight: 720,
     canvasBgColor: '#ffffff',
-    expandedAnimationClipId: null,
+    expandedAnimationClipIds: [],
     hasUnsavedChanges: false,
     currentFileName: generateFileName(),
 
@@ -826,9 +826,9 @@ export const useEditorStore = create<EditorState>()(
         state.currentFileName = name;
       }),
 
-    setExpandedAnimationClipId: (id) =>
+    setExpandedAnimationClipIds: (ids) =>
       set((state) => {
-        state.expandedAnimationClipId = id;
+        state.expandedAnimationClipIds = ids;
       }),
 
     patchAnimationClipSilent: (id, updates) =>
