@@ -9,7 +9,7 @@ import { createPortal } from 'react-dom';
  * 延迟 180ms 显示，快速划过时不会闪烁。
  */
 export function TooltipPortal() {
-  const [state, setState] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [state, setState] = useState<{ text: string; x: number; y: number; above: boolean } | null>(null);
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentTargetRef = useRef<Element | null>(null);
@@ -19,7 +19,9 @@ export function TooltipPortal() {
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         const rect = el.getBoundingClientRect();
-        setState({ text, x: rect.left + rect.width / 2, y: rect.bottom });
+        // 预估 tooltip 高度约 30px + 8px 间距，接近视口底部时翻转到元素上方
+        const above = rect.bottom + 46 > window.innerHeight;
+        setState({ text, x: rect.left + rect.width / 2, y: above ? rect.top : rect.bottom, above });
         // 下一帧再设 visible，确保 transition 能播放
         requestAnimationFrame(() => setVisible(true));
       }, 180);
@@ -68,8 +70,8 @@ export function TooltipPortal() {
 
   return createPortal(
     <div
-      className={`tooltip-bubble${visible ? ' is-visible' : ''}`}
-      style={{ left: state.x, top: state.y + 8 }}
+      className={`tooltip-bubble${visible ? ' is-visible' : ''}${state.above ? ' is-above' : ''}`}
+      style={{ left: state.x, top: state.above ? state.y - 8 : state.y + 8 }}
     >
       {state.text}
     </div>,

@@ -51,6 +51,14 @@ input, button, select, textarea {
   transform: translateX(-50%) translateY(0);
 }
 
+/* 翻转到元素上方时 */
+.tooltip-bubble.is-above {
+  transform: translateX(-50%) translateY(calc(-100% + 3px));
+}
+.tooltip-bubble.is-above.is-visible {
+  transform: translateX(-50%) translateY(-100%);
+}
+
 .tooltip-bubble::before {
   content: '';
   position: absolute;
@@ -59,4 +67,12 @@ input, button, select, textarea {
   transform: translateX(-50%);
   border: 4px solid transparent;
   border-bottom-color: #1e2532;
+}
+
+/* 翻转到上方时箭头朝下 */
+.tooltip-bubble.is-above::before {
+  top: auto;
+  bottom: -8px;
+  border-bottom-color: transparent;
+  border-top-color: #1e2532;
 }

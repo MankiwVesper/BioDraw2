@@ -115,10 +115,27 @@ const getEasingPreviewPath = (x1: number, y1: number, x2: number, y2: number) =>
 
 const CURVE_VB = { sx: 4, sy: 48, ex: 84, ey: 4, w: 80, h: 44 } as const;
 
+function getBezierSvgYBounds(ey1: number, ey2: number) {
+  const { sy, ey, h } = CURVE_VB;
+  const c1y = sy - h * ey1;
+  const c2y = sy - h * ey2;
+  let minY = Math.min(sy, ey), maxY = Math.max(sy, ey);
+  for (let i = 1; i <= 200; i++) {
+    const t = i / 200;
+    const mt = 1 - t;
+    const y = mt*mt*mt*sy + 3*mt*mt*t*c1y + 3*mt*t*t*c2y + t*t*t*ey;
+    if (y < minY) minY = y;
+    if (y > maxY) maxY = y;
+  }
+  return { minY, maxY };
+}
+
 function clientToSvgPoint(e: MouseEvent, svg: SVGSVGElement) {
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return null;
   const pt = svg.createSVGPoint();
   pt.x = e.clientX; pt.y = e.clientY;
-  return pt.matrixTransform(svg.getScreenCTM()!.inverse());
+  return pt.matrixTransform(ctm.inverse());
 }
 
 function evalBezierPoint(t: number, ex1: number, ey1: number, ex2: number, ey2: number) {
@@ -152,27 +169,43 @@ function EasingCurve({ ex1, ey1, ex2, ey2, onDrag }: EasingCurveProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const onDragRef = useRef(onDrag);
   onDragRef.current = onDrag;
+  const [onCurve, setOnCurve] = useState(false);
 
   const dragState = useRef<{
-    t: number; sx0: number; sy0: number;
+    t: number; cx0: number; cy0: number;
     ox1: number; oy1: number; ox2: number; oy2: number;
   } | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (dragState.current) return;
+    const pt = clientToSvgPoint(e.nativeEvent, svgRef.current!);
+    if (!pt) { setOnCurve(false); return; }
+    const t = findCurveT(pt.x, pt.y, ex1, ey1, ex2, ey2);
+    if (t < 0.05 || t > 0.95) { setOnCurve(false); return; }
+    const nearest = evalBezierPoint(t, ex1, ey1, ex2, ey2);
+    setOnCurve((nearest.x - pt.x) ** 2 + (nearest.y - pt.y) ** 2 <= 100);
+  };
 
   const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
     if (!svgRef.current) return;
     const pt = clientToSvgPoint(e.nativeEvent, svgRef.current);
+    if (!pt) return;
     const t = findCurveT(pt.x, pt.y, ex1, ey1, ex2, ey2);
-    if (t < 0.05 || t > 0.95 || Math.abs(t - 0.5) < 0.04) return;
+    if (t < 0.05 || t > 0.95) return;
+    const nearest = evalBezierPoint(t, ex1, ey1, ex2, ey2);
+    if ((nearest.x - pt.x) ** 2 + (nearest.y - pt.y) ** 2 > 100) return;
     e.preventDefault();
-    dragState.current = { t, sx0: pt.x, sy0: pt.y, ox1: ex1, oy1: ey1, ox2: ex2, oy2: ey2 };
+    dragState.current = { t, cx0: e.clientX, cy0: e.clientY, ox1: ex1, oy1: ey1, ox2: ex2, oy2: ey2 };
   };
 
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       if (!dragState.current || !svgRef.current) return;
-      const { t, sx0, sy0, ox1, oy1, ox2, oy2 } = dragState.current;
-      const pt = clientToSvgPoint(e, svgRef.current);
-      const dx = pt.x - sx0, dy = pt.y - sy0;
+      const { t, cx0, cy0, ox1, oy1, ox2, oy2 } = dragState.current;
+      const rect = svgRef.current.getBoundingClientRect();
+      // 用屏幕坐标差换算到固定 SVG 参考空间（88×52），避免 viewBox 动态变化时灵敏度漂移
+      const dx = (e.clientX - cx0) * 88 / rect.width;
+      const dy = (e.clientY - cy0) * 52 / rect.height;
       const factor = Math.min(1 / (3 * t * (1 - t)), 10);
       const dex = (dx / CURVE_VB.w) * factor;
       const dey = (-dy / CURVE_VB.h) * factor;
@@ -192,9 +225,19 @@ function EasingCurve({ ex1, ey1, ex2, ey2, onDrag }: EasingCurveProps) {
     };
   }, []);
 
+  const VB_PAD = 3;
+  const { minY, maxY } = getBezierSvgYBounds(ey1, ey2);
+  const vbTop = Math.min(minY - VB_PAD, 0);
+  const vbBottom = Math.max(maxY + VB_PAD, 52);
+  const dynamicViewBox = `0 ${vbTop} 88 ${vbBottom - vbTop}`;
+
   return (
-    <svg ref={svgRef} viewBox="0 0 88 52" preserveAspectRatio="none" className="tl-easing-svg"
-      onMouseDown={handleMouseDown} aria-hidden="true">
+    <svg ref={svgRef} viewBox={dynamicViewBox} preserveAspectRatio="none" className="tl-easing-svg"
+      style={onCurve ? { cursor: 'crosshair' } : undefined}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setOnCurve(false)}
+      onMouseDown={handleMouseDown}
+      aria-hidden="true">
       <path d="M 4 48 L 84 4" className="tl-easing-base" />
       <path d={getEasingPreviewPath(ex1, ey1, ex2, ey2)} className="tl-easing-curve" />
     </svg>
@@ -455,15 +498,6 @@ export function TimelinePanel() {
     setShowDeleteSegmentConfirm(false);
   }, [selectedSegmentIds]);
 
-  const toggleSegmentSelection = (segId: string, additive: boolean) => {
-    setSelectedSegmentIds((prev) => {
-      if (additive) {
-        return prev.includes(segId) ? prev.filter((id) => id !== segId) : [...prev, segId];
-      }
-      if (prev.length === 1 && prev[0] === segId) return [];
-      return [segId];
-    });
-  };
 
   // 计算"增加片段"的默认值：取最早空闲区间，长度 ≥ T/10 则用 T/10，否则用整段空闲。
   const defaultNewSegmentRange = useMemo(() => {
@@ -2938,13 +2972,13 @@ export function TimelinePanel() {
                           <span className="tl-col-header">节奏调整</span>
                           {(
                             [
-                              { label: 'X1', idx: 0 as const, min: 0, max: 1, step: 0.01, val: ex1 },
-                              { label: 'Y1', idx: 1 as const, min: -2, max: 2, step: 0.01, val: ey1 },
-                              { label: 'X2', idx: 2 as const, min: 0, max: 1, step: 0.01, val: ex2 },
-                              { label: 'Y2', idx: 3 as const, min: -2, max: 2, step: 0.01, val: ey2 },
+                              { label: 'X1', idx: 0 as const, min: 0, max: 1, step: 0.001, val: ex1, tooltip: '第一控制点横坐标，范围 0~1' },
+                              { label: 'Y1', idx: 1 as const, min: -2, max: 2, step: 0.001, val: ey1, tooltip: '第一控制点纵坐标，范围 -2~2，超出 0~1 可产生弹性过冲效果' },
+                              { label: 'X2', idx: 2 as const, min: 0, max: 1, step: 0.001, val: ex2, tooltip: '第二控制点横坐标，范围 0~1' },
+                              { label: 'Y2', idx: 3 as const, min: -2, max: 2, step: 0.001, val: ey2, tooltip: '第二控制点纵坐标，范围 -2~2，超出 0~1 可产生弹性过冲效果' },
                             ]
                           ).map((f) => (
-                            <label key={f.label} className="tl-detail-label">
+                            <label key={f.label} className="tl-detail-label" data-tooltip={f.tooltip}>
                               {f.label}
                               <input className="tl-input-nospin" type="number" inputMode="decimal" min={f.min} max={f.max} step={f.step} value={bezierControlDrafts[clip.id]?.[f.idx] ?? formatBezierValue(f.val)} onChange={(e) => updateBezierControlDraft(clip, f.idx, e.target.value)} onBlur={(e) => commitBezierControlDraft(clip, f.idx, f.val, e.currentTarget)} onKeyDown={(e) => handleBezierControlKeyDown(clip.id, f.idx, e)} onFocus={(e) => e.target.select()} />
                             </label>
@@ -2953,7 +2987,7 @@ export function TimelinePanel() {
 
                         {/* ── 节奏曲线 */}
                         <div className="tl-curve-col">
-                          <span className="tl-col-header">节奏曲线</span>
+                          <span className="tl-col-header" data-tooltip="将鼠标放在蓝线上可以自由拖动曲线来调整节奏">节奏曲线</span>
                           <div className="tl-easing-preview-wrap tl-easing-preview-lg">
                             <EasingCurve
                               ex1={ex1} ey1={ey1} ex2={ex2} ey2={ey2}
