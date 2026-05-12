@@ -441,6 +441,18 @@ export function TimelinePanel() {
     [animations, selectedObject],
   );
 
+  // 同类型动画的显示标签（有多个同类型时加序号，如"移动1"/"移动2"）
+  const clipDisplayLabels = useMemo(() => {
+    const typeIndex = new Map<string, number>();
+    const labels = new Map<string, string>();
+    for (const c of selectedObjectClips) {
+      const idx = (typeIndex.get(c.type) ?? 0) + 1;
+      typeIndex.set(c.type, idx);
+      labels.set(c.id, `${getClipTypeLabel(c.type)}${idx}`);
+    }
+    return labels;
+  }, [selectedObjectClips]);
+
   // 选中对象的有效段集合。
   // appearSegments === undefined → 旧数据，衍生虚拟段兼容；
   // appearSegments === []       → 用户主动删完，返回空数组，不再自动补段；
@@ -2564,7 +2576,7 @@ export function TimelinePanel() {
                               />
                               <span className={`tl-type-dot tl-type-${clip.type}`} />
                               <span style={{ flex: 1, fontSize: 11, color: clip.enabled === false ? 'var(--text-muted)' : 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {getClipTypeLabel(clip.type)}
+                                {clipDisplayLabels.get(clip.id) ?? getClipTypeLabel(clip.type)}
                               </span>
                             </div>
                           );
@@ -2809,9 +2821,9 @@ export function TimelinePanel() {
                     >
                       {/* col1：类型色点 + 类型名 */}
                       <div className="tl-clip-label">
-                        <span className={`tl-type-dot tl-type-${clip.type}`} data-tooltip={getClipTypeLabel(clip.type)} />
+                        <span className={`tl-type-dot tl-type-${clip.type}`} data-tooltip={clipDisplayLabels.get(clip.id) ?? getClipTypeLabel(clip.type)} />
                         <span className="tl-clip-type-name">
-                          {getClipTypeLabel(clip.type)}
+                          {clipDisplayLabels.get(clip.id) ?? getClipTypeLabel(clip.type)}
                         </span>
                       </div>
 
