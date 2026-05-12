@@ -15,7 +15,7 @@
 /* ── 行内控件（label / 单位 / 输入框） ──────────── */
 .tl-label {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-main);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -60,7 +60,7 @@
 
 .tl-time-display {
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-main);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
@@ -420,12 +420,20 @@
 
 /* 右列元素计数 */
 .tl-dist-count {
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  justify-self: end;
+  justify-self: stretch;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.tl-dist-count-text {
+  width: 110px;
+  font-size: 11px;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── 第二大行：元素时间轴行 ──────────────────────── */

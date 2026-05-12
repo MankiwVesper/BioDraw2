@@ -116,6 +116,8 @@ interface EditorState {
   requestSingleFrameExport: () => void;
   isPreviewMode: boolean;
   setPreviewMode: (v: boolean) => void;
+  focusMode: boolean;
+  setFocusMode: (v: boolean) => void;
   fitVersion: number;
   requestFit: () => void;
 
@@ -215,6 +217,7 @@ export const useEditorStore = create<EditorState>()(
     exportCancelCount: 0,
     singleFrameExportId: 0,
     isPreviewMode: false,
+    focusMode: false,
     fitVersion: 0,
     sequenceExportStatus: 'idle',
     sequenceExportMessage: '',
@@ -665,6 +668,11 @@ export const useEditorStore = create<EditorState>()(
         } else if (state.playbackStatus === 'playing') {
           state.playbackStatus = 'paused';
         }
+      }),
+
+    setFocusMode: (v) =>
+      set((state) => {
+        state.focusMode = v;
       }),
 
     requestFit: () =>

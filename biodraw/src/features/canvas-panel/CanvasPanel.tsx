@@ -230,6 +230,7 @@ export function CanvasPanel() {
   const singleFrameExportId  = useEditorStore(state => state.singleFrameExportId);
   const fitVersion           = useEditorStore(state => state.fitVersion);
   const isPreviewMode        = useEditorStore(state => state.isPreviewMode);
+  const focusMode            = useEditorStore(state => state.focusMode);
   const canvasDrawingMode    = useEditorStore(state => state.canvasDrawingMode);
   const setPreviewMode       = useEditorStore(state => state.setPreviewMode);
   const stopPlayback         = useEditorStore(state => state.stop);
@@ -275,6 +276,15 @@ export function CanvasPanel() {
       : animations;
     return buildAnimatedPreviewObjects(objects, activeAnimations, currentTimeMs);
   }, [objects, animations, currentTimeMs, previewClipId]);
+
+  // 全览模式：计算当前时刻不可见的元素，以 35% 不透明度渲染为"幽灵"
+  const ghostObjects = useMemo(() => {
+    if (focusMode || currentTimeMs <= 0) return [];
+    const activeIds = new Set(previewObjects.map((o) => o.id));
+    return objects
+      .filter((o) => !activeIds.has(o.id))
+      .map((o) => ({ ...o, opacity: (o.opacity ?? 1) * 0.35 }));
+  }, [focusMode, currentTimeMs, previewObjects, objects]);
 
   const isSequenceExportRunning = sequenceExportStatus === 'running';
   const isVideoExportRunning = videoExportStatus === 'running';
@@ -1135,6 +1145,18 @@ export function CanvasPanel() {
                 shadowOffsetY={4 / stageScale}
                 listening={false}
               />
+              {ghostObjects.map((obj) => (
+                <SceneObjectRenderer
+                  key={obj.id}
+                  sceneObject={obj}
+                  isSelected={!isAnyExportRunning && selectedIds.includes(obj.id)}
+                  onEditStart={handleEditStart}
+                  isEditing={editingTextId === obj.id}
+                  onDragStart={handleObjectDragStart}
+                  onDragMove={handleObjectDragMove}
+                  onDragStop={handleObjectDragStop}
+                />
+              ))}
               {previewObjects.map((obj) => {
                 const isSelected = !isAnyExportRunning && selectedIds.includes(obj.id);
                 const isFollower = groupDragOffset !== null &&

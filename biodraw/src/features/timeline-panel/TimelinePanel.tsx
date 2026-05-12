@@ -404,6 +404,8 @@ export function TimelinePanel() {
   const setExpandedAnimationClipIds = useEditorStore((s) => s.setExpandedAnimationClipIds);
   const canvasDrawingMode    = useEditorStore((s) => s.canvasDrawingMode);
   const setCanvasDrawingMode = useEditorStore((s) => s.setCanvasDrawingMode);
+  const focusMode            = useEditorStore((s) => s.focusMode);
+  const setFocusMode         = useEditorStore((s) => s.setFocusMode);
   const copyAnimationClipsToObjects = useEditorStore((s) => s.copyAnimationClipsToObjects);
   const startClipPreview = useEditorStore((s) => s.startClipPreview);
   const selectObject = useEditorStore((s) => s.selectObject);
@@ -615,6 +617,8 @@ export function TimelinePanel() {
   // ── 元素分布轴状态
   const [distPopup, setDistPopup] = useState<{ timeMs: number; x: number; y: number } | null>(null);
   const distHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countTextRef = useRef<HTMLSpanElement>(null);
+  const [isCountTruncated, setIsCountTruncated] = useState(false);
 
   const scheduleHideDistPopup = useCallback(() => {
     if (distHideTimer.current) clearTimeout(distHideTimer.current);
@@ -657,6 +661,11 @@ export function TimelinePanel() {
         };
       });
   }, [animations, objects, globalDurationMs]);
+
+  useEffect(() => {
+    const el = countTextRef.current;
+    if (el) setIsCountTruncated(el.scrollWidth > el.clientWidth);
+  }, [distMarkers]);
 
   const selectedBatchClips = useMemo(
     () => selectedObjectClips.filter((c) => batchSelectedClipIdSet.has(c.id)),
@@ -2046,7 +2055,7 @@ export function TimelinePanel() {
             </span>
           )}
           <span className="tl-row-divider" />
-          <span className="tl-label">时长/ms</span>
+          <span className="tl-label" data-tooltip="设置动画总时长">时长/ms</span>
           <input
             className="tl-input-sm tl-input-nospin"
             type="number"
@@ -2054,6 +2063,7 @@ export function TimelinePanel() {
             min={1000}
             max={99999}
             step={1}
+            data-tooltip="范围：1000 ~ 99999"
             value={durationDraft}
             onChange={(e) => {
               updateDurationDraft(e.target.value);
@@ -2102,11 +2112,26 @@ export function TimelinePanel() {
           <div className="tl-dist-playhead" style={{ left: cursorPercent }} />
         </div>
         <span className="tl-dist-count">
-          {distMarkers.length > 0 ? (() => {
-            const totalElements = new Set(distMarkers.flatMap((m) => m.elements.map((e) => e.id))).size;
-            const totalClips = distMarkers.reduce((sum, m) => sum + m.clipCount, 0);
-            return `${totalElements} 个元素 ${totalClips} 个动画`;
-          })() : ''}
+          <button
+            type="button"
+            className={`tl-btn tl-btn-sm${focusMode ? ' is-active' : ''}`}
+            data-tooltip={focusMode ? '专注模式：仅显示当前时刻有动画的元素' : '全览模式：非活跃元素半透明显示'}
+            onClick={() => setFocusMode(!focusMode)}
+          >{focusMode ? '专注模式' : '全览模式'}</button>
+          {(() => {
+            const countText = distMarkers.length > 0 ? (() => {
+              const totalElements = new Set(distMarkers.flatMap((m) => m.elements.map((e) => e.id))).size;
+              const totalClips = distMarkers.reduce((sum, m) => sum + m.clipCount, 0);
+              return `${totalElements} 个元素 ${totalClips} 个动画`;
+            })() : '';
+            return (
+              <span
+                className="tl-dist-count-text"
+                ref={countTextRef}
+                data-tooltip={isCountTruncated ? countText : undefined}
+              >{countText}</span>
+            );
+          })()}
         </span>
       </div>
 
