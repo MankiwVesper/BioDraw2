@@ -1,21 +1,34 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Group, Circle, Arrow, Line, RegularPolygon, Text, Rect } from 'react-konva';
 import { useEditorStore } from '../../state/editorStore';
 import type Konva from 'konva';
 import type { MoveClip, MoveAlongPathClip, PolylineMoveClip } from '../../types';
+
+const CLIP_TYPE_LABELS: Record<string, string> = {
+  move: '移动',
+  polylineMove: '折线移动',
+  moveAlongPath: '曲线移动',
+  fade: '淡入淡出',
+  scale: '缩放',
+  rotate: '旋转',
+  shake: '抖动',
+  stateChange: '状态切换',
+};
+const getClipTypeLabel = (type: string) => CLIP_TYPE_LABELS[type] ?? type;
 
 interface Props {
   stageScale: number;
 }
 
 // ── Move clip overlay ────────────────────────────────────────
-function MoveOverlay({ clip, stageScale }: { clip: MoveClip; stageScale: number }) {
+function MoveOverlay({ clip, stageScale, label }: { clip: MoveClip; stageScale: number; label?: string }) {
   const updateClip = useEditorStore((s) => s.updateAnimationClip);
 
   const { fromX, fromY, toX, toY } = clip.payload;
   const arrowRef = useRef<Konva.Arrow>(null);
   const fromTextRef = useRef<Konva.Text>(null);
   const toTextRef = useRef<Konva.Text>(null);
+  const labelRef = useRef<Konva.Text>(null);
   const r = 7 / stageScale;
   const fontSize = 11 / stageScale;
   const sw = 1.5 / stageScale;
@@ -39,6 +52,8 @@ function MoveOverlay({ clip, stageScale }: { clip: MoveClip; stageScale: number 
     fromTextRef.current?.y(fy - r);
     toTextRef.current?.x(tx + offset);
     toTextRef.current?.y(ty - r);
+    labelRef.current?.x((fx + tx) / 2);
+    labelRef.current?.y((fy + ty) / 2 - fontSize * 2);
     arrowRef.current?.getLayer()?.batchDraw();
   };
 
@@ -112,12 +127,25 @@ function MoveOverlay({ clip, stageScale }: { clip: MoveClip; stageScale: number 
         fill="#3b82f6"
         listening={false}
       />
+
+      {/* 路径标识：元素名·动画名 */}
+      {label && (
+        <Text
+          ref={labelRef}
+          x={(fromX + toX) / 2}
+          y={(fromY + toY) / 2 - fontSize * 2}
+          text={label}
+          fontSize={fontSize - 1 / stageScale}
+          fill="rgba(100,116,139,0.75)"
+          listening={false}
+        />
+      )}
     </Group>
   );
 }
 
 // ── MoveAlongPath clip overlay ───────────────────────────────
-function MoveAlongPathOverlay({ clip, stageScale }: { clip: MoveAlongPathClip; stageScale: number }) {
+function MoveAlongPathOverlay({ clip, stageScale, label }: { clip: MoveAlongPathClip; stageScale: number; label?: string }) {
   const updateClip = useEditorStore((s) => s.updateAnimationClip);
 
   const { fromX, fromY, control1X, control1Y, control2X, control2Y, toX, toY } = clip.payload;
@@ -129,6 +157,7 @@ function MoveAlongPathOverlay({ clip, stageScale }: { clip: MoveAlongPathClip; s
   const ctrl1TextRef = useRef<Konva.Text>(null);
   const ctrl2TextRef = useRef<Konva.Text>(null);
   const toTextRef = useRef<Konva.Text>(null);
+  const labelRef = useRef<Konva.Text>(null);
 
   const r = 7 / stageScale;
   const fontSize = 11 / stageScale;
@@ -165,6 +194,8 @@ function MoveAlongPathOverlay({ clip, stageScale }: { clip: MoveAlongPathClip; s
     ctrl1TextRef.current?.x(c1x + offset); ctrl1TextRef.current?.y(c1y - r);
     ctrl2TextRef.current?.x(c2x + offset); ctrl2TextRef.current?.y(c2y - r);
     toTextRef.current?.x(tx + offset); toTextRef.current?.y(ty - r);
+    labelRef.current?.x((fx + tx) / 2);
+    labelRef.current?.y((fy + ty) / 2 - fontSize * 2);
     curveRef.current?.getLayer()?.batchDraw();
   };
 
@@ -311,12 +342,25 @@ function MoveAlongPathOverlay({ clip, stageScale }: { clip: MoveAlongPathClip; s
         x={toX + r + 3 / stageScale} y={toY - r}
         fontSize={fontSize} fill="#3b82f6" listening={false}
       />
+
+      {/* 路径标识：元素名·动画名 */}
+      {label && (
+        <Text
+          ref={labelRef}
+          x={(fromX + toX) / 2}
+          y={(fromY + toY) / 2 - fontSize * 2}
+          text={label}
+          fontSize={fontSize - 1 / stageScale}
+          fill="rgba(100,116,139,0.75)"
+          listening={false}
+        />
+      )}
     </Group>
   );
 }
 
 // ── PolylineMove clip overlay ────────────────────────────────
-function PolylineMoveOverlay({ clip, stageScale }: { clip: PolylineMoveClip; stageScale: number }) {
+function PolylineMoveOverlay({ clip, stageScale, label }: { clip: PolylineMoveClip; stageScale: number; label?: string }) {
   const updateClip = useEditorStore((s) => s.updateAnimationClip);
 
   const { fromX, fromY, midX, midY, toX, toY } = clip.payload;
@@ -325,6 +369,7 @@ function PolylineMoveOverlay({ clip, stageScale }: { clip: PolylineMoveClip; sta
   const fromTextRef = useRef<Konva.Text>(null);
   const midTextRef = useRef<Konva.Text>(null);
   const toTextRef = useRef<Konva.Text>(null);
+  const labelRef = useRef<Konva.Text>(null);
 
   const r = 7 / stageScale;
   const fontSize = 11 / stageScale;
@@ -352,6 +397,8 @@ function PolylineMoveOverlay({ clip, stageScale }: { clip: PolylineMoveClip; sta
     fromTextRef.current?.x(fx + offset); fromTextRef.current?.y(fy - r);
     midTextRef.current?.x(mx + offset); midTextRef.current?.y(my - r);
     toTextRef.current?.x(tx + offset); toTextRef.current?.y(ty - r);
+    labelRef.current?.x(mx);
+    labelRef.current?.y(my - fontSize * 2);
     seg1Ref.current?.getLayer()?.batchDraw();
   };
 
@@ -436,6 +483,19 @@ function PolylineMoveOverlay({ clip, stageScale }: { clip: PolylineMoveClip; sta
         }}
       />
       <Text ref={toTextRef} text="终" x={toX + r + 3 / stageScale} y={toY - r} fontSize={fontSize} fill="#3b82f6" listening={false} />
+
+      {/* 路径标识：元素名·动画名 */}
+      {label && (
+        <Text
+          ref={labelRef}
+          x={midX}
+          y={midY - fontSize * 2}
+          text={label}
+          fontSize={fontSize - 1 / stageScale}
+          fill="rgba(100,116,139,0.75)"
+          listening={false}
+        />
+      )}
     </Group>
   );
 }
@@ -684,15 +744,37 @@ function DrawingOverlay({ stageScale }: { stageScale: number }) {
 export function AnimationPathOverlay({ stageScale }: Props) {
   const expandedClipIds = useEditorStore((s) => s.expandedAnimationClipIds);
   const animations = useEditorStore((s) => s.animations);
+  const objects = useEditorStore((s) => s.objects);
+
+  // "元素名·类型N" label per clip
+  const clipLabels = useMemo(() => {
+    const labels = new Map<string, string>();
+    const byObject = new Map<string, typeof animations>();
+    for (const c of animations) {
+      if (!byObject.has(c.objectId)) byObject.set(c.objectId, []);
+      byObject.get(c.objectId)!.push(c);
+    }
+    for (const [objId, clips] of byObject) {
+      const objName = objects.find((o) => o.id === objId)?.name ?? '';
+      const typeIndex = new Map<string, number>();
+      for (const c of clips) {
+        const idx = (typeIndex.get(c.type) ?? 0) + 1;
+        typeIndex.set(c.type, idx);
+        labels.set(c.id, `${objName}·${getClipTypeLabel(c.type)}${idx}`);
+      }
+    }
+    return labels;
+  }, [animations, objects]);
 
   return (
     <Group>
       {expandedClipIds.map((id) => {
         const clip = animations.find((a) => a.id === id);
         if (!clip) return null;
-        if (clip.type === 'move') return <MoveOverlay key={id} clip={clip as MoveClip} stageScale={stageScale} />;
-        if (clip.type === 'moveAlongPath') return <MoveAlongPathOverlay key={id} clip={clip as MoveAlongPathClip} stageScale={stageScale} />;
-        if (clip.type === 'polylineMove') return <PolylineMoveOverlay key={id} clip={clip as PolylineMoveClip} stageScale={stageScale} />;
+        const label = clipLabels.get(id);
+        if (clip.type === 'move') return <MoveOverlay key={id} clip={clip as MoveClip} stageScale={stageScale} label={label} />;
+        if (clip.type === 'moveAlongPath') return <MoveAlongPathOverlay key={id} clip={clip as MoveAlongPathClip} stageScale={stageScale} label={label} />;
+        if (clip.type === 'polylineMove') return <PolylineMoveOverlay key={id} clip={clip as PolylineMoveClip} stageScale={stageScale} label={label} />;
         return null;
       })}
       <DrawingOverlay stageScale={stageScale} />
