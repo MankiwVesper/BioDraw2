@@ -25,6 +25,8 @@ export function useEditorKeyboard() {
   const markSaved                = useEditorStore((s) => s.markSaved);
   const isPreviewMode            = useEditorStore((s) => s.isPreviewMode);
   const setPreviewMode           = useEditorStore((s) => s.setPreviewMode);
+  const canvasDrawingMode        = useEditorStore((s) => s.canvasDrawingMode);
+  const setCanvasDrawingMode     = useEditorStore((s) => s.setCanvasDrawingMode);
 
   // Refs 避免 stale closure
   const selectedIdsRef              = useRef(selectedIds);
@@ -32,15 +34,23 @@ export function useEditorKeyboard() {
   const playbackRef                 = useRef(playbackStatus);
   const moveMultipleSceneObjectsRef = useRef(moveMultipleSceneObjects);
   const isPreviewModeRef            = useRef(isPreviewMode);
+  const canvasDrawingModeRef        = useRef(canvasDrawingMode);
 
   useEffect(() => { selectedIdsRef.current = selectedIds; }, [selectedIds]);
   useEffect(() => { objectsRef.current = objects; }, [objects]);
   useEffect(() => { playbackRef.current = playbackStatus; }, [playbackStatus]);
   useEffect(() => { moveMultipleSceneObjectsRef.current = moveMultipleSceneObjects; }, [moveMultipleSceneObjects]);
   useEffect(() => { isPreviewModeRef.current = isPreviewMode; }, [isPreviewMode]);
+  useEffect(() => { canvasDrawingModeRef.current = canvasDrawingMode; }, [canvasDrawingMode]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // 自由绘制模式：ESC 始终取消，不受焦点位置限制
+      if (e.key === 'Escape' && useEditorStore.getState().canvasDrawingMode) {
+        setCanvasDrawingMode(null);
+        return;
+      }
+
       // 不拦截输入框内的按键
       const target = e.target as HTMLElement;
       if (
@@ -67,8 +77,9 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Escape：优先退出预览模式，否则取消选中
+      // Escape：优先取消自由绘制，其次退出预览模式，否则取消选中
       if (e.key === 'Escape') {
+        if (canvasDrawingModeRef.current) { setCanvasDrawingMode(null); return; }
         if (isPreviewModeRef.current) { setPreviewMode(false); return; }
         selectObject(null);
         return;
@@ -190,5 +201,6 @@ export function useEditorKeyboard() {
     removeSceneObjects, addSceneObject, selectObject,
     selectAllObjects, duplicateObject, groupObjects, ungroupObjects,
     play, pause, undo, redo, markSaved, setPreviewMode, isPreviewMode,
+    setCanvasDrawingMode,
   ]);
 }

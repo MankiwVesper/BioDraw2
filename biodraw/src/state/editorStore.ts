@@ -129,6 +129,33 @@ interface EditorState {
 
   expandedAnimationClipIds: string[];
   setExpandedAnimationClipIds: (ids: string[]) => void;
+
+  canvasDrawingMode: {
+    type: 'move-path';
+    clipId: string;
+    step: 'start' | 'end';
+    startX?: number;
+    startY?: number;
+  } | {
+    type: 'polyline-path';
+    clipId: string;
+    step: 'start' | 'mid' | 'end';
+    startX?: number;
+    startY?: number;
+    midX?: number;
+    midY?: number;
+  } | {
+    type: 'curve-path';
+    clipId: string;
+    step: 'from' | 'ctrl1' | 'ctrl2' | 'to';
+    fromX?: number;
+    fromY?: number;
+    ctrl1X?: number;
+    ctrl1Y?: number;
+    ctrl2X?: number;
+    ctrl2Y?: number;
+  } | null;
+  setCanvasDrawingMode: (mode: EditorState['canvasDrawingMode']) => void;
   patchAnimationClipSilent: (id: string, updates: Partial<AnimationClip>) => void;
   materializeAppearSegmentsSilent: (objectId: string, fallbackEndMs: number) => void;
 
@@ -211,6 +238,7 @@ export const useEditorStore = create<EditorState>()(
     canvasHeight: 720,
     canvasBgColor: '#ffffff',
     expandedAnimationClipIds: [],
+    canvasDrawingMode: null,
     hasUnsavedChanges: false,
     currentFileName: generateFileName(),
 
@@ -829,6 +857,11 @@ export const useEditorStore = create<EditorState>()(
     setExpandedAnimationClipIds: (ids) =>
       set((state) => {
         state.expandedAnimationClipIds = ids;
+      }),
+
+    setCanvasDrawingMode: (mode) =>
+      set((state) => {
+        state.canvasDrawingMode = mode;
       }),
 
     patchAnimationClipSilent: (id, updates) =>

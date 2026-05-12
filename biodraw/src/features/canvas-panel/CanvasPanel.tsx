@@ -230,6 +230,7 @@ export function CanvasPanel() {
   const singleFrameExportId  = useEditorStore(state => state.singleFrameExportId);
   const fitVersion           = useEditorStore(state => state.fitVersion);
   const isPreviewMode        = useEditorStore(state => state.isPreviewMode);
+  const canvasDrawingMode    = useEditorStore(state => state.canvasDrawingMode);
   const setPreviewMode       = useEditorStore(state => state.setPreviewMode);
   const stopPlayback         = useEditorStore(state => state.stop);
   const stepPlaybackFrame    = useEditorStore(state => state.stepPlaybackFrame);
@@ -1120,7 +1121,7 @@ export function CanvasPanel() {
             onMouseUp={handleStageMouseUp}
             onTouchStart={checkDeselect}
             listening={!interactionLocked}
-            style={{ cursor: isPanMode ? 'grab' : 'default' }}
+            style={{ cursor: isPanMode ? 'grab' : canvasDrawingMode ? 'crosshair' : 'default' }}
           >
             <Layer>
               {/* 画布背景与边界 */}

@@ -402,6 +402,8 @@ export function TimelinePanel() {
   const updateAnimationClip = useEditorStore((s) => s.updateAnimationClip);
   const removeAnimationClip = useEditorStore((s) => s.removeAnimationClip);
   const setExpandedAnimationClipIds = useEditorStore((s) => s.setExpandedAnimationClipIds);
+  const canvasDrawingMode    = useEditorStore((s) => s.canvasDrawingMode);
+  const setCanvasDrawingMode = useEditorStore((s) => s.setCanvasDrawingMode);
   const copyAnimationClipsToObjects = useEditorStore((s) => s.copyAnimationClipsToObjects);
   const startClipPreview = useEditorStore((s) => s.startClipPreview);
   const selectObject = useEditorStore((s) => s.selectObject);
@@ -2957,7 +2959,17 @@ export function TimelinePanel() {
                                   <span className="tl-coord-label">控制点1</span>
                                   <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.control1X ?? Math.round(clip.payload.control1X)} onChange={(e) => updatePayloadNumberDraft(clip, 'control1X', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'control1X', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'control1X', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
                                   <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.control1Y ?? Math.round(clip.payload.control1Y)} onChange={(e) => updatePayloadNumberDraft(clip, 'control1Y', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'control1Y', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'control1Y', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
-                                  <span className="tl-map-btn-placeholder" />
+                                  <button
+                                    type="button"
+                                    className={`tl-btn tl-btn-sm${canvasDrawingMode?.clipId === clip.id ? ' is-active' : ''}`}
+                                    data-tooltip="在画布上依次点击设置起点、控制点1、控制点2、终点，ESC 取消"
+                                    style={{ minWidth: 69 }}
+                                    onClick={() => canvasDrawingMode?.clipId === clip.id
+                                      ? setCanvasDrawingMode(null)
+                                      : setCanvasDrawingMode({ type: 'curve-path', clipId: clip.id, step: 'from' })}
+                                  >
+                                    自由绘制
+                                  </button>
                                 </>)}
                                 {clip.type === 'fade' && <label className="tl-detail-label">结束透明度<input className="tl-input-nospin" type="number" inputMode="decimal" min={0} max={1} step={0.01} value={payloadNumberDrafts[clip.id]?.toOpacity ?? clip.payload.toOpacity} onChange={(e) => updatePayloadNumberDraft(clip, 'toOpacity', e.target.value, { integer: false, min: 0, max: 1 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toOpacity', e.currentTarget, { integer: false, min: 0, max: 1 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toOpacity', e, { integer: false, min: 0, max: 1 })} onFocus={(e) => e.target.select()} /></label>}
                                 {clip.type === 'scale' && (<><label className="tl-detail-label">结束缩放X<input className="tl-input-nospin" type="number" inputMode="decimal" step={0.01} value={payloadNumberDrafts[clip.id]?.toScaleX ?? clip.payload.toScaleX} onChange={(e) => updatePayloadNumberDraft(clip, 'toScaleX', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toScaleX', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toScaleX', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label">结束缩放Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={0.01} value={payloadNumberDrafts[clip.id]?.toScaleY ?? clip.payload.toScaleY} onChange={(e) => updatePayloadNumberDraft(clip, 'toScaleY', e.target.value, { allowNegative: true, integer: false })} onBlur={(e) => commitPayloadNumberDraft(clip, 'toScaleY', e.currentTarget, { allowNegative: true, integer: false })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'toScaleY', e, { allowNegative: true, integer: false })} onFocus={(e) => e.target.select()} /></label></>)}
@@ -2970,6 +2982,24 @@ export function TimelinePanel() {
                                   <label className="tl-detail-label">X<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.control2X ?? Math.round(clip.payload.control2X)} onChange={(e) => updatePayloadNumberDraft(clip, 'control2X', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'control2X', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'control2X', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
                                   <label className="tl-detail-label">Y<input className="tl-input-nospin" type="number" inputMode="decimal" step={1} value={payloadNumberDrafts[clip.id]?.control2Y ?? Math.round(clip.payload.control2Y)} onChange={(e) => updatePayloadNumberDraft(clip, 'control2Y', e.target.value, { allowNegative: true })} onBlur={(e) => commitPayloadNumberDraft(clip, 'control2Y', e.currentTarget, { allowNegative: true })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'control2Y', e, { allowNegative: true })} onFocus={(e) => e.target.select()} /></label>
                                   <span className="tl-map-btn-placeholder" />
+                                </div>
+                              )}
+                              {clip.type === 'move' && (
+                                <div className="tl-type-row">
+                                  <span className="tl-coord-label" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>起点</span>
+                                  <label className="tl-detail-label" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>X<input type="number" tabIndex={-1} defaultValue={0} readOnly /></label>
+                                  <label className="tl-detail-label" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>Y<input type="number" tabIndex={-1} defaultValue={0} readOnly /></label>
+                                  <button
+                                    type="button"
+                                    className={`tl-btn tl-btn-sm${canvasDrawingMode?.clipId === clip.id ? ' is-active' : ''}`}
+                                    data-tooltip="在画布上依次点击设置起点和终点，ESC 取消"
+                                    style={{ minWidth: 69 }}
+                                    onClick={() => canvasDrawingMode?.clipId === clip.id
+                                      ? setCanvasDrawingMode(null)
+                                      : setCanvasDrawingMode({ type: 'move-path', clipId: clip.id, step: 'start' })}
+                                  >
+                                    自由绘制
+                                  </button>
                                 </div>
                               )}
                               {(clip.type === 'polylineMove' || clip.type === 'moveAlongPath' || clip.type === 'shake') && (
@@ -2987,6 +3017,24 @@ export function TimelinePanel() {
                                     <button type="button" className="tl-btn tl-btn-sm" data-tooltip="将对象当前位置设为终点" onClick={() => selectedObject && updateClipPayload(clip, { toX: Math.round(selectedObject.x), toY: Math.round(selectedObject.y) })}>取当前位置</button>
                                   </>)}
                                   {clip.type === 'shake' && (<><label className="tl-detail-label"><span className="tl-shake-lbl">频率</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} value={payloadNumberDrafts[clip.id]?.frequency ?? clip.payload.frequency} onChange={(e) => updatePayloadNumberDraft(clip, 'frequency', e.target.value, { integer: false, min: 0 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'frequency', e.currentTarget, { integer: false, min: 0 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'frequency', e, { integer: false, min: 0 })} onFocus={(e) => e.target.select()} /></label><label className="tl-detail-label"><span className="tl-shake-lbl">衰减</span><input className="tl-input-nospin" type="number" inputMode="decimal" min={0} step={0.1} value={payloadNumberDrafts[clip.id]?.decay ?? clip.payload.decay ?? 1} onChange={(e) => updatePayloadNumberDraft(clip, 'decay', e.target.value, { integer: false, min: 0 })} onBlur={(e) => commitPayloadNumberDraft(clip, 'decay', e.currentTarget, { integer: false, min: 0 })} onKeyDown={(e) => handlePayloadNumberKeyDown(clip.id, 'decay', e, { integer: false, min: 0 })} onFocus={(e) => e.target.select()} /></label></>)}
+                                </div>
+                              )}
+                              {clip.type === 'polylineMove' && (
+                                <div className="tl-type-row">
+                                  <span className="tl-coord-label" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>起点</span>
+                                  <label className="tl-detail-label" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>X<input type="number" tabIndex={-1} defaultValue={0} readOnly /></label>
+                                  <label className="tl-detail-label" aria-hidden="true" style={{ visibility: 'hidden', pointerEvents: 'none' }}>Y<input type="number" tabIndex={-1} defaultValue={0} readOnly /></label>
+                                  <button
+                                    type="button"
+                                    className={`tl-btn tl-btn-sm${canvasDrawingMode?.clipId === clip.id ? ' is-active' : ''}`}
+                                    data-tooltip="在画布上依次点击设置起点、中间点、终点，ESC 取消"
+                                    style={{ minWidth: 69 }}
+                                    onClick={() => canvasDrawingMode?.clipId === clip.id
+                                      ? setCanvasDrawingMode(null)
+                                      : setCanvasDrawingMode({ type: 'polyline-path', clipId: clip.id, step: 'start' })}
+                                  >
+                                    自由绘制
+                                  </button>
                                 </div>
                               )}
                             </div>
