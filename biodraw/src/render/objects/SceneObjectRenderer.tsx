@@ -10,6 +10,8 @@ interface Props {
   isSelected: boolean;
   onEditStart?: (id: string, rect: { x: number, y: number, width: number, height: number }, target?: 'text' | 'name') => void;
   isEditing?: boolean;
+  /** True only when editing this object's text content (not name label); hides the transformer */
+  isEditingText?: boolean;
   /** Visual-only position override while group-dragging (followers) */
   xOverride?: number;
   yOverride?: number;
@@ -19,6 +21,8 @@ interface Props {
   onDragMove?: (id: string, x: number, y: number, w: number, h: number) => { x: number; y: number } | null;
   /** Clears snap lines when drag ends */
   onDragStop?: () => void;
+  /** When true, automatically focus the name label for editing (used on first drop) */
+  autoFocusName?: boolean;
 }
 
 const DEFAULT_CURVE_POINTS = [0, 50, 50, 0, 100, 50];
@@ -39,7 +43,7 @@ const toVerticalText = (value: string) =>
     .map((line) => line.split('').join('\n'))
     .join('\n\n');
 
-export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, xOverride, yOverride, onDragStart, onDragMove, onDragStop }: Props) {
+export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, isEditingText, xOverride, yOverride, onDragStart, onDragMove, onDragStop, autoFocusName }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
   const materialNameRef = useRef<Konva.Text>(null);
@@ -71,7 +75,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       trRef.current.nodes([shapeRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected, sceneObject.type]);
+  }, [isSelected, isEditingText, sceneObject.type]);
 
   // 画板内随意拖拽结束回调
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
@@ -441,6 +445,24 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
     }
     onEditStart(sceneObject.id, fallbackRect, 'name');
   };
+
+  // 元素首次放置时自动聚焦名称编辑框
+  useEffect(() => {
+    if (!autoFocusName || sceneObject.type === 'text') return;
+    let cancelled = false;
+    const rafId = requestAnimationFrame(() => {
+      if (cancelled) return;
+      const nameNode = sceneObject.type === 'material' ? materialNameRef.current : objectNameRef.current;
+      startNameEdit(nameNode, {
+        x: sceneObject.x,
+        y: sceneObject.y + sceneObject.height / 2 + NAME_LABEL_GAP,
+        width: getNameLabelWidth(),
+        height: nameLabelHeight,
+      });
+    });
+    return () => { cancelled = true; cancelAnimationFrame(rafId); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoFocusName]);
 
   const renderContent = () => {
     switch (sceneObject.type) {
@@ -1201,7 +1223,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
   return (
     <Group>
       {renderContent()}
-      {isSelected && !isEditing && !isLocked && (
+      {isSelected && !(isEditingText ?? isEditing) && !isLocked && (
         <Transformer
           ref={trRef}
           keepRatio={isRatioLocked}

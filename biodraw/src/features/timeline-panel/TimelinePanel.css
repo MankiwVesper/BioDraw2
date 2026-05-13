@@ -92,72 +92,6 @@
   outline: none;
 }
 
-.tl-zoom-range {
-  flex: 1;
-  min-width: 0;
-  height: 22px;          /* 撑满行高，避免 thumb 溢出 layout box 导致偏上 */
-  -webkit-appearance: none;
-  appearance: none;
-  background: transparent;
-  outline: none;
-  cursor: pointer;
-}
-.tl-zoom-range::-webkit-slider-runnable-track {
-  height: 3px;
-  background: linear-gradient(
-    to right,
-    var(--primary-color) var(--fill, 20%),
-    var(--border-color)  var(--fill, 20%)
-  );
-  border-radius: 2px;
-}
-.tl-zoom-range::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 10px;
-  height: 10px;
-  margin-top: -3.5px;
-  border-radius: 50%;
-  background: var(--primary-color);
-  cursor: pointer;
-  border: none;
-  transition: box-shadow 0.12s ease;
-}
-.tl-zoom-range:hover::-webkit-slider-thumb {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 25%, transparent);
-}
-.tl-zoom-range:active::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-color) 35%, transparent);
-}
-.tl-zoom-range::-moz-range-track {
-  height: 3px;
-  background: var(--border-color);
-  border-radius: 2px;
-}
-.tl-zoom-range::-moz-range-progress {
-  height: 3px;
-  background: var(--primary-color);
-  border-radius: 2px;
-}
-.tl-zoom-range::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--primary-color);
-  cursor: pointer;
-  border: none;
-  transition: box-shadow 0.12s ease;
-}
-.tl-zoom-range:hover::-moz-range-thumb {
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 25%, transparent);
-}
-
-.tl-zoom-val {
-  font-size: 11px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
 
 /* ── 动画时间轴（顶部一行） ──────────────────────── */
 .tl-overall-row {
@@ -452,7 +386,7 @@
   z-index: 2;
 }
 
-/* ── 第二大行：元素名称 + 缩放行 ─────────────────── */
+/* ── 第二大行：元素名称 + 操作按钮行 ──────────────── */
 .tl-element-zoom-row {
   display: grid;
   grid-template-columns: 62px 1fr 154px;
@@ -469,32 +403,65 @@
   z-index: 1;
 }
 
-.tl-zoom-row-actions {
+/* 中+右列合并：动画排序 / 批量修改 / 复制动画 同一 flex 行 */
+.tl-zoom-row-all-actions {
+  grid-column: 2 / -1;
   display: flex;
   align-items: center;
-  gap: 6px;
-  grid-column: 2;
-  justify-self: end;
   align-self: center;
+  gap: 6px;
+  justify-self: stretch;
+  justify-content: flex-end;
+  min-height: 20px;
 }
 
 .tl-element-zoom-row .tl-btn,
 .tl-element-zoom-row .tl-conflict-btn {
-  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  line-height: 1;
+  margin: 0;
 }
 
 .tl-element-zoom-row .tl-btn {
   width: 75px;
 }
 
-.tl-zoom-ctrl {
+/* 顶部行：时长输入框 + 全览模式按钮降高至 20px（不影响片段详情区域） */
+.tl-overall-row .tl-input-sm {
+  height: 20px;
+}
+.tl-overall-thumbs-row .tl-btn {
+  height: 20px;
+}
+
+/* 批量修改 + 复制动画 容器：固定 154px 宽与上方 col3 对齐 */
+.tl-zoom-row-right-btns {
   display: flex;
   align-items: center;
-  gap: 4px;
-  grid-column: 3;
-  justify-self: stretch;
   align-self: center;
+  gap: 4px;
+  margin-left: 2px;
+  width: 154px;
+  height: 20px;
+  flex-shrink: 0;
 }
+
+.tl-zoom-row-right-btns > div {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  height: 20px;
+  min-width: 0;
+  position: relative;
+}
+
+.tl-zoom-row-right-btns > div > .tl-btn {
+  width: 100%;
+}
+
 
 .tl-element-label {
   font-size: 11px;
@@ -525,8 +492,8 @@
   position: relative;
   grid-column: 2;
   align-self: center;
-  height: 20px;
   min-width: 0;
+  height: 20px;
   background:
     repeating-linear-gradient(
       45deg,
@@ -1578,23 +1545,35 @@
 /* ── 元素时间轴行右列控件：两按钮等宽填满 154px 列 */
 .tl-element-track-row .tl-row-ctrl {
   justify-self: stretch;
+  align-self: center;
+  width: auto;
+  height: 20px;
+  flex-shrink: 0;
 }
 
 .tl-element-track-row .tl-row-ctrl > div {
+  display: flex;
+  align-items: center;
   flex: 1;
+  height: 20px;
   min-width: 0;
 }
 
 .tl-element-track-row .tl-row-ctrl > div > .tl-btn,
 .tl-element-track-row .tl-row-ctrl > div > .tl-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
+  line-height: 1;
+  margin: 0;
 }
 
 /* ── 元素时间轴操作按钮降高 ──────────────────────── */
 .tl-element-track-row .tl-row-ctrl .tl-btn,
 .tl-element-track-row .tl-row-ctrl .tl-add-btn,
 .tl-element-track-row .tl-row-ctrl .tl-conflict-btn {
-  height: 22px;
+  height: 20px;
 }
 
 /* ── 节奏调整列 ────────────────────────────────────── */

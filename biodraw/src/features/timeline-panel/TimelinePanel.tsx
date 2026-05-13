@@ -280,7 +280,6 @@ export function TimelinePanel() {
   const [flashClipId, setFlashClipId] = useState<string | null>(null);
   const [cursorSnapGuideMs, setCursorSnapGuideMs] = useState<number | null>(null);
   const [isCursorDragging, setIsCursorDragging] = useState(false);
-  const [timelineZoom, setTimelineZoom] = useState(100);
   const [batchSelectedClipIds, setBatchSelectedClipIds] = useState<string[]>([]);
   const [batchStartInput, setBatchStartInput] = useState('');
   const [batchDurationInput, setBatchDurationInput] = useState('');
@@ -293,18 +292,6 @@ export function TimelinePanel() {
   const overallTrackRef = useRef<HTMLDivElement>(null);
   const elementTrackRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
-  const zoomCleanupRef = useRef<(() => void) | null>(null);
-  const zoomCtrlRef = useCallback((el: HTMLDivElement | null) => {
-    zoomCleanupRef.current?.();
-    zoomCleanupRef.current = null;
-    if (!el) return;
-    const handler = (e: WheelEvent) => {
-      e.preventDefault();
-      setTimelineZoom(prev => Math.max(50, Math.min(300, prev + (e.deltaY < 0 ? 10 : -10))));
-    };
-    el.addEventListener('wheel', handler, { passive: false });
-    zoomCleanupRef.current = () => el.removeEventListener('wheel', handler);
-  }, []);
   useNumberInputWheelEdit(panelRef);
 
   // 元素出现段拖拽态（move/resize 共用一个段；同时保存相邻段边界用于硬阻挡）
@@ -1535,12 +1522,12 @@ export function TimelinePanel() {
   };
 
   const rulerIntervalMs = useMemo(() => {
-    const trackWidthPx = 600 * (timelineZoom / 100);
+    const trackWidthPx = 600;
     const msPerPx = globalDurationMs / Math.max(1, trackWidthPx);
     const rawIntervalMs = msPerPx * 80;
     const niceIntervals = [100, 200, 250, 500, 1000, 2000, 5000, 10000, 30000];
     return niceIntervals.find((v) => v >= rawIntervalMs) ?? 30000;
-  }, [globalDurationMs, timelineZoom]);
+  }, [globalDurationMs]);
 
   const rulerTicks = useMemo(() => {
     const ticks: number[] = [];
@@ -2511,8 +2498,8 @@ export function TimelinePanel() {
               {selectedObject.name || '未命名对象'}
             </span>
 
-            {/* 中列：冲突修复 + 动画排序 + 批量修改 + 复制动画 */}
-            <div className="tl-zoom-row-actions">
+            {/* 中+右列合并：冲突修复 / 动画排序 / 批量修改 / 复制动画 同一 flex 行，保证垂直对齐 */}
+            <div className="tl-zoom-row-all-actions">
               {conflictMeta.ids.size > 0 && (
                 <button className="tl-conflict-btn" onClick={autoResolveConflicts} data-tooltip={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
                   ⚠ {conflictMeta.ids.size} 个冲突 · 修复
@@ -2526,9 +2513,8 @@ export function TimelinePanel() {
               >
                 动画排序
               </button>
-              {/* 外层 wrapper：为「复制动画」弹窗提供统一定位上下文，使其左边界与「批量修改」左边界对齐 */}
-              <div style={{ position: 'relative', display: 'flex', gap: 6, alignItems: 'center' }}>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={batchPanelRef}>
+              <div className="tl-zoom-row-right-btns">
+              <div style={{ position: 'relative' }} ref={batchPanelRef}>
                 <button
                   className={`tl-btn${showBatchPanel ? ' is-active' : ''}`}
                   onClick={() => setShowBatchPanel((p) => !p)}
@@ -2669,19 +2655,19 @@ export function TimelinePanel() {
                   </div>
                 )}
               </div>
-              {/* display:contents 使该 div 从布局中消失，弹窗锚点升到外层 wrapper；但 DOM 包含关系不变，click-outside 检测仍有效 */}
-              <div ref={copyDialogRef} style={{ display: 'contents' }}>
+              <div ref={copyDialogRef} style={{ position: 'relative' }}>
                 <button
                   className={`tl-btn${showCopyDialog ? ' is-active' : ''}`}
                   disabled={selectedObjectClips.length === 0 || objects.length <= 1}
                   data-tooltip="将当前对象的所有动画片段复制到其他对象"
                   onClick={() => { setCopyTargetIds([]); setShowCopyDialog((p) => !p); }}
+                  style={{ width: '100%' }}
                 >
                   复制动画
                 </button>
                 {showCopyDialog && (
                   <div style={{
-                    position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
+                    position: 'absolute', top: '100%', right: 0, width: 154, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: '8px',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
@@ -2723,21 +2709,9 @@ export function TimelinePanel() {
                   </div>
                 )}
               </div>
-              </div>{/* 外层 wrapper 结束 */}
-            </div>
+              </div>{/* tl-zoom-row-right-btns 结束 */}
+            </div>{/* tl-zoom-row-all-actions 结束 */}
 
-            {/* 右列：缩放滑块 */}
-            <div className="tl-zoom-ctrl" ref={zoomCtrlRef}>
-              <input
-                type="range"
-                className="tl-zoom-range"
-                min={50} max={300} step={10}
-                value={timelineZoom}
-                style={{ '--fill': `${((timelineZoom - 50) / 250) * 100}%` } as CSSProperties}
-                onChange={(e) => setTimelineZoom(parseInt(e.target.value))}
-              />
-              <span className="tl-zoom-val">{timelineZoom}%</span>
-            </div>
 
           </div>
           </>
@@ -2831,7 +2805,6 @@ export function TimelinePanel() {
                       <div className="tl-track-scroll" onClick={(e) => e.stopPropagation()}>
                         <div
                           className="tl-track"
-                          style={{ width: `${timelineZoom}%` }}
                           onClick={seekByTrackClick}
                           ref={(node) => { if (node) clipTrackRefs.current.set(clip.id, node); else clipTrackRefs.current.delete(clip.id); }}
                         >

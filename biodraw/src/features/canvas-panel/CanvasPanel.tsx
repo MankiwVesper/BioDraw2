@@ -1,5 +1,5 @@
-import React, { useMemo, useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
-import { Stage, Layer, Line, Transformer } from 'react-konva';
+﻿import React, { useMemo, useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
+import { Stage, Layer, Line } from 'react-konva';
 import { SkipBack, SkipForward, Play, Pause, Square } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
@@ -183,17 +183,16 @@ export function CanvasPanel() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<Konva.Stage>(null);
-  const layerRef = useRef<Konva.Layer>(null);
-  const transformerRef = useRef<Konva.Transformer>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [stageScale, setStageScale] = useState(1);
   const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
-  const [isPanMode, setIsPanMode] = useState(false); // 缁岀儤鐗搁柨顔藉瘻娑撳妞傛潻娑樺弳楠炲磭些濡€崇础
+  const [isPanMode, setIsPanMode] = useState(false);
   const [editingTextId, setEditingTextId] = useState<string | null>(null);
   const [editingTarget, setEditingTarget] = useState<EditingTarget>('text');
   const [editingRect, setEditingRect] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
   const [editingValue, setEditingValue] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [pendingNameEditId, setPendingNameEditId] = useState<string | null>(null);
 
   const objects = useEditorStore(state => state.objects);
   const selectedIds = useEditorStore(state => state.selectedIds);
@@ -235,7 +234,6 @@ export function CanvasPanel() {
   const setPreviewMode       = useEditorStore(state => state.setPreviewMode);
   const stopPlayback         = useEditorStore(state => state.stop);
   const stepPlaybackFrame    = useEditorStore(state => state.stepPlaybackFrame);
-  const isRatioLocked        = useEditorStore(state => state.isRatioLocked);
   const lastHandledExportRequestRef = useRef(0);
   const lastHandledVideoExportRequestRef = useRef(0);
   const exportCancelCountRef = useRef(exportCancelCount);
@@ -268,6 +266,12 @@ export function CanvasPanel() {
   useEffect(() => { canvasWidthRef.current = canvasWidth; }, [canvasWidth]);
   useEffect(() => { canvasHeightRef.current = canvasHeight; }, [canvasHeight]);
   useEffect(() => { stagePosRef.current = stagePos; }, [stagePos]);
+
+  // 若选中切换到其他对象，取消待触发的名称编辑（防止拖拽后立即选中别的对象仍弹出编辑）
+  useEffect(() => {
+    if (!pendingNameEditId) return;
+    if (!selectedIds.includes(pendingNameEditId)) setPendingNameEditId(null);
+  }, [selectedIds, pendingNameEditId]);
 
   const previewObjects = useMemo(() => {
     if (currentTimeMs <= 0 && !previewClipId) return objects;
@@ -783,6 +787,9 @@ export function CanvasPanel() {
       };
 
       addSceneObject(newObj);
+      if (newObj.type !== 'text') {
+        setPendingNameEditId(newObj.id);
+      }
     } catch (err) {
       console.error("Failed to parse drop data", err);
     }
@@ -1046,6 +1053,7 @@ export function CanvasPanel() {
     // rect 已经是屏幕坐标（来自 Konva getAbsolutePosition()），无需再乘 stageScale
     setEditingRect(rect);
     setEditingValue(target === 'name' ? obj.name : ((obj.data?.text as string) || '点击输入内容'));
+    setPendingNameEditId((prev) => (prev === id ? null : prev));
   };
 
   const commitTextChange = () => {
@@ -1152,6 +1160,7 @@ export function CanvasPanel() {
                   isSelected={!isAnyExportRunning && selectedIds.includes(obj.id)}
                   onEditStart={handleEditStart}
                   isEditing={editingTextId === obj.id}
+                  isEditingText={editingTextId === obj.id && editingTarget === 'text'}
                   onDragStart={handleObjectDragStart}
                   onDragMove={handleObjectDragMove}
                   onDragStop={handleObjectDragStop}
@@ -1170,11 +1179,13 @@ export function CanvasPanel() {
                     isSelected={isSelected}
                     onEditStart={handleEditStart}
                     isEditing={editingTextId === obj.id}
+                    isEditingText={editingTextId === obj.id && editingTarget === 'text'}
                     xOverride={isFollower ? obj.x + (groupDragOffset?.dx ?? 0) : undefined}
                     yOverride={isFollower ? obj.y + (groupDragOffset?.dy ?? 0) : undefined}
                     onDragStart={handleObjectDragStart}
                     onDragMove={handleObjectDragMove}
                     onDragStop={handleObjectDragStop}
+                    autoFocusName={!interactionLocked && pendingNameEditId === obj.id}
                   />
                 );
               })}

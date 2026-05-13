@@ -33,7 +33,17 @@
       "Bash(git *)",
       "Bash(npx --prefix biodraw tsc --project biodraw/tsconfig.app.json --pretty false)",
       "Bash(grep -v \"^[0-9]*:\\\\s*//\")",
-      "Bash(npx --prefix biodraw tsc --project biodraw/tsconfig.app.json --pretty false --noEmit)"
+      "Bash(npx --prefix biodraw tsc --project biodraw/tsconfig.app.json --pretty false --noEmit)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Projects\\\\BioDraw2\" | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}})",
+      "Bash(Find \"D:\\\\Projects\\\\BioDraw2\\\\biodraw\\\\src\" -type f -name \"*.tsx\" -o -name \"*.ts\")",
+      "Bash(dir /s /b \"D:\\\\Projects\\\\BioDraw2\\\\biodraw\\\\src\")",
+      "Bash(Select-String \"selectedObjectAtCurrentTime|取当前\" -Context 5)",
+      "PowerShell(git *)",
+      "Bash(sed -n '25,35p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)",
+      "Bash(sed -n '412,422p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)",
+      "Bash(sed -n '664,675p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)",
+      "Bash(sed -n '835,845p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)",
+      "Bash(sed -n '1537,1547p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)"
     ]
   }
 }
