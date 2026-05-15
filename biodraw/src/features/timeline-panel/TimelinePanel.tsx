@@ -169,8 +169,11 @@ interface EasingCurveProps {
 function EasingCurve({ ex1, ey1, ex2, ey2, onDrag }: EasingCurveProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const onDragRef = useRef(onDrag);
-  onDragRef.current = onDrag;
   const [onCurve, setOnCurve] = useState(false);
+
+  useEffect(() => {
+    onDragRef.current = onDrag;
+  }, [onDrag]);
 
   const dragState = useRef<{
     t: number; cx0: number; cy0: number;
@@ -1246,8 +1249,6 @@ export function TimelinePanel() {
       const clampedStart = Math.max(seg.startMs, Math.min(seg.endMs - 1, desired));
       const maxDur = seg.endMs - clampedStart;
       const clampedDur = Math.max(1, Math.min(clip.durationMs, maxDur));
-      if (clampedStart !== desired || clampedDur !== clip.durationMs) {
-      }
       const updates: Partial<AnimationClip> = { startTimeMs: clampedStart };
       if (clampedDur !== clip.durationMs) updates.durationMs = clampedDur;
       updateAnimationClip(clip.id, updates);
