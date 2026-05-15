@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> 重要：除本文档外，AI 协作还必须遵守仓库根目录 `../AGENTS.md` 中的 Windows/PowerShell、中文编码、Git 与验证约束。
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Commands
