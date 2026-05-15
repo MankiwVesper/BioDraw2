@@ -59,6 +59,10 @@ npm.cmd run check
 
 - 当前远端：`origin https://github.com/MankiwVesper/BioDraw2.git`
 - 当前项目使用的 Git 邮箱：`mankiw007@outlook.com`
+- Windows 下 Codex 普通沙箱用户可能与仓库文件所有者不同，遇到 `dubious ownership` 时，为沙箱用户执行：
+  - `git config --global --add safe.directory D:/Project/BioDraw2`
+- 当前环境已为普通沙箱用户配置上述 `safe.directory`，日常 `git status`、`git diff` 可直接执行。
+- 涉及真实账号、凭据或远端写入的操作，例如 `git commit`、`git push`、`gh auth`、`gh pr`，优先使用真实 Windows 用户上下文执行。
 - 提交前必须检查：
   - `git status --short --branch`
   - `git diff`
