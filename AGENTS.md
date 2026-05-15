@@ -33,6 +33,7 @@
 
 ```powershell
 npm.cmd run dev
+npm.cmd run check
 npm.cmd run build
 npm.cmd run lint
 ```
@@ -40,8 +41,7 @@ npm.cmd run lint
 项目当前没有独立测试框架。提交前至少运行：
 
 ```powershell
-npm.cmd run lint
-npm.cmd run build
+npm.cmd run check
 ```
 
 如果普通 PowerShell 中 `npm` 被执行策略拦截，使用 `npm.cmd`。
@@ -67,6 +67,7 @@ npm.cmd run build
 - 如果工作区已有无关改动，只提交本次任务相关文件。
 - 如需推送或创建 PR，先确认验证结果，再执行 `git push` 或 `gh pr create`。
 - 本机已配置 GitHub CLI：`gh`。
+- 后续较大的功能开发优先使用 `codex/` 前缀功能分支，及时推送并合并回 `main`，避免长期分支漂移。
 
 ## 修改原则
 
@@ -86,7 +87,7 @@ npm.cmd run build
 
 - `eslint .` 已忽略 `.claude`、`.agents`、`node_modules`、`dist`、`coverage`，避免历史工作树噪声。
 - 当前仍有少量 React hooks 依赖 warning。不要机械补依赖，需结合交互逻辑专项处理。
-- `vite build` 可能输出大量 SVG asset 信息和大 chunk warning，这是素材库体量导致的已知现象。
+- `vite build` 可能输出大量 SVG asset 信息和大 chunk warning，这是素材库体量导致的已知遗留问题；核心功能稳定后再考虑素材懒加载或分包优化。
 
 ## 浏览器验证
 
