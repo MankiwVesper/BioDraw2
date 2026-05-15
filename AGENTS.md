@@ -65,6 +65,7 @@ npm.cmd run check
   - `git diff --cached`
 - 不回滚、删除或覆盖用户未明确要求处理的改动。
 - 如果工作区已有无关改动，只提交本次任务相关文件。
+- Git/GitHub 提交信息使用中文，避免使用英文 commit message。
 - 如需推送或创建 PR，先确认验证结果，再执行 `git push` 或 `gh pr create`。
 - 本机已配置 GitHub CLI：`gh`。
 - 后续较大的功能开发优先使用 `codex/` 前缀功能分支，及时推送并合并回 `main`，避免长期分支漂移。
