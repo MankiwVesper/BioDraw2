@@ -328,6 +328,7 @@ export function TimelinePanel() {
   const [showBatchPanel, setShowBatchPanel] = useState(false);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyTargetIds, setCopyTargetIds] = useState<string[]>([]);
+  const [applyAnimationResultText, setApplyAnimationResultText] = useState('');
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<string[]>([]);
   const [showAddSegmentDialog, setShowAddSegmentDialog] = useState(false);
   const [addSegStartInput, setAddSegStartInput] = useState('');
@@ -396,7 +397,7 @@ export function TimelinePanel() {
   const setCanvasDrawingMode = useEditorStore((s) => s.setCanvasDrawingMode);
   const focusMode            = useEditorStore((s) => s.focusMode);
   const setFocusMode         = useEditorStore((s) => s.setFocusMode);
-  const copyAnimationClipsToObjects = useEditorStore((s) => s.copyAnimationClipsToObjects);
+  const applyAnimationClipsToObjects = useEditorStore((s) => s.applyAnimationClipsToObjects);
   const startClipPreview = useEditorStore((s) => s.startClipPreview);
   const selectObject = useEditorStore((s) => s.selectObject);
   const addAppearSegment = useEditorStore((s) => s.addAppearSegment);
@@ -727,6 +728,18 @@ export function TimelinePanel() {
     return displayObjectClips.filter((c) => c.segmentId === segId);
   }, [displayObjectClips, selectedSegmentIds]);
 
+  const canOpenApplyAnimationDialog =
+    selectedIds.length === 1
+    && selectedSegmentIds.length === 1
+    && segmentScopedClips.length > 0
+    && objects.length > 1;
+
+  const closeApplyAnimationDialog = useCallback(() => {
+    setShowCopyDialog(false);
+    setCopyTargetIds([]);
+    setApplyAnimationResultText('');
+  }, []);
+
   // 单选段（用于子组件计算段坐标系）
   const activeSegment = useMemo<AppearSegment | null>(() => {
     if (selectedSegmentIds.length !== 1) return null;
@@ -768,6 +781,12 @@ export function TimelinePanel() {
     const thresholdMs = Math.max(20, Math.round(globalDurationMs * 0.003));
     return snapWithMeta(clamped, getCursorSnapCandidates(), thresholdMs);
   };
+
+  useEffect(() => {
+    if (showCopyDialog && !canOpenApplyAnimationDialog) {
+      closeApplyAnimationDialog();
+    }
+  }, [showCopyDialog, canOpenApplyAnimationDialog, closeApplyAnimationDialog]);
 
   const syncDurationIfNeeded = (clip: AnimationClip) => {
     if (clip.startTimeMs + clip.durationMs > globalDurationMs) {
@@ -1863,13 +1882,12 @@ export function TimelinePanel() {
     if (!showCopyDialog) return;
     const handler = (e: MouseEvent) => {
       if (copyDialogRef.current && !copyDialogRef.current.contains(e.target as Node)) {
-        setShowCopyDialog(false);
-        setCopyTargetIds([]);
+        closeApplyAnimationDialog();
       }
     };
     window.addEventListener('mousedown', handler);
     return () => window.removeEventListener('mousedown', handler);
-  }, [showCopyDialog]);
+  }, [showCopyDialog, closeApplyAnimationDialog]);
 
   // 关闭批量修改弹窗（点击外部）
   useEffect(() => {
@@ -2659,12 +2677,26 @@ export function TimelinePanel() {
               <div ref={copyDialogRef} style={{ position: 'relative' }}>
                 <button
                   className={`tl-btn${showCopyDialog ? ' is-active' : ''}`}
-                  disabled={selectedObjectClips.length === 0 || objects.length <= 1}
-                  data-tooltip="将当前对象的所有动画片段复制到其他对象"
-                  onClick={() => { setCopyTargetIds([]); setShowCopyDialog((p) => !p); }}
+                  disabled={!canOpenApplyAnimationDialog}
+                  data-tooltip={
+                    selectedSegmentIds.length === 0 ? '请先选中一个时间片段' :
+                    selectedSegmentIds.length > 1 ? '选中多片段时不可用，请只选中一个' :
+                    segmentScopedClips.length === 0 ? '当前片段没有可套用的动画' :
+                    objects.length <= 1 ? '需要至少 2 个对象' :
+                    '将当前片段动画套用到其他对象'
+                  }
+                  onClick={() => {
+                    if (showCopyDialog) {
+                      closeApplyAnimationDialog();
+                      return;
+                    }
+                    setCopyTargetIds([]);
+                    setApplyAnimationResultText('');
+                    setShowCopyDialog(true);
+                  }}
                   style={{ width: '100%' }}
                 >
-                  复制动画
+                  套用动画
                 </button>
                 {showCopyDialog && (
                   <div style={{
@@ -2672,7 +2704,7 @@ export function TimelinePanel() {
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: '8px',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
-                    height: 170, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                    height: 190, display: 'flex', flexDirection: 'column', overflow: 'hidden',
                   }}>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600, flexShrink: 0 }}>选择目标对象</div>
                     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
@@ -2685,6 +2717,7 @@ export function TimelinePanel() {
                             type="checkbox"
                             checked={copyTargetIds.includes(o.id)}
                             onChange={(e) => {
+                              setApplyAnimationResultText('');
                               if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
                               else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
                             }}
@@ -2696,7 +2729,27 @@ export function TimelinePanel() {
                     </div>
                     <button
                       disabled={copyTargetIds.length === 0}
-                      onClick={() => { copyAnimationClipsToObjects(selectedObject.id, copyTargetIds); setShowCopyDialog(false); setCopyTargetIds([]); }}
+                      onClick={() => {
+                        if (!selectedObject || selectedSegmentIds.length !== 1) return;
+                        const result = applyAnimationClipsToObjects({
+                          sourceObjectId: selectedObject.id,
+                          sourceSegmentId: selectedSegmentIds[0],
+                          targetObjectIds: copyTargetIds,
+                        });
+                        const skippedReasons = Object.values(result.skippedReasons);
+                        const conflictCount = skippedReasons.filter((reason) => reason === 'segment-conflict').length;
+                        const missingCount = skippedReasons.filter((reason) => reason === 'missing-target').length;
+                        const skippedReasonText = conflictCount > 0
+                          ? '时间片段冲突'
+                          : missingCount > 0
+                            ? '目标对象不存在'
+                            : '未能套用';
+                        setApplyAnimationResultText(
+                          result.skippedTargetCount > 0
+                            ? `已套用到 ${result.appliedTargetCount} 个对象，跳过 ${result.skippedTargetCount} 个：${skippedReasonText}`
+                            : `已套用到 ${result.appliedTargetCount} 个对象`,
+                        );
+                      }}
                       style={{
                         marginTop: 6, width: '100%', height: 20, padding: 0, flexShrink: 0,
                         background: copyTargetIds.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
@@ -2705,8 +2758,19 @@ export function TimelinePanel() {
                         fontSize: 11,
                       }}
                     >
-                      确认复制 {copyTargetIds.length > 0 ? `(${copyTargetIds.length})` : ''}
+                      确认套用 {copyTargetIds.length > 0 ? `(${copyTargetIds.length})` : ''}
                     </button>
+                    {applyAnimationResultText && (
+                      <div style={{
+                        marginTop: 6,
+                        color: 'var(--text-muted)',
+                        fontSize: 11,
+                        lineHeight: 1.35,
+                        flexShrink: 0,
+                      }}>
+                        {applyAnimationResultText}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

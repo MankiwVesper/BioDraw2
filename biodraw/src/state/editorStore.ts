@@ -35,6 +35,19 @@ type EditorSnapshot = {
   globalDurationMs: number;
 };
 
+type ApplyAnimationResult = {
+  appliedTargetCount: number;
+  skippedTargetCount: number;
+  copiedClipCount: number;
+  skippedReasons: Record<string, 'segment-conflict' | 'missing-target'>;
+};
+
+type ApplyAnimationOptions = {
+  sourceObjectId: string;
+  sourceSegmentId: string;
+  targetObjectIds: string[];
+};
+
 interface EditorState {
   objects: SceneObject[];
   animations: AnimationClip[];
@@ -96,6 +109,7 @@ interface EditorState {
   removeAnimationClip: (id: string) => void;
   reorderAnimationClips: (orderedIds: string[]) => void;
   copyAnimationClipsToObjects: (sourceObjectId: string, targetObjectIds: string[]) => void;
+  applyAnimationClipsToObjects: (options: ApplyAnimationOptions) => ApplyAnimationResult;
 
   addAppearSegment: (objectId: string, segment: AppearSegment) => void;
   removeAppearSegments: (objectId: string, segmentIds: string[]) => void;
@@ -194,6 +208,221 @@ function pushHistory(state: EditorState) {
   state.future = [];
   state.hasUnsavedChanges = true;
 }
+
+const getObjectSegment = (obj: SceneObject, segmentId: string, fallbackEndMs: number) => {
+  if (obj.appearSegments) {
+    return obj.appearSegments.find((seg) => seg.id === segmentId) ?? null;
+  }
+  if (segmentId === '__virtual__') {
+    return {
+      id: segmentId,
+      startMs: obj.appearStartMs ?? 0,
+      endMs: obj.appearEndMs ?? fallbackEndMs,
+    };
+  }
+  return null;
+};
+
+const ensureSegments = (obj: SceneObject, fallbackEndMs: number) => {
+  if (obj.appearSegments) return obj.appearSegments;
+  obj.appearSegments = [{
+    id: crypto.randomUUID(),
+    startMs: obj.appearStartMs ?? 0,
+    endMs: obj.appearEndMs ?? fallbackEndMs,
+  }];
+  return obj.appearSegments;
+};
+
+const resolveTargetSegmentForApply = (
+  obj: SceneObject,
+  sourceSegment: AppearSegment,
+  fallbackEndMs: number,
+) => {
+  const segments = ensureSegments(obj, fallbackEndMs);
+  const exact = segments.find(
+    (seg) => seg.startMs === sourceSegment.startMs && seg.endMs === sourceSegment.endMs,
+  );
+  if (exact) return { segment: exact, skipped: false };
+
+  const containing = segments.find(
+    (seg) => seg.startMs <= sourceSegment.startMs && seg.endMs >= sourceSegment.endMs,
+  );
+  if (containing) return { segment: containing, skipped: false };
+
+  const hasPartialOverlap = segments.some(
+    (seg) => Math.max(seg.startMs, sourceSegment.startMs) < Math.min(seg.endMs, sourceSegment.endMs),
+  );
+  if (hasPartialOverlap) return { segment: null, skipped: true };
+
+  const nextSegment = {
+    id: crypto.randomUUID(),
+    startMs: sourceSegment.startMs,
+    endMs: sourceSegment.endMs,
+  };
+  segments.push(nextSegment);
+  segments.sort((a, b) => a.startMs - b.startMs);
+  return { segment: nextSegment, skipped: false };
+};
+
+const canApplyToTargetSegment = (
+  obj: SceneObject,
+  sourceSegment: AppearSegment,
+  fallbackEndMs: number,
+) => {
+  const segments = obj.appearSegments ?? [{
+    id: '__virtual__',
+    startMs: obj.appearStartMs ?? 0,
+    endMs: obj.appearEndMs ?? fallbackEndMs,
+  }];
+  const reusable = segments.some(
+    (seg) => seg.startMs <= sourceSegment.startMs && seg.endMs >= sourceSegment.endMs,
+  );
+  if (reusable) return true;
+  return !segments.some(
+    (seg) => Math.max(seg.startMs, sourceSegment.startMs) < Math.min(seg.endMs, sourceSegment.endMs),
+  );
+};
+
+const translatePointKeyframes = (
+  keyframes: Array<{ at: number; x: number; y: number; preset?: string }> | undefined,
+  dx: number,
+  dy: number,
+) => keyframes?.map((frame) => ({ ...frame, x: frame.x + dx, y: frame.y + dy }));
+
+const scaleKeyframes = (
+  keyframes: Array<{ at: number; scaleX: number; scaleY: number; preset?: string }> | undefined,
+  ratioX: number,
+  ratioY: number,
+) => keyframes?.map((frame) => ({ ...frame, scaleX: frame.scaleX * ratioX, scaleY: frame.scaleY * ratioY }));
+
+const rotateKeyframes = (
+  keyframes: Array<{ at: number; value: number; preset?: string }> | undefined,
+  delta: number,
+) => keyframes?.map((frame) => ({ ...frame, value: frame.value + delta }));
+
+const buildAppliedClip = (
+  clip: AnimationClip,
+  sourceObj: SceneObject,
+  targetObj: SceneObject,
+  targetSegmentId: string,
+): AnimationClip => {
+  const dx = targetObj.x - sourceObj.x;
+  const dy = targetObj.y - sourceObj.y;
+  const scaleRatioX = sourceObj.scaleX === 0 ? 1 : targetObj.scaleX / sourceObj.scaleX;
+  const scaleRatioY = sourceObj.scaleY === 0 ? 1 : targetObj.scaleY / sourceObj.scaleY;
+  const rotationDelta = targetObj.rotation - sourceObj.rotation;
+
+  switch (clip.type) {
+    case 'move': {
+      const base = cloneDeep(clip);
+      return {
+        ...base,
+        id: crypto.randomUUID(),
+        objectId: targetObj.id,
+        segmentId: targetSegmentId,
+        payload: {
+          ...base.payload,
+          fromX: clip.payload.fromX + dx,
+          fromY: clip.payload.fromY + dy,
+          toX: clip.payload.toX + dx,
+          toY: clip.payload.toY + dy,
+          keyframes: translatePointKeyframes(clip.payload.keyframes, dx, dy),
+        },
+      };
+    }
+    case 'polylineMove': {
+      const base = cloneDeep(clip);
+      return {
+        ...base,
+        id: crypto.randomUUID(),
+        objectId: targetObj.id,
+        segmentId: targetSegmentId,
+        payload: {
+          ...base.payload,
+          fromX: clip.payload.fromX + dx,
+          fromY: clip.payload.fromY + dy,
+          midX: clip.payload.midX + dx,
+          midY: clip.payload.midY + dy,
+          toX: clip.payload.toX + dx,
+          toY: clip.payload.toY + dy,
+        },
+      };
+    }
+    case 'moveAlongPath': {
+      const base = cloneDeep(clip);
+      return {
+        ...base,
+        id: crypto.randomUUID(),
+        objectId: targetObj.id,
+        segmentId: targetSegmentId,
+        payload: {
+          ...base.payload,
+          fromX: clip.payload.fromX + dx,
+          fromY: clip.payload.fromY + dy,
+          control1X: clip.payload.control1X + dx,
+          control1Y: clip.payload.control1Y + dy,
+          control2X: clip.payload.control2X + dx,
+          control2Y: clip.payload.control2Y + dy,
+          toX: clip.payload.toX + dx,
+          toY: clip.payload.toY + dy,
+        },
+      };
+    }
+    case 'shake': {
+      const base = cloneDeep(clip);
+      return {
+        ...base,
+        id: crypto.randomUUID(),
+        objectId: targetObj.id,
+        segmentId: targetSegmentId,
+        payload: {
+          ...base.payload,
+          baseX: clip.payload.baseX + dx,
+          baseY: clip.payload.baseY + dy,
+        },
+      };
+    }
+    case 'scale': {
+      const base = cloneDeep(clip);
+      return {
+        ...base,
+        id: crypto.randomUUID(),
+        objectId: targetObj.id,
+        segmentId: targetSegmentId,
+        payload: {
+          ...base.payload,
+          fromScaleX: clip.payload.fromScaleX * scaleRatioX,
+          fromScaleY: clip.payload.fromScaleY * scaleRatioY,
+          toScaleX: clip.payload.toScaleX * scaleRatioX,
+          toScaleY: clip.payload.toScaleY * scaleRatioY,
+          keyframes: scaleKeyframes(clip.payload.keyframes, scaleRatioX, scaleRatioY),
+        },
+      };
+    }
+    case 'rotate': {
+      const base = cloneDeep(clip);
+      return {
+        ...base,
+        id: crypto.randomUUID(),
+        objectId: targetObj.id,
+        segmentId: targetSegmentId,
+        payload: {
+          ...base.payload,
+          fromRotation: clip.payload.fromRotation + rotationDelta,
+          toRotation: clip.payload.toRotation + rotationDelta,
+          keyframes: rotateKeyframes(clip.payload.keyframes, rotationDelta),
+        },
+      };
+    }
+    default:
+      return {
+        ...cloneDeep(clip),
+        id: crypto.randomUUID(),
+        objectId: targetObj.id,
+        segmentId: targetSegmentId,
+      };
+  }
+};
 
 export const useEditorStore = create<EditorState>()(
   immer((set) => ({
@@ -469,6 +698,64 @@ export const useEditorStore = create<EditorState>()(
           }
         }
       }),
+
+    applyAnimationClipsToObjects: ({ sourceObjectId, sourceSegmentId, targetObjectIds }) => {
+      const result: ApplyAnimationResult = {
+        appliedTargetCount: 0,
+        skippedTargetCount: 0,
+        copiedClipCount: 0,
+        skippedReasons: {},
+      };
+      set((state) => {
+        if (targetObjectIds.length === 0) return;
+        const sourceObj = state.objects.find((o) => o.id === sourceObjectId);
+        if (!sourceObj) return;
+        const sourceSegment = getObjectSegment(sourceObj, sourceSegmentId, state.globalDurationMs);
+        if (!sourceSegment) return;
+        const sourceClips = state.animations.filter(
+          (clip) => clip.objectId === sourceObjectId && clip.segmentId === sourceSegmentId,
+        );
+        if (sourceClips.length === 0) return;
+
+        const targetIdsToApply: string[] = [];
+        for (const targetId of targetObjectIds) {
+          const targetObj = state.objects.find((o) => o.id === targetId);
+          if (!targetObj) {
+            result.skippedTargetCount += 1;
+            result.skippedReasons[targetId] = 'missing-target';
+            continue;
+          }
+          if (!canApplyToTargetSegment(targetObj, sourceSegment, state.globalDurationMs)) {
+            result.skippedTargetCount += 1;
+            result.skippedReasons[targetId] = 'segment-conflict';
+            continue;
+          }
+          targetIdsToApply.push(targetId);
+        }
+
+        if (targetIdsToApply.length === 0) return;
+        pushHistory(state);
+
+        for (const targetId of targetIdsToApply) {
+          const targetObj = state.objects.find((o) => o.id === targetId);
+          if (!targetObj) continue;
+          const resolved = resolveTargetSegmentForApply(targetObj, sourceSegment, state.globalDurationMs);
+          if (resolved.skipped || !resolved.segment) continue;
+          const newClipIds: string[] = [];
+          for (const clip of sourceClips) {
+            const newClip = buildAppliedClip(clip, sourceObj, targetObj, resolved.segment.id);
+            state.animations.push(newClip);
+            newClipIds.push(newClip.id);
+            result.copiedClipCount += 1;
+          }
+          targetObj.animationIds = Array.from(
+            new Set([...(targetObj.animationIds || []), ...newClipIds]),
+          );
+          result.appliedTargetCount += 1;
+        }
+      });
+      return result;
+    },
 
     addAppearSegment: (objectId, segment) =>
       set((state) => {
