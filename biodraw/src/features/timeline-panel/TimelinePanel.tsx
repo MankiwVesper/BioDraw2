@@ -3011,10 +3011,11 @@ export function TimelinePanel() {
                         disabled={copyTargetIds.length === 0}
                         onClick={() => {
                           if (!selectedObject || selectedSegmentIds.length !== 1) return;
+                          const selectedTargetIds = [...copyTargetIds];
                           const result = applyAnimationClipsToObjects({
                             sourceObjectId: selectedObject.id,
                             sourceSegmentId: selectedSegmentIds[0],
-                            targetObjectIds: copyTargetIds,
+                            targetObjectIds: selectedTargetIds,
                           });
                           const objectNameById = new Map(objects.map((obj) => [obj.id, obj.name || '未命名']));
                           const skippedEntries = Object.entries(result.skippedReasons).map(([targetId, reason]) => {
@@ -3028,7 +3029,8 @@ export function TimelinePanel() {
                               : summaryText,
                           );
                           const skippedTargetIds = new Set(Object.keys(result.skippedReasons));
-                          const appliedIds = copyTargetIds.filter((targetId) => !skippedTargetIds.has(targetId));
+                          const appliedIds = selectedTargetIds.filter((targetId) => !skippedTargetIds.has(targetId));
+                          setCopyTargetIds([]);
                           triggerApplyAnimationFlash(appliedIds);
                           if (applyFlashTimerRef.current !== null) {
                             window.clearTimeout(applyFlashTimerRef.current);
