@@ -1230,3 +1230,7 @@ export const useEditorStore = create<EditorState>()(
       }),
   })),
 );
+
+if (import.meta.env.DEV) {
+  (window as unknown as Record<string, unknown>).__store = useEditorStore;
+}
