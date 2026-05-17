@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
-import type { AnimationClip, AppearSegment } from '../../types';
+import type { AnimationClip, AppearSegment, SceneObject } from '../../types';
 import { KeyframeEditor } from './KeyframeEditor';
 import './TimelinePanel.css';
 
@@ -276,6 +276,140 @@ const sortConflictDomains = (domains: string[]) =>
     return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
   });
 
+type ApplyTargetStatus = 'reuse-exact' | 'reuse-containing' | 'create' | 'conflict';
+
+type ApplyTargetPreview = {
+  objectId: string;
+  status: ApplyTargetStatus;
+  statusLabel: string;
+  detailText: string;
+  shortDetailText: string;
+  canApply: boolean;
+  existingDomainLabels: string[];
+};
+
+function TruncatedTooltipText({
+  text,
+  tooltip,
+  style,
+}: {
+  text: string;
+  tooltip: string;
+  style?: CSSProperties;
+}) {
+  const textRef = useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (!el) return;
+
+    const update = () => {
+      setIsTruncated(el.scrollWidth > el.clientWidth + 1);
+    };
+    update();
+
+    const ResizeObserverCtor = window.ResizeObserver;
+    if (!ResizeObserverCtor) return;
+
+    const observer = new ResizeObserverCtor(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [text]);
+
+  return (
+    <span
+      ref={textRef}
+      data-tooltip={isTruncated ? tooltip : undefined}
+      style={style}
+    >
+      {text}
+    </span>
+  );
+}
+
+const getSegmentsForApplyPreview = (obj: SceneObject, fallbackEndMs: number) =>
+  obj.appearSegments ?? [{
+    id: '__virtual__',
+    startMs: obj.appearStartMs ?? 0,
+    endMs: obj.appearEndMs ?? fallbackEndMs,
+  }];
+
+const buildApplyTargetPreview = (
+  targetObj: SceneObject,
+  sourceSegment: AppearSegment,
+  sourceClips: AnimationClip[],
+  allClips: AnimationClip[],
+  fallbackEndMs: number,
+): ApplyTargetPreview => {
+  const segments = getSegmentsForApplyPreview(targetObj, fallbackEndMs);
+  const exact = segments.find(
+    (seg) => seg.startMs === sourceSegment.startMs && seg.endMs === sourceSegment.endMs,
+  );
+  const containing = exact ?? segments.find(
+    (seg) => seg.startMs <= sourceSegment.startMs && seg.endMs >= sourceSegment.endMs,
+  );
+  const hasPartialOverlap = segments.some(
+    (seg) => Math.max(seg.startMs, sourceSegment.startMs) < Math.min(seg.endMs, sourceSegment.endMs),
+  );
+
+  if (!containing && hasPartialOverlap) {
+    return {
+      objectId: targetObj.id,
+      status: 'conflict',
+      statusLabel: '时间冲突',
+      detailText: '目标片段与源片段部分重叠',
+      shortDetailText: '片段冲突',
+      canApply: false,
+      existingDomainLabels: [],
+    };
+  }
+
+  const targetSegment = containing ?? null;
+  const sourceDomains = new Set(sourceClips.map((clip) => getConflictDomain(clip.type)));
+  const existingDomainLabels = targetSegment
+    ? sortConflictDomains([
+      ...new Set(
+        allClips
+          .filter((clip) => clip.objectId === targetObj.id && clip.segmentId === targetSegment.id)
+          .map((clip) => getConflictDomain(clip.type))
+          .filter((domain) => sourceDomains.has(domain)),
+      ),
+    ]).map(getConflictDomainLabel)
+    : [];
+
+  const status: ApplyTargetStatus = exact
+    ? 'reuse-exact'
+    : containing
+      ? 'reuse-containing'
+      : 'create';
+  const statusLabel = status === 'reuse-exact'
+    ? '复用片段'
+    : status === 'reuse-containing'
+      ? '套入片段'
+      : '新建片段';
+  const detailText = existingDomainLabels.length > 0
+    ? `已有${existingDomainLabels.join('、')}动画`
+    : status === 'create'
+      ? '将创建同时间片段'
+      : '可直接套用';
+  const shortDetailText = existingDomainLabels.length > 0
+    ? `已有${existingDomainLabels.join('、')}动画`
+    : status === 'create'
+      ? '新建片段'
+      : '可直接套用';
+
+  return {
+    objectId: targetObj.id,
+    status,
+    statusLabel,
+    detailText,
+    shortDetailText,
+    canApply: true,
+    existingDomainLabels,
+  };
+};
+
 // ── 主组件 ───────────────────────────────────────────────────
 
 export function TimelinePanel() {
@@ -329,6 +463,7 @@ export function TimelinePanel() {
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyTargetIds, setCopyTargetIds] = useState<string[]>([]);
   const [applyAnimationResultText, setApplyAnimationResultText] = useState('');
+  const [appliedFlashTargetIds, setAppliedFlashTargetIds] = useState<string[]>([]);
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<string[]>([]);
   const [showAddSegmentDialog, setShowAddSegmentDialog] = useState(false);
   const [addSegStartInput, setAddSegStartInput] = useState('');
@@ -746,6 +881,29 @@ export function TimelinePanel() {
     return effectiveSegments.find((s) => s.id === selectedSegmentIds[0]) ?? null;
   }, [effectiveSegments, selectedSegmentIds]);
 
+  const applyTargetPreviews = useMemo(() => {
+    if (!selectedObject || !activeSegment || segmentScopedClips.length === 0) return [];
+    return objects
+      .filter((obj) => obj.id !== selectedObject.id)
+      .map((obj) => buildApplyTargetPreview(
+        obj,
+        activeSegment,
+        segmentScopedClips,
+        animations,
+        globalDurationMs,
+      ));
+  }, [selectedObject, activeSegment, segmentScopedClips, objects, animations, globalDurationMs]);
+
+  const applyTargetPreviewById = useMemo(
+    () => new Map(applyTargetPreviews.map((preview) => [preview.objectId, preview])),
+    [applyTargetPreviews],
+  );
+
+  const availableApplyTargetIds = useMemo(
+    () => applyTargetPreviews.filter((preview) => preview.canApply).map((preview) => preview.objectId),
+    [applyTargetPreviews],
+  );
+
   // ── 吸附辅助
   const getSnapCandidates = (activeClipId: string) => {
     const dragged = animations.find((c) => c.id === activeClipId);
@@ -787,6 +945,15 @@ export function TimelinePanel() {
       closeApplyAnimationDialog();
     }
   }, [showCopyDialog, canOpenApplyAnimationDialog, closeApplyAnimationDialog]);
+
+  useEffect(() => {
+    if (!showCopyDialog || copyTargetIds.length === 0) return;
+    const availableIds = new Set(applyTargetPreviews.filter((preview) => preview.canApply).map((preview) => preview.objectId));
+    const nextIds = copyTargetIds.filter((id) => availableIds.has(id));
+    if (nextIds.length !== copyTargetIds.length) {
+      setCopyTargetIds(nextIds);
+    }
+  }, [showCopyDialog, copyTargetIds, applyTargetPreviews]);
 
   const syncDurationIfNeeded = (clip: AnimationClip) => {
     if (clip.startTimeMs + clip.durationMs > globalDurationMs) {
@@ -2104,29 +2271,32 @@ export function TimelinePanel() {
       <div className="tl-overall-thumbs-row">
         <span className="tl-overall-label">元素分布轴</span>
         <div className="tl-overall-thumbs">
-          {distMarkers.map((m) => (
-            <div
-              key={m.timeMs}
-              className="tl-dist-marker"
-              style={{ left: `${m.leftPct}%`, backgroundColor: m.color }}
-              onMouseEnter={(e) => openDistPopup(m.timeMs, e.currentTarget)}
-              onMouseLeave={scheduleHideDistPopup}
-            >
-              {/* 三角旗作为 marker 子元素，与 marker 同坐标系，精确对齐 */}
+          {distMarkers.map((m) => {
+            const isApplyFlash = m.elements.some((el) => appliedFlashTargetIds.includes(el.id));
+            return (
               <div
-                className="tl-dist-tri-flag"
-                style={{ borderTopColor: m.color }}
-                onMouseEnter={(e) => { cancelHideDistPopup(); openDistPopup(m.timeMs, e.currentTarget.parentElement as HTMLElement); }}
+                key={m.timeMs}
+                className={`tl-dist-marker${isApplyFlash ? ' is-apply-flash' : ''}`}
+                style={{ left: `${m.leftPct}%`, backgroundColor: m.color }}
+                onMouseEnter={(e) => openDistPopup(m.timeMs, e.currentTarget)}
                 onMouseLeave={scheduleHideDistPopup}
-              />
-              {m.elements.length > 1 && (
-                <span className="tl-dist-marker-count">{m.elements.length}</span>
-              )}
-              {m.clipCount > m.elements.length && (
-                <span className="tl-dist-marker-clip-count">{m.clipCount}</span>
-              )}
-            </div>
-          ))}
+              >
+                {/* 三角旗作为 marker 子元素，与 marker 同坐标系，精确对齐 */}
+                <div
+                  className="tl-dist-tri-flag"
+                  style={{ borderTopColor: m.color }}
+                  onMouseEnter={(e) => { cancelHideDistPopup(); openDistPopup(m.timeMs, e.currentTarget.parentElement as HTMLElement); }}
+                  onMouseLeave={scheduleHideDistPopup}
+                />
+                {m.elements.length > 1 && (
+                  <span className="tl-dist-marker-count">{m.elements.length}</span>
+                )}
+                {m.clipCount > m.elements.length && (
+                  <span className="tl-dist-marker-clip-count">{m.clipCount}</span>
+                )}
+              </div>
+            );
+          })}
           <div className="tl-dist-playhead" style={{ left: cursorPercent }} />
         </div>
         <span className="tl-dist-count">
@@ -2674,7 +2844,10 @@ export function TimelinePanel() {
                   </div>
                 )}
               </div>
-              <div ref={copyDialogRef} style={{ position: 'relative' }}>
+              <div
+                ref={copyDialogRef}
+                style={{ position: 'relative' }}
+              >
                 <button
                   className={`tl-btn${showCopyDialog ? ' is-active' : ''}`}
                   disabled={!canOpenApplyAnimationDialog}
@@ -2699,78 +2872,166 @@ export function TimelinePanel() {
                   套用动画
                 </button>
                 {showCopyDialog && (
-                  <div style={{
-                    position: 'absolute', top: '100%', right: 0, width: 154, zIndex: 200,
+                  <div
+                    style={{
+                    position: 'absolute', top: '100%', right: 0, width: 237, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: '8px',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
-                    height: 190, display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                    height: 188, display: 'flex', flexDirection: 'column', overflow: 'hidden',
                   }}>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, fontWeight: 600, flexShrink: 0 }}>选择目标对象</div>
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
-                      {objects.filter((o) => o.id !== selectedObject.id).map((o) => (
-                        <label key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '0 4px', borderRadius: 6, fontSize: 12, height: 24, flexShrink: 0 }}
-                          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
-                          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6, flexShrink: 0 }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        选择目标对象
+                      </div>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button
+                          type="button"
+                          className="tl-btn tl-btn-sm"
+                          disabled={availableApplyTargetIds.length === 0}
+                          data-tooltip="勾选所有可套用对象，自动跳过冲突对象"
+                          onClick={() => {
+                            setApplyAnimationResultText('');
+                            setCopyTargetIds(availableApplyTargetIds);
+                          }}
+                          style={{ height: 20, width: 42, padding: 0, fontSize: 10 }}
                         >
-                          <input
-                            type="checkbox"
-                            checked={copyTargetIds.includes(o.id)}
-                            onChange={(e) => {
-                              setApplyAnimationResultText('');
-                              if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
-                              else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
-                            }}
-                            style={{ width: 13, height: 13, flexShrink: 0, cursor: 'pointer' }}
-                          />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name || '未命名'}</span>
-                        </label>
-                      ))}
+                          全选
+                        </button>
+                        <button
+                          type="button"
+                          className="tl-btn tl-btn-sm"
+                          disabled={copyTargetIds.length === 0}
+                          onClick={() => {
+                            setApplyAnimationResultText('');
+                            setCopyTargetIds([]);
+                          }}
+                          style={{ height: 20, width: 42, padding: 0, fontSize: 10 }}
+                        >
+                          清空
+                        </button>
+                      </div>
                     </div>
-                    <button
-                      disabled={copyTargetIds.length === 0}
-                      onClick={() => {
-                        if (!selectedObject || selectedSegmentIds.length !== 1) return;
-                        const result = applyAnimationClipsToObjects({
-                          sourceObjectId: selectedObject.id,
-                          sourceSegmentId: selectedSegmentIds[0],
-                          targetObjectIds: copyTargetIds,
-                        });
-                        const skippedReasons = Object.values(result.skippedReasons);
-                        const conflictCount = skippedReasons.filter((reason) => reason === 'segment-conflict').length;
-                        const missingCount = skippedReasons.filter((reason) => reason === 'missing-target').length;
-                        const skippedReasonText = conflictCount > 0
-                          ? '时间片段冲突'
-                          : missingCount > 0
-                            ? '目标对象不存在'
-                            : '未能套用';
-                        setApplyAnimationResultText(
-                          result.skippedTargetCount > 0
-                            ? `已套用到 ${result.appliedTargetCount} 个对象，跳过 ${result.skippedTargetCount} 个：${skippedReasonText}`
-                            : `已套用到 ${result.appliedTargetCount} 个对象`,
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
+                      {objects.filter((o) => o.id !== selectedObject.id).map((o) => {
+                        const preview = applyTargetPreviewById.get(o.id);
+                        const canApply = preview?.canApply ?? false;
+                        const isChecked = copyTargetIds.includes(o.id);
+                        const badgeColor = preview?.status === 'conflict'
+                          ? '#ef4444'
+                          : preview?.status === 'create'
+                            ? '#2563eb'
+                            : '#16a34a';
+                        return (
+                          <label
+                            key={o.id}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: 'minmax(72px,1fr) minmax(68px,76px) auto',
+                              alignItems: 'center',
+                              gap: 4,
+                              cursor: canApply ? 'pointer' : 'not-allowed',
+                              padding: '3px 4px',
+                              borderRadius: 6,
+                              fontSize: 12,
+                              minHeight: 28,
+                              flexShrink: 0,
+                              opacity: canApply ? 1 : 0.48,
+                            }}
+                            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
+                            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                          >
+                            <span style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                disabled={!canApply}
+                                onChange={(e) => {
+                                  setApplyAnimationResultText('');
+                                  if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
+                                  else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
+                                }}
+                                style={{ width: 13, height: 13, flexShrink: 0, cursor: canApply ? 'pointer' : 'not-allowed' }}
+                              />
+                              <TruncatedTooltipText
+                                text={o.name || '未命名'}
+                                tooltip={o.name || '未命名'}
+                                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)' }}
+                              />
+                            </span>
+                            <TruncatedTooltipText
+                              text={preview?.shortDetailText ?? '不可套用'}
+                              tooltip={preview?.detailText ?? '不可套用'}
+                              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: 10 }}
+                            />
+                            <span style={{
+                              color: badgeColor,
+                              border: `1px solid ${hexAlpha(badgeColor, 0.45)}`,
+                              background: hexAlpha(badgeColor, 0.1),
+                              borderRadius: 4,
+                              padding: '1px 4px',
+                              fontSize: 10,
+                              lineHeight: 1.3,
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {preview?.statusLabel ?? '不可用'}
+                            </span>
+                          </label>
                         );
-                      }}
-                      style={{
-                        marginTop: 6, width: '100%', height: 20, padding: 0, flexShrink: 0,
-                        background: copyTargetIds.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
-                        color: copyTargetIds.length === 0 ? 'var(--text-muted)' : '#fff',
-                        border: 'none', borderRadius: 4, cursor: copyTargetIds.length === 0 ? 'not-allowed' : 'pointer',
-                        fontSize: 11,
-                      }}
-                    >
-                      确认套用 {copyTargetIds.length > 0 ? `(${copyTargetIds.length})` : ''}
-                    </button>
-                    {applyAnimationResultText && (
-                      <div style={{
-                        marginTop: 6,
-                        color: 'var(--text-muted)',
-                        fontSize: 11,
-                        lineHeight: 1.35,
-                        flexShrink: 0,
-                      }}>
+                      })}
+                    </div>
+                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                      <div
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          color: 'var(--text-muted)',
+                          fontSize: 11,
+                          lineHeight: 1.35,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                        data-tooltip={applyAnimationResultText || undefined}
+                      >
                         {applyAnimationResultText}
                       </div>
-                    )}
+                      <button
+                        disabled={copyTargetIds.length === 0}
+                        onClick={() => {
+                          if (!selectedObject || selectedSegmentIds.length !== 1) return;
+                          const result = applyAnimationClipsToObjects({
+                            sourceObjectId: selectedObject.id,
+                            sourceSegmentId: selectedSegmentIds[0],
+                            targetObjectIds: copyTargetIds,
+                          });
+                          const objectNameById = new Map(objects.map((obj) => [obj.id, obj.name || '未命名']));
+                          const skippedEntries = Object.entries(result.skippedReasons).map(([targetId, reason]) => {
+                            const reasonText = reason === 'segment-conflict' ? '时间片段冲突' : '目标对象不存在';
+                            return `${objectNameById.get(targetId) ?? targetId}：${reasonText}`;
+                          });
+                          const summaryText = `已套用 ${result.appliedTargetCount} 个对象，共生成 ${result.copiedClipCount} 个动画`;
+                          setApplyAnimationResultText(
+                            skippedEntries.length > 0
+                              ? `${summaryText}；跳过 ${result.skippedTargetCount} 个：${skippedEntries.join('，')}`
+                              : summaryText,
+                          );
+                          const skippedTargetIds = new Set(Object.keys(result.skippedReasons));
+                          const appliedIds = copyTargetIds.filter((targetId) => !skippedTargetIds.has(targetId));
+                          setAppliedFlashTargetIds([]);
+                          window.setTimeout(() => setAppliedFlashTargetIds(appliedIds), 0);
+                        }}
+                        style={{
+                          width: 42, height: 20, padding: 0, flexShrink: 0,
+                          background: copyTargetIds.length === 0 ? 'var(--bg-color)' : 'var(--primary-color)',
+                          color: copyTargetIds.length === 0 ? 'var(--text-muted)' : '#fff',
+                          border: 'none', borderRadius: 4, cursor: copyTargetIds.length === 0 ? 'not-allowed' : 'pointer',
+                          fontSize: 11,
+                        }}
+                      >
+                        确定
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -257,6 +257,23 @@
   overflow: visible;
 }
 
+.tl-dist-marker.is-apply-flash::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  animation: tl-apply-dist-flash 3000ms ease-out forwards;
+  background: rgba(34, 197, 94, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(34, 197, 94, 0.55),
+    0 0 14px rgba(34, 197, 94, 0.45);
+}
+
 /* 三角旗：渲染为 marker 的子元素，与 marker 同坐标系，天然对齐
    left:50% = 1px（marker 中心）；margin-left:-4px 将 border-left 外沿拉到 marker 中心左侧 4px
    → 视觉中心恰好落在 marker 中心 */
@@ -2344,5 +2361,22 @@
 .kf-add-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@keyframes tl-apply-dist-flash {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+
+  45% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.18);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.45);
+  }
 }
 
