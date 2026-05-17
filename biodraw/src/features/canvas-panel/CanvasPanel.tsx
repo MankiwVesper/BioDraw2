@@ -196,6 +196,8 @@ export function CanvasPanel() {
 
   const objects = useEditorStore(state => state.objects);
   const selectedIds = useEditorStore(state => state.selectedIds);
+  const applyAnimationFlashObjectIds = useEditorStore(state => state.applyAnimationFlashObjectIds);
+  const applyAnimationFlashKey = useEditorStore(state => state.applyAnimationFlashKey);
   const addSceneObject = useEditorStore(state => state.addSceneObject);
   const canvasWidth    = useEditorStore((state) => state.canvasWidth);
   const canvasHeight   = useEditorStore((state) => state.canvasHeight);
@@ -1164,6 +1166,8 @@ export function CanvasPanel() {
                   onDragStart={handleObjectDragStart}
                   onDragMove={handleObjectDragMove}
                   onDragStop={handleObjectDragStop}
+                  isApplyFlash={!isAnyExportRunning && applyAnimationFlashObjectIds.includes(obj.id)}
+                  applyFlashKey={applyAnimationFlashKey}
                 />
               ))}
               {previewObjects.map((obj) => {
@@ -1186,6 +1190,8 @@ export function CanvasPanel() {
                     onDragMove={handleObjectDragMove}
                     onDragStop={handleObjectDragStop}
                     autoFocusName={!interactionLocked && pendingNameEditId === obj.id}
+                    isApplyFlash={!isAnyExportRunning && applyAnimationFlashObjectIds.includes(obj.id)}
+                    applyFlashKey={applyAnimationFlashKey}
                   />
                 );
               })}

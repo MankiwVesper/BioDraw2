@@ -68,6 +68,8 @@ interface EditorState {
   past: EditorSnapshot[];
   future: EditorSnapshot[];
   selectedIds: string[];
+  applyAnimationFlashObjectIds: string[];
+  applyAnimationFlashKey: number;
   isRatioLocked: boolean;
   canvasWidth: number;
   canvasHeight: number;
@@ -103,6 +105,8 @@ interface EditorState {
   groupObjects: (ids: string[]) => void;
   ungroupObjects: (groupId: string) => void;
   selectSceneObjects: (ids: string[]) => void;
+  triggerApplyAnimationFlash: (ids: string[]) => void;
+  clearApplyAnimationFlash: () => void;
 
   addAnimationClip: (clip: AnimationClip) => void;
   updateAnimationClip: (id: string, updates: Partial<AnimationClip>) => void;
@@ -465,6 +469,8 @@ export const useEditorStore = create<EditorState>()(
     past: [],
     future: [],
     selectedIds: [],
+    applyAnimationFlashObjectIds: [],
+    applyAnimationFlashKey: 0,
     isRatioLocked: true,
     canvasWidth: 1280,
     canvasHeight: 720,
@@ -494,6 +500,7 @@ export const useEditorStore = create<EditorState>()(
         pushHistory(state);
         state.objects = state.objects.filter((o) => o.id !== id);
         state.selectedIds = state.selectedIds.filter((sid) => sid !== id);
+        state.applyAnimationFlashObjectIds = state.applyAnimationFlashObjectIds.filter((sid) => sid !== id);
         const removedClipIds = new Set(
           state.animations.filter((a) => a.objectId === id).map((a) => a.id),
         );
@@ -516,6 +523,7 @@ export const useEditorStore = create<EditorState>()(
         );
         state.objects = state.objects.filter((o) => !idSet.has(o.id));
         state.selectedIds = state.selectedIds.filter((sid) => !idSet.has(sid));
+        state.applyAnimationFlashObjectIds = state.applyAnimationFlashObjectIds.filter((sid) => !idSet.has(sid));
         if (removedClipIds.size > 0) {
           state.animations = state.animations.filter((a) => !idSet.has(a.objectId));
           state.objects = state.objects.map((o) => ({
@@ -623,6 +631,17 @@ export const useEditorStore = create<EditorState>()(
     selectSceneObjects: (ids) =>
       set((state) => {
         state.selectedIds = ids;
+      }),
+
+    triggerApplyAnimationFlash: (ids) =>
+      set((state) => {
+        state.applyAnimationFlashObjectIds = [...ids];
+        state.applyAnimationFlashKey += 1;
+      }),
+
+    clearApplyAnimationFlash: () =>
+      set((state) => {
+        state.applyAnimationFlashObjectIds = [];
       }),
 
     addAnimationClip: (clip) =>
@@ -1118,6 +1137,7 @@ export const useEditorStore = create<EditorState>()(
         if (snapshot.canvasHeight !== undefined) state.canvasHeight = snapshot.canvasHeight;
         if (snapshot.canvasBgColor !== undefined) state.canvasBgColor = snapshot.canvasBgColor;
         state.selectedIds = [];
+        state.applyAnimationFlashObjectIds = [];
         state.past = [];
         state.future = [];
         state.currentTimeMs = 0;
@@ -1136,6 +1156,7 @@ export const useEditorStore = create<EditorState>()(
         state.objects = [];
         state.animations = [];
         state.selectedIds = [];
+        state.applyAnimationFlashObjectIds = [];
         state.currentTimeMs = 0;
         state.playbackStatus = 'stopped';
         state.past = [];
@@ -1191,6 +1212,7 @@ export const useEditorStore = create<EditorState>()(
         state.currentTimeMs = clampTime(state.currentTimeMs, state.globalDurationMs);
         state.playbackStatus = 'stopped';
         state.selectedIds = [];
+        state.applyAnimationFlashObjectIds = [];
       }),
 
     redo: () =>
@@ -1204,6 +1226,7 @@ export const useEditorStore = create<EditorState>()(
         state.currentTimeMs = clampTime(state.currentTimeMs, state.globalDurationMs);
         state.playbackStatus = 'stopped';
         state.selectedIds = [];
+        state.applyAnimationFlashObjectIds = [];
       }),
   })),
 );

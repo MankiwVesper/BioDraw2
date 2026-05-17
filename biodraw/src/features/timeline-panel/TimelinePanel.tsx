@@ -288,6 +288,8 @@ type ApplyTargetPreview = {
   existingDomainLabels: string[];
 };
 
+const APPLY_ANIMATION_FLASH_DURATION_MS = 3000;
+
 function TruncatedTooltipText({
   text,
   tooltip,
@@ -463,7 +465,7 @@ export function TimelinePanel() {
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyTargetIds, setCopyTargetIds] = useState<string[]>([]);
   const [applyAnimationResultText, setApplyAnimationResultText] = useState('');
-  const [appliedFlashTargetIds, setAppliedFlashTargetIds] = useState<string[]>([]);
+  const applyFlashTimerRef = useRef<number | null>(null);
   const [selectedSegmentIds, setSelectedSegmentIds] = useState<string[]>([]);
   const [showAddSegmentDialog, setShowAddSegmentDialog] = useState(false);
   const [addSegStartInput, setAddSegStartInput] = useState('');
@@ -533,6 +535,9 @@ export function TimelinePanel() {
   const focusMode            = useEditorStore((s) => s.focusMode);
   const setFocusMode         = useEditorStore((s) => s.setFocusMode);
   const applyAnimationClipsToObjects = useEditorStore((s) => s.applyAnimationClipsToObjects);
+  const appliedFlashTargetIds = useEditorStore((s) => s.applyAnimationFlashObjectIds);
+  const triggerApplyAnimationFlash = useEditorStore((s) => s.triggerApplyAnimationFlash);
+  const clearApplyAnimationFlash = useEditorStore((s) => s.clearApplyAnimationFlash);
   const startClipPreview = useEditorStore((s) => s.startClipPreview);
   const selectObject = useEditorStore((s) => s.selectObject);
   const addAppearSegment = useEditorStore((s) => s.addAppearSegment);
@@ -945,6 +950,12 @@ export function TimelinePanel() {
       closeApplyAnimationDialog();
     }
   }, [showCopyDialog, canOpenApplyAnimationDialog, closeApplyAnimationDialog]);
+
+  useEffect(() => () => {
+    if (applyFlashTimerRef.current !== null) {
+      window.clearTimeout(applyFlashTimerRef.current);
+    }
+  }, []);
 
   useEffect(() => {
     if (!showCopyDialog || copyTargetIds.length === 0) return;
@@ -3018,8 +3029,14 @@ export function TimelinePanel() {
                           );
                           const skippedTargetIds = new Set(Object.keys(result.skippedReasons));
                           const appliedIds = copyTargetIds.filter((targetId) => !skippedTargetIds.has(targetId));
-                          setAppliedFlashTargetIds([]);
-                          window.setTimeout(() => setAppliedFlashTargetIds(appliedIds), 0);
+                          triggerApplyAnimationFlash(appliedIds);
+                          if (applyFlashTimerRef.current !== null) {
+                            window.clearTimeout(applyFlashTimerRef.current);
+                          }
+                          applyFlashTimerRef.current = window.setTimeout(() => {
+                            clearApplyAnimationFlash();
+                            applyFlashTimerRef.current = null;
+                          }, APPLY_ANIMATION_FLASH_DURATION_MS);
                         }}
                         style={{
                           width: 42, height: 20, padding: 0, flexShrink: 0,

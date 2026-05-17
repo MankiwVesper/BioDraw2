@@ -23,8 +23,13 @@ interface Props {
   onDragStop?: () => void;
   /** When true, automatically focus the name label for editing (used on first drop) */
   autoFocusName?: boolean;
+  /** 短暂显示“套用动画成功”的画布反馈效果 */
+  isApplyFlash?: boolean;
+  /** 每次触发套用反馈时递增，用于同一对象连续触发时重新播放 */
+  applyFlashKey?: number;
 }
 
+const APPLY_ANIMATION_FLASH_DURATION_MS = 3000;
 const DEFAULT_CURVE_POINTS = [0, 50, 50, 0, 100, 50];
 const DEFAULT_LINE_POINTS = [0, 0, 100, 100];
 const MATERIAL_NAME_MAX_LENGTH = 20;
@@ -43,12 +48,13 @@ const toVerticalText = (value: string) =>
     .map((line) => line.split('').join('\n'))
     .join('\n\n');
 
-export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, isEditingText, xOverride, yOverride, onDragStart, onDragMove, onDragStop, autoFocusName }: Props) {
+export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, isEditingText, xOverride, yOverride, onDragStart, onDragMove, onDragStop, autoFocusName, isApplyFlash = false, applyFlashKey = 0 }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
   const materialNameRef = useRef<Konva.Text>(null);
   const objectNameRef = useRef<Konva.Text>(null);
   const [curveDraftPoints, setCurveDraftPoints] = useState<number[] | null>(null);
+  const [applyFlashProgress, setApplyFlashProgress] = useState(1);
   
   // 当物体 ID 或数据点变化时，通过渲染过程中同步更新状态来重置草稿点（避免 useEffect 的性能报警）
   const currentPoints = (sceneObject.data?.points as number[]) || DEFAULT_CURVE_POINTS;
@@ -76,6 +82,27 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       trRef.current.getLayer()?.batchDraw();
     }
   }, [isSelected, isEditingText, sceneObject.type]);
+
+  useEffect(() => {
+    if (!isApplyFlash) {
+      setApplyFlashProgress(1);
+      return;
+    }
+
+    let frameId = 0;
+    const startedAt = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - startedAt) / APPLY_ANIMATION_FLASH_DURATION_MS);
+      setApplyFlashProgress(progress);
+      if (progress < 1) {
+        frameId = requestAnimationFrame(tick);
+      }
+    };
+
+    setApplyFlashProgress(0);
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [isApplyFlash, applyFlashKey]);
 
   // 画板内随意拖拽结束回调
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
@@ -140,6 +167,15 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       else selectObject(sceneObject.id);
     },
     opacity: sceneObject.opacity,
+  };
+
+  const flashProps = {
+    x: xOverride ?? sceneObject.x,
+    y: yOverride ?? sceneObject.y,
+    rotation: sceneObject.rotation,
+    scaleX: sceneObject.scaleX,
+    scaleY: sceneObject.scaleY,
+    listening: false,
   };
 
   const getCurvePoints = () => {
@@ -211,6 +247,33 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       maxX: Math.max(...xs),
       minY: Math.min(...ys),
       maxY: Math.max(...ys),
+    };
+  };
+
+  const getApplyFlashBox = () => {
+    if (sceneObject.type === 'line' || sceneObject.type === 'arrow') {
+      const bounds = getPointsBounds((sceneObject.data?.points as number[]) || DEFAULT_LINE_POINTS);
+      return {
+        x: bounds.minX,
+        y: bounds.minY,
+        width: Math.max(1, bounds.maxX - bounds.minX),
+        height: Math.max(1, bounds.maxY - bounds.minY),
+      };
+    }
+    if (sceneObject.type === 'curve') {
+      const bounds = getPointsBounds(getCurvePoints());
+      return {
+        x: bounds.minX,
+        y: bounds.minY,
+        width: Math.max(1, bounds.maxX - bounds.minX),
+        height: Math.max(1, bounds.maxY - bounds.minY),
+      };
+    }
+    return {
+      x: -sceneObject.width / 2,
+      y: -sceneObject.height / 2,
+      width: Math.max(1, sceneObject.width),
+      height: Math.max(1, sceneObject.height),
     };
   };
 
@@ -1220,9 +1283,37 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
     }
   };
 
+  const shouldShowApplyFlash = isApplyFlash && applyFlashProgress < 1;
+  const flashBox = shouldShowApplyFlash ? getApplyFlashBox() : null;
+  const flashOpacity = shouldShowApplyFlash
+    ? Math.max(0, 1 - applyFlashProgress)
+    : 0;
+  const flashPadding = shouldShowApplyFlash
+    ? 8 + applyFlashProgress * 18
+    : 8;
+
   return (
     <Group>
       {renderContent()}
+      {flashBox && (
+        <Group {...flashProps}>
+          <Rect
+            x={flashBox.x - flashPadding}
+            y={flashBox.y - flashPadding}
+            width={flashBox.width + flashPadding * 2}
+            height={flashBox.height + flashPadding * 2}
+            cornerRadius={10}
+            stroke="#22c55e"
+            strokeWidth={2.5}
+            fill="rgba(34, 197, 94, 0.08)"
+            shadowColor="#22c55e"
+            shadowBlur={18}
+            shadowOpacity={0.45}
+            opacity={flashOpacity}
+            listening={false}
+          />
+        </Group>
+      )}
       {isSelected && !(isEditingText ?? isEditing) && !isLocked && (
         <Transformer
           ref={trRef}
