@@ -650,13 +650,10 @@ export const useEditorStore = create<EditorState>()(
 
     toggleObjectLock: (id) =>
       set((state) => {
+        // 有意不调用 pushHistory：锁定/解锁属于元操作，不应被 Undo 撤销
         const obj = state.objects.find((o) => o.id === id);
         if (obj) {
           obj.locked = !obj.locked;
-          // 锁定时取消选中
-          if (obj.locked) {
-            state.selectedIds = state.selectedIds.filter((sid) => sid !== id);
-          }
         }
       }),
 

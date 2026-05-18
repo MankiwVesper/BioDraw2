@@ -76,14 +76,16 @@ export function LayerPanel() {
 
   const startRename = (obj: SceneObject, e: React.MouseEvent) => {
     e.stopPropagation();
+    if (obj.locked) return;
     setRenamingId(obj.id);
     setRenameValue(obj.name);
     setTimeout(() => renameInputRef.current?.select(), 30);
   };
 
   const commitRename = () => {
-    if (renamingId && renameValue.trim()) {
-      updateSceneObject(renamingId, { name: renameValue.trim() });
+    const obj = renamingId ? objects.find((o) => o.id === renamingId) : null;
+    if (obj && !obj.locked && renameValue.trim()) {
+      updateSceneObject(renamingId!, { name: renameValue.trim() });
     }
     setRenamingId(null);
   };

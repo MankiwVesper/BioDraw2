@@ -2361,8 +2361,8 @@ export function TimelinePanel() {
         );
       })()}
 
-      {/* ── 第二大行：元素时间轴区块（仅单选元素时显示） ── */}
-      {selectedObject && selectedIds.length === 1 && (() => {
+      {/* ── 第二大行：元素时间轴区块（仅单选且未锁定元素时显示） ── */}
+      {selectedObject && selectedIds.length === 1 && !selectedObject.locked && (() => {
         const safeT = Math.max(1, globalDurationMs);
         return (
           <>

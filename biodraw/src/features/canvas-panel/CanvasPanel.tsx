@@ -372,6 +372,7 @@ export function CanvasPanel() {
         const moves = selectedIds
           .map((sid) => objects.find((o) => o.id === sid))
           .filter(Boolean)
+          .filter((obj) => !obj!.locked)
           .map((obj) => ({ id: obj!.id, x: obj!.x + dx, y: obj!.y + dy }));
         if (moves.length === 1) {
           updateSceneObject(moves[0].id, { x: moves[0].x, y: moves[0].y });
@@ -383,10 +384,14 @@ export function CanvasPanel() {
 
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
-        if (selectedIds.length > 1) {
-          removeSceneObjects(selectedIds);
-        } else {
-          removeSceneObject(selectedIds[0]);
+        const deletableIds = selectedIds.filter((sid) => {
+          const obj = objects.find((o) => o.id === sid);
+          return obj && !obj.locked;
+        });
+        if (deletableIds.length > 1) {
+          removeSceneObjects(deletableIds);
+        } else if (deletableIds.length === 1) {
+          removeSceneObject(deletableIds[0]);
         }
       }
     };
@@ -1056,7 +1061,7 @@ export function CanvasPanel() {
     target: EditingTarget = 'text',
   ) => {
     const obj = objects.find(o => o.id === id);
-    if (!obj) return;
+    if (!obj || obj.locked) return;
 
     setEditingTextId(id);
     setEditingTarget(target);

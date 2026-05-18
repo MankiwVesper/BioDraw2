@@ -757,6 +757,7 @@ export function InspectorPanel() {
   }
 
   const handleChange = (field: string, val: string) => {
+    if (selectedObj.locked) return;
     let num = parseFloat(val);
     if (isNaN(num)) num = 0;
     updateSceneObject(selectedObj.id, { [field]: num });
@@ -866,6 +867,7 @@ export function InspectorPanel() {
   };
 
   const handleStyleChange = (field: string, val: string | number) => {
+    if (selectedObj.locked) return;
     updateSceneObject(selectedObj.id, {
       style: {
         ...(selectedObj.style || {}),
@@ -875,6 +877,7 @@ export function InspectorPanel() {
   };
 
   const handleDataChange = (field: string, val: string | number) => {
+    if (selectedObj.locked) return;
     updateSceneObject(selectedObj.id, {
       data: {
         ...(selectedObj.data || {}),
@@ -928,6 +931,7 @@ export function InspectorPanel() {
   };
 
   const handleDimensionChange = (field: "width" | "height", val: string) => {
+    if (selectedObj.locked) return;
     let num = parseFloat(val);
     if (isNaN(num) || num < 1) num = 1;
 
@@ -1223,6 +1227,7 @@ export function InspectorPanel() {
                       inputMode="numeric"
                       step={1}
                       value={getBasicParamValue("x")}
+                      disabled={!!selectedObj.locked}
                       onChange={(e) => updateBasicParamDraft("x", e.target.value)}
                       onBlur={(e) => commitBasicParamDraft("x", e.currentTarget)}
                       onKeyDown={(e) => handleBasicParamKeyDown("x", e)}
@@ -1240,6 +1245,7 @@ export function InspectorPanel() {
                       inputMode="numeric"
                       step={1}
                       value={getBasicParamValue("y")}
+                      disabled={!!selectedObj.locked}
                       onChange={(e) => updateBasicParamDraft("y", e.target.value)}
                       onBlur={(e) => commitBasicParamDraft("y", e.currentTarget)}
                       onKeyDown={(e) => handleBasicParamKeyDown("y", e)}
@@ -1290,6 +1296,7 @@ export function InspectorPanel() {
                       min={1}
                       step={1}
                       value={getBasicParamValue("width")}
+                      disabled={!!selectedObj.locked}
                       onChange={(e) =>
                         updateBasicParamDraft("width", e.target.value)
                       }
@@ -1312,6 +1319,7 @@ export function InspectorPanel() {
                       min={1}
                       step={1}
                       value={getBasicParamValue("height")}
+                      disabled={!!selectedObj.locked}
                       onChange={(e) =>
                         updateBasicParamDraft("height", e.target.value)
                       }
@@ -1384,6 +1392,7 @@ export function InspectorPanel() {
                       inputMode="numeric"
                       step={1}
                       value={getBasicParamValue("rotation")}
+                      disabled={!!selectedObj.locked}
                       onChange={(e) =>
                         updateBasicParamDraft("rotation", e.target.value)
                       }
@@ -1411,6 +1420,7 @@ export function InspectorPanel() {
                       opacity: 0.8,
                     }}
                     onClick={() =>
+                      !selectedObj.locked &&
                       updateSceneObject(selectedObj.id, {
                         scaleX: 1,
                         scaleY: 1,
@@ -1456,6 +1466,7 @@ export function InspectorPanel() {
                 >
                   <button
                     onClick={() => moveObjectToBack(selectedObj.id)}
+                    disabled={!!selectedObj.locked}
                     data-tooltip="置底"
                     style={{
                       flex: 1,
@@ -1463,12 +1474,13 @@ export function InspectorPanel() {
                       backgroundColor: "var(--bg-color)",
                       border: "1px solid var(--border-color)",
                       borderRadius: "6px",
-                      cursor: "pointer",
+                      cursor: selectedObj.locked ? "not-allowed" : "pointer",
                       color: "var(--text-main)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       height: "24px",
+                      opacity: selectedObj.locked ? 0.4 : 1,
                     }}
                   >
                     <svg
@@ -1488,6 +1500,7 @@ export function InspectorPanel() {
                   </button>
                   <button
                     onClick={() => moveObjectBackward(selectedObj.id)}
+                    disabled={!!selectedObj.locked}
                     data-tooltip="下移一层"
                     style={{
                       flex: 1,
@@ -1495,12 +1508,13 @@ export function InspectorPanel() {
                       backgroundColor: "var(--bg-color)",
                       border: "1px solid var(--border-color)",
                       borderRadius: "6px",
-                      cursor: "pointer",
+                      cursor: selectedObj.locked ? "not-allowed" : "pointer",
                       color: "var(--text-main)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       height: "24px",
+                      opacity: selectedObj.locked ? 0.4 : 1,
                     }}
                   >
                     <svg
@@ -1519,6 +1533,7 @@ export function InspectorPanel() {
                   </button>
                   <button
                     onClick={() => moveObjectForward(selectedObj.id)}
+                    disabled={!!selectedObj.locked}
                     data-tooltip="上移一层"
                     style={{
                       flex: 1,
@@ -1526,12 +1541,13 @@ export function InspectorPanel() {
                       backgroundColor: "var(--bg-color)",
                       border: "1px solid var(--border-color)",
                       borderRadius: "6px",
-                      cursor: "pointer",
+                      cursor: selectedObj.locked ? "not-allowed" : "pointer",
                       color: "var(--text-main)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       height: "24px",
+                      opacity: selectedObj.locked ? 0.4 : 1,
                     }}
                   >
                     <svg
@@ -1550,6 +1566,7 @@ export function InspectorPanel() {
                   </button>
                   <button
                     onClick={() => moveObjectToFront(selectedObj.id)}
+                    disabled={!!selectedObj.locked}
                     data-tooltip="置顶"
                     style={{
                       flex: 1,
@@ -1557,12 +1574,13 @@ export function InspectorPanel() {
                       backgroundColor: "var(--bg-color)",
                       border: "1px solid var(--border-color)",
                       borderRadius: "6px",
-                      cursor: "pointer",
+                      cursor: selectedObj.locked ? "not-allowed" : "pointer",
                       color: "var(--text-main)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       height: "24px",
+                      opacity: selectedObj.locked ? 0.4 : 1,
                     }}
                   >
                     <svg
@@ -1597,35 +1615,25 @@ export function InspectorPanel() {
               {!collapsedSections["ops"] && (<>
               <div className="ip-property-row" style={{ gap: 4 }}>
                 <button
-                  data-tooltip={
-                    selectedObj?.locked
-                      ? "解锁对象（可移动）"
-                      : "锁定对象（防止误移）"
-                  }
-                  onClick={() =>
-                    selectedObj && toggleObjectLock(selectedObj.id)
-                  }
+                  data-tooltip={selectedObj.locked ? "解锁对象（可移动）" : "锁定对象（防止误移）"}
+                  onClick={() => toggleObjectLock(selectedObj.id)}
                   style={{
                     flex: 1,
                     height: 24,
-                    border: `1px solid ${selectedObj?.locked ? "var(--primary-color)" : "var(--border-color)"}`,
-                    background: selectedObj?.locked
-                      ? "rgba(59,130,246,0.08)"
-                      : "transparent",
-                    color: selectedObj?.locked
-                      ? "var(--primary-color)"
-                      : "var(--text-muted)",
+                    border: `1px solid ${selectedObj.locked ? "var(--primary-color)" : "var(--border-color)"}`,
+                    background: selectedObj.locked ? "rgba(59,130,246,0.08)" : "transparent",
+                    color: selectedObj.locked ? "var(--primary-color)" : "var(--text-muted)",
                     borderRadius: 6,
                     cursor: "pointer",
                     fontSize: 13,
                   }}
                 >
-                  {selectedObj?.locked ? "🔒 已锁定" : "🔓 锁定"}
+                  {selectedObj.locked ? "🔒 已锁定" : "🔓 锁定"}
                 </button>
                 <button
                   data-tooltip="复制对象 (Ctrl+D)"
-                  onClick={() => selectedObj && duplicateObject(selectedObj.id)}
-                  disabled={!!selectedObj?.locked}
+                  onClick={() => duplicateObject(selectedObj.id)}
+                  disabled={!!selectedObj.locked}
                   style={{
                     flex: 1,
                     height: 24,
@@ -1633,21 +1641,17 @@ export function InspectorPanel() {
                     background: "transparent",
                     color: "var(--text-muted)",
                     borderRadius: 6,
-                    cursor: selectedObj?.locked ? "not-allowed" : "pointer",
+                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     fontSize: 13,
-                    opacity: selectedObj?.locked ? 0.4 : 1,
+                    opacity: selectedObj.locked ? 0.4 : 1,
                   }}
                 >
                   复制
                 </button>
                 <button
                   data-tooltip="删除对象 (Delete)"
-                  onClick={() =>
-                    selectedObj &&
-                    !selectedObj.locked &&
-                    removeSceneObject(selectedObj.id)
-                  }
-                  disabled={!!selectedObj?.locked}
+                  onClick={() => removeSceneObject(selectedObj.id)}
+                  disabled={!!selectedObj.locked}
                   style={{
                     flex: 1,
                     height: 24,
@@ -1655,9 +1659,9 @@ export function InspectorPanel() {
                     background: "transparent",
                     color: "#ef4444",
                     borderRadius: 6,
-                    cursor: selectedObj?.locked ? "not-allowed" : "pointer",
+                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     fontSize: 13,
-                    opacity: selectedObj?.locked ? 0.4 : 1,
+                    opacity: selectedObj.locked ? 0.4 : 1,
                   }}
                 >
                   删除
@@ -1675,7 +1679,7 @@ export function InspectorPanel() {
                 对齐方式
                 {sectionChevron("align")}
               </h4>
-              {!collapsedSections["align"] && (<>
+              {!collapsedSections["align"] && (<div style={selectedObj.locked ? { pointerEvents: 'none', opacity: 0.5 } : undefined}>
               {/* 水平对齐：左对齐 / 水平居中 / 右对齐 */}
               <div
                 className="ip-property-row"
@@ -1736,6 +1740,7 @@ export function InspectorPanel() {
                     data-tooltip={btn.title}
                     onClick={() =>
                       selectedObj &&
+                      !selectedObj.locked &&
                       updateSceneObject(selectedObj.id, btn.calc())
                     }
                     style={{
@@ -1825,6 +1830,7 @@ export function InspectorPanel() {
                     data-tooltip={btn.title}
                     onClick={() =>
                       selectedObj &&
+                      !selectedObj.locked &&
                       updateSceneObject(selectedObj.id, btn.calc())
                     }
                     style={{
@@ -1855,7 +1861,7 @@ export function InspectorPanel() {
                   </button>
                 ))}
               </div>
-              </>)}
+              </div>)}
             </div>
 
             {/* 文字设置 */}
@@ -1867,7 +1873,7 @@ export function InspectorPanel() {
                 文字设置
                 {sectionChevron("text")}
               </h4>
-              {!collapsedSections["text"] && (<>
+              {!collapsedSections["text"] && (<div style={selectedObj.locked ? { pointerEvents: 'none', opacity: 0.5 } : undefined}>
 
               {/* 文字颜色 | 字体大小 */}
               <div
@@ -2185,7 +2191,7 @@ export function InspectorPanel() {
                   </div>
                 </div>
               </div>
-              </>)}
+              </div>)}
             </div>
 
             {/* 样式设置 - 仅形状/路径类元素 */}
@@ -2198,7 +2204,7 @@ export function InspectorPanel() {
                   样式设置
                   {sectionChevron("style")}
                 </h4>
-                {!collapsedSections["style"] && (<>
+                {!collapsedSections["style"] && (<div style={selectedObj.locked ? { pointerEvents: 'none', opacity: 0.5 } : undefined}>
 
                 {/* 描边颜色 | 填充颜色 or 描边粗细 */}
                 <div
@@ -2440,7 +2446,7 @@ export function InspectorPanel() {
                                     "cornerRadius",
                                     Math.max(0, Math.min(99, val)),
                                   );
-                                } else {
+                                } else if (!selectedObj.locked) {
                                   updateSceneObject(selectedObj.id, {
                                     width: Math.max(1, val) * 2,
                                     height: Math.max(1, val) * 2,
@@ -2548,7 +2554,7 @@ export function InspectorPanel() {
                     />
                   </div>
                 )}
-                </>)}
+                </div>)}
               </div>
             )}
           </div>
