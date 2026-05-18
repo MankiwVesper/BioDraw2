@@ -3019,7 +3019,11 @@ export function TimelinePanel() {
                           });
                           const objectNameById = new Map(objects.map((obj) => [obj.id, obj.name || '未命名']));
                           const skippedEntries = Object.entries(result.skippedReasons).map(([targetId, reason]) => {
-                            const reasonText = reason === 'segment-conflict' ? '时间片段冲突' : '目标对象不存在';
+                            const reasonText =
+                              reason === 'segment-conflict' ? '时间片段冲突' :
+                              reason === 'animation-conflict' ? '动画冲突' :
+                              reason === 'locked-target' ? '元素已锁定' :
+                              '目标对象不存在';
                             return `${objectNameById.get(targetId) ?? targetId}：${reasonText}`;
                           });
                           const summaryText = `已套用 ${result.appliedTargetCount} 个对象，共生成 ${result.copiedClipCount} 个动画`;
