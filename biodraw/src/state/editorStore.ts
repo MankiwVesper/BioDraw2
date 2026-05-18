@@ -39,7 +39,7 @@ type ApplyAnimationResult = {
   appliedTargetCount: number;
   skippedTargetCount: number;
   copiedClipCount: number;
-  skippedReasons: Record<string, 'segment-conflict' | 'missing-target'>;
+  skippedReasons: Record<string, 'segment-conflict' | 'animation-conflict' | 'locked-target' | 'missing-target'>;
 };
 
 type ApplyAnimationOptions = {
@@ -285,6 +285,47 @@ const canApplyToTargetSegment = (
   return !segments.some(
     (seg) => Math.max(seg.startMs, sourceSegment.startMs) < Math.min(seg.endMs, sourceSegment.endMs),
   );
+};
+
+const getApplyConflictDomain = (clipType: AnimationClip['type']) => {
+  switch (clipType) {
+    case 'move': case 'moveAlongPath': case 'polylineMove': case 'shake': return 'position';
+    case 'fade': return 'opacity';
+    case 'scale': return 'scale';
+    case 'rotate': return 'rotation';
+    case 'stateChange': return 'state';
+    default: return clipType;
+  }
+};
+
+const getReusableTargetSegmentForApply = (
+  obj: SceneObject,
+  sourceSegment: AppearSegment,
+  fallbackEndMs: number,
+) => {
+  const segments = obj.appearSegments ?? [{
+    id: '__virtual__',
+    startMs: obj.appearStartMs ?? 0,
+    endMs: obj.appearEndMs ?? fallbackEndMs,
+  }];
+  return segments.find(
+    (seg) => seg.startMs <= sourceSegment.startMs && seg.endMs >= sourceSegment.endMs,
+  ) ?? null;
+};
+
+const hasAnimationDomainConflict = (
+  targetObj: SceneObject,
+  targetSegment: AppearSegment,
+  sourceClips: AnimationClip[],
+  allClips: AnimationClip[],
+) => {
+  const sourceDomains = new Set(sourceClips.map((clip) => getApplyConflictDomain(clip.type)));
+  return allClips.some((clip) => {
+    if (clip.objectId !== targetObj.id) return false;
+    const isSameSegment = clip.segmentId === targetSegment.id
+      || (targetSegment.id === '__virtual__' && clip.segmentId === undefined);
+    return isSameSegment && sourceDomains.has(getApplyConflictDomain(clip.type));
+  });
 };
 
 const translatePointKeyframes = (
@@ -744,9 +785,20 @@ export const useEditorStore = create<EditorState>()(
             result.skippedReasons[targetId] = 'missing-target';
             continue;
           }
+          if (targetObj.locked) {
+            result.skippedTargetCount += 1;
+            result.skippedReasons[targetId] = 'locked-target';
+            continue;
+          }
           if (!canApplyToTargetSegment(targetObj, sourceSegment, state.globalDurationMs)) {
             result.skippedTargetCount += 1;
             result.skippedReasons[targetId] = 'segment-conflict';
+            continue;
+          }
+          const reusableTargetSegment = getReusableTargetSegmentForApply(targetObj, sourceSegment, state.globalDurationMs);
+          if (reusableTargetSegment && hasAnimationDomainConflict(targetObj, reusableTargetSegment, sourceClips, state.animations)) {
+            result.skippedTargetCount += 1;
+            result.skippedReasons[targetId] = 'animation-conflict';
             continue;
           }
           targetIdsToApply.push(targetId);

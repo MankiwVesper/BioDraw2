@@ -276,7 +276,7 @@ const sortConflictDomains = (domains: string[]) =>
     return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
   });
 
-type ApplyTargetStatus = 'reuse-exact' | 'reuse-containing' | 'create' | 'conflict';
+type ApplyTargetStatus = 'reuse-exact' | 'reuse-containing' | 'create' | 'conflict' | 'animation-conflict' | 'locked';
 
 type ApplyTargetPreview = {
   objectId: string;
@@ -344,6 +344,18 @@ const buildApplyTargetPreview = (
   allClips: AnimationClip[],
   fallbackEndMs: number,
 ): ApplyTargetPreview => {
+  if (targetObj.locked) {
+    return {
+      objectId: targetObj.id,
+      status: 'locked',
+      statusLabel: '不可套用',
+      detailText: '元素已锁定，不能套用动画',
+      shortDetailText: '元素已锁定',
+      canApply: false,
+      existingDomainLabels: [],
+    };
+  }
+
   const segments = getSegmentsForApplyPreview(targetObj, fallbackEndMs);
   const exact = segments.find(
     (seg) => seg.startMs === sourceSegment.startMs && seg.endMs === sourceSegment.endMs,
@@ -373,12 +385,27 @@ const buildApplyTargetPreview = (
     ? sortConflictDomains([
       ...new Set(
         allClips
-          .filter((clip) => clip.objectId === targetObj.id && clip.segmentId === targetSegment.id)
+          .filter((clip) => clip.objectId === targetObj.id && (
+            clip.segmentId === targetSegment.id
+            || (targetSegment.id === '__virtual__' && clip.segmentId === undefined)
+          ))
           .map((clip) => getConflictDomain(clip.type))
           .filter((domain) => sourceDomains.has(domain)),
       ),
     ]).map(getConflictDomainLabel)
     : [];
+
+  if (existingDomainLabels.length > 0) {
+    return {
+      objectId: targetObj.id,
+      status: 'animation-conflict',
+      statusLabel: '动画冲突',
+      detailText: `目标片段已有${existingDomainLabels.join('、')}动画`,
+      shortDetailText: `已有${existingDomainLabels.join('、')}动画`,
+      canApply: false,
+      existingDomainLabels,
+    };
+  }
 
   const status: ApplyTargetStatus = exact
     ? 'reuse-exact'
@@ -390,14 +417,10 @@ const buildApplyTargetPreview = (
     : status === 'reuse-containing'
       ? '套入片段'
       : '新建片段';
-  const detailText = existingDomainLabels.length > 0
-    ? `已有${existingDomainLabels.join('、')}动画`
-    : status === 'create'
+  const detailText = status === 'create'
       ? '将创建同时间片段'
       : '可直接套用';
-  const shortDetailText = existingDomainLabels.length > 0
-    ? `已有${existingDomainLabels.join('、')}动画`
-    : status === 'create'
+  const shortDetailText = status === 'create'
       ? '新建片段'
       : '可直接套用';
 
@@ -2885,15 +2908,20 @@ export function TimelinePanel() {
                 {showCopyDialog && (
                   <div
                     style={{
-                    position: 'absolute', top: '100%', right: 0, width: 237, zIndex: 200,
+                    position: 'absolute', top: '100%', right: 0, width: 420, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: '8px',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
                     height: 188, display: 'flex', flexDirection: 'column', overflow: 'hidden',
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6, flexShrink: 0 }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        选择目标对象
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4, flexShrink: 0 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-main)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                          选择目标对象
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 1, whiteSpace: 'nowrap' }}>
+                          可选 {availableApplyTargetIds.length} / {objects.length - 1}
+                        </div>
                       </div>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button
@@ -2923,12 +2951,12 @@ export function TimelinePanel() {
                         </button>
                       </div>
                     </div>
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 1, minHeight: 0, paddingRight: 2 }}>
                       {objects.filter((o) => o.id !== selectedObject.id).map((o) => {
                         const preview = applyTargetPreviewById.get(o.id);
                         const canApply = preview?.canApply ?? false;
                         const isChecked = copyTargetIds.includes(o.id);
-                        const badgeColor = preview?.status === 'conflict'
+                        const badgeColor = preview?.status === 'conflict' || preview?.status === 'animation-conflict' || preview?.status === 'locked'
                           ? '#ef4444'
                           : preview?.status === 'create'
                             ? '#2563eb'
@@ -2937,61 +2965,64 @@ export function TimelinePanel() {
                           <label
                             key={o.id}
                             style={{
-                              display: 'grid',
-                              gridTemplateColumns: 'minmax(72px,1fr) minmax(68px,76px) auto',
-                              alignItems: 'center',
-                              gap: 4,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 1,
                               cursor: canApply ? 'pointer' : 'not-allowed',
-                              padding: '3px 4px',
+                              padding: '3px 6px',
                               borderRadius: 6,
-                              fontSize: 12,
-                              minHeight: 28,
+                              fontSize: 11,
+                              minHeight: 34,
                               flexShrink: 0,
                               opacity: canApply ? 1 : 0.48,
                             }}
+                            data-tooltip={preview?.detailText ?? '不可套用'}
                             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
                             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                           >
-                            <span style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                disabled={!canApply}
-                                onChange={(e) => {
-                                  setApplyAnimationResultText('');
-                                  if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
-                                  else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
-                                }}
-                                style={{ width: 13, height: 13, flexShrink: 0, cursor: canApply ? 'pointer' : 'not-allowed' }}
-                              />
-                              <TruncatedTooltipText
-                                text={o.name || '未命名'}
-                                tooltip={o.name || '未命名'}
-                                style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)' }}
-                              />
+                            <span style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, height: 16 }}>
+                              <span style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 5, flex: 1 }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  disabled={!canApply}
+                                  onChange={(e) => {
+                                    setApplyAnimationResultText('');
+                                    if (e.target.checked) setCopyTargetIds((p) => [...p, o.id]);
+                                    else setCopyTargetIds((p) => p.filter((id) => id !== o.id));
+                                  }}
+                                  style={{ width: 13, height: 13, flexShrink: 0, cursor: canApply ? 'pointer' : 'not-allowed' }}
+                                />
+                                <TruncatedTooltipText
+                                  text={o.name || '未命名'}
+                                  tooltip={o.name || '未命名'}
+                                  style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)', lineHeight: '16px' }}
+                                />
+                              </span>
+                              <span style={{
+                                color: badgeColor,
+                                border: `1px solid ${hexAlpha(badgeColor, 0.45)}`,
+                                background: hexAlpha(badgeColor, 0.1),
+                                borderRadius: 4,
+                                padding: '1px 5px',
+                                fontSize: 10,
+                                lineHeight: '14px',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                              }}>
+                                {preview?.statusLabel ?? '不可用'}
+                              </span>
                             </span>
                             <TruncatedTooltipText
                               text={preview?.shortDetailText ?? '不可套用'}
                               tooltip={preview?.detailText ?? '不可套用'}
-                              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: 10 }}
+                              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: 10, lineHeight: '13px', paddingLeft: 19 }}
                             />
-                            <span style={{
-                              color: badgeColor,
-                              border: `1px solid ${hexAlpha(badgeColor, 0.45)}`,
-                              background: hexAlpha(badgeColor, 0.1),
-                              borderRadius: 4,
-                              padding: '1px 4px',
-                              fontSize: 10,
-                              lineHeight: 1.3,
-                              whiteSpace: 'nowrap',
-                            }}>
-                              {preview?.statusLabel ?? '不可用'}
-                            </span>
                           </label>
                         );
                       })}
                     </div>
-                    <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                    <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, minHeight: 20 }}>
                       <div
                         style={{
                           flex: 1,
@@ -3019,7 +3050,11 @@ export function TimelinePanel() {
                           });
                           const objectNameById = new Map(objects.map((obj) => [obj.id, obj.name || '未命名']));
                           const skippedEntries = Object.entries(result.skippedReasons).map(([targetId, reason]) => {
-                            const reasonText = reason === 'segment-conflict' ? '时间片段冲突' : '目标对象不存在';
+                            const reasonText =
+                              reason === 'segment-conflict' ? '时间片段冲突' :
+                              reason === 'animation-conflict' ? '动画冲突' :
+                              reason === 'locked-target' ? '元素已锁定' :
+                              '目标对象不存在';
                             return `${objectNameById.get(targetId) ?? targetId}：${reasonText}`;
                           });
                           const summaryText = `已套用 ${result.appliedTargetCount} 个对象，共生成 ${result.copiedClipCount} 个动画`;

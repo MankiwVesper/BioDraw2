@@ -98,13 +98,57 @@ npm.cmd run check
 
 - 项目是浏览器应用，前端交互改动后应尽量进行浏览器验证。
 - 本地地址通常为 `http://127.0.0.1:5173/`。
-- Chrome 插件链路已手动修复，可使用 `@chrome` 做真实 Chrome 验证。
-- 如 Chrome 插件不可用，可使用 Codex in-app Browser 或让用户手动验证。
+- 如果 `http://127.0.0.1:5173/` 无法访问，优先尝试 `http://localhost:5173/`。
+- 后续真实浏览器验证优先使用“项目内 Playwright + 真实 Chrome 9222 CDP”方式，不再优先依赖 Chrome 插件链路。
+- Chrome 插件链路可能受插件、native host、沙箱或用户目录权限影响；除非用户明确要求，否则不要把它作为首选验证方式。
+- 如 Playwright/CDP 方式不可用，再考虑 Codex in-app Browser 或让用户手动验证。
+
+### 固定 Playwright/CDP 验证方式
+
+- `biodraw` 项目已安装 `playwright` 开发依赖，后续不要再使用 `npx --package @playwright/cli` 作为默认验证入口，避免 npm/npx 反复访问不可写的用户缓存目录。
+- 运行 npm 命令时，如遇用户目录权限问题，应把缓存和 prefix 固定到项目 `.codex` 目录，例如：
+
+```powershell
+$env:npm_config_cache='D:\Project\BioDraw2\.codex\npm-cache'
+$env:npm_config_prefix='D:\Project\BioDraw2\.codex\npm-prefix'
+```
+
+- 真实 Chrome 调试端口使用 `9222`。如端口未开启，可用真实 Windows 用户上下文启动专用 Chrome：
+
+```powershell
+Start-Process -FilePath "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" -ArgumentList @(
+  "--remote-debugging-port=9222",
+  "--user-data-dir=D:\Project\BioDraw2\.codex\chrome-real-profile",
+  "http://localhost:5173/"
+)
+```
+
+- 临时 Playwright 验证脚本默认放在 `D:\Project\BioDraw2\.codex\`，通过项目内依赖连接真实 Chrome：
+
+```js
+const { createRequire } = require('module');
+const requireFromApp = createRequire('D:/Project/BioDraw2/biodraw/package.json');
+const { chromium } = requireFromApp('playwright');
+
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
+const context = browser.contexts()[0];
+const page = context.pages()[0] || await context.newPage();
+await page.goto('http://localhost:5173/');
+```
+
+- 执行脚本时优先使用固定 Node 路径：
+
+```powershell
+D:\Programs\nodejs\node.exe D:\Project\BioDraw2\.codex\verify-xxx.cjs
+```
+
+- 这种方式连接的是用户真实 Chrome，不依赖 Codex Chrome 插件；适合验证 DOM、按钮状态、控制台错误、弹窗文案、点击/输入/拖拽流程和 store 行为。
+- `.codex/` 下的一次性验证脚本、Chrome profile、npm cache、Playwright 临时产物默认不提交到仓库。
 
 ### 浏览器验证节省原则
 
 - 验证前先从代码确认最短操作路径，避免在浏览器中探索式反复试错。
-- 优先使用 Chrome 插件连接用户当前 Chrome；不要误开 Edge 或无关浏览器。
+- 优先使用项目内 Playwright 连接真实 Chrome 9222 CDP；不要误开 Edge 或无关浏览器。
 - 每个功能点只验证一条最小主流程，确认本次修改的关键行为即可。
 - 优先通过 DOM、状态、class、样式和控制台错误查询确认结果；仅在视觉细节必须确认时截图。
 - 避免频繁读取完整页面快照、连续截图或进行无关 UI 操作。
@@ -115,7 +159,7 @@ npm.cmd run check
 
 - 前端改动优先采用分层验证：
   1. 先运行 `npm.cmd run check`，确认类型、构建和 lint 没有新增错误。
-  2. 再用 Chrome 插件连接当前 Chrome，优先通过 DOM、状态、class、按钮状态和控制台错误做最小验证。
+  2. 再用项目内 Playwright 连接真实 Chrome 9222 CDP，优先通过 DOM、状态、class、按钮状态、store 状态和控制台错误做最小验证。
   3. 只有当修改涉及真实点击、拖拽、输入等交互时，才执行一条最短用户操作路径。
   4. 涉及 canvas、Konva、动画视觉、弹窗遮挡等视觉问题时，可补充截图或交给用户肉眼确认。
 - 可以根据需要编写 Playwright 脚本辅助验证，尤其适合重复流程、复杂流程、DOM 状态检查、console 检查和截图验证。
@@ -124,7 +168,7 @@ npm.cmd run check
 - 长期复用脚本命名需要规范且明确，建议包含功能域和验证目标，例如 `apply-animation-target-feedback.spec.ts`。
 - 长期复用脚本内部必须写清楚测试点、验证路径和关键断言，方便后续集中测试时快速理解用途。
 - 当前项目尚未开展完备测试，不要为了临时验证贸然引入完整测试框架；待开发接近尾声再统一规划全面测试。
-- Playwright 脚本可能启动自动化浏览器，不一定等同于用户当前 Chrome；需要真实 Chrome 视觉确认时，仍优先使用 Chrome 插件或让用户确认。
+- Playwright 脚本默认应通过 CDP 连接 9222 上的真实 Chrome；只有确实需要隔离环境时，才启动 Playwright 自带浏览器。
 
 ## 用户偏好
 
