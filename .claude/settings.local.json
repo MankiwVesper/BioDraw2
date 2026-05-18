@@ -43,7 +43,20 @@
       "Bash(sed -n '412,422p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)",
       "Bash(sed -n '664,675p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)",
       "Bash(sed -n '835,845p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)",
-      "Bash(sed -n '1537,1547p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)"
+      "Bash(sed -n '1537,1547p' /d/Projects/BioDraw2/biodraw/src/features/timeline-panel/TimelinePanel.css)",
+      "Bash(Get-Content \"D:\\\\Project\\\\BioDraw2\\\\biodraw\\\\src\\\\state\\\\editorStore.ts\")",
+      "Bash(Measure-Object -Line)",
+      "PowerShell(Get-Content *)",
+      "Skill(update-config)",
+      "PowerShell($PSVersionTable.PSVersion; $SHELL)",
+      "mcp__plugin_github_github__get_me",
+      "WebFetch(domain:www.nathanonn.com)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "mcp__plugin_playwright_playwright__browser_snapshot",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_drop",
+      "Skill(commit-commands:commit-push-pr)"
     ]
   }
 }

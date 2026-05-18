@@ -178,6 +178,14 @@ const buildZipBlob = (entries: Array<{ name: string; data: Uint8Array }>) => {
   return new Blob(blobParts, { type: 'application/zip' });
 };
 
+const makeUniqueName = (desired: string, existingNames: string[], sep: string): string => {
+  const taken = new Set(existingNames);
+  if (!taken.has(desired)) return desired;
+  let n = 2;
+  while (taken.has(`${desired}${sep}${n}`)) n += 1;
+  return `${desired}${sep}${n}`;
+};
+
 export function CanvasPanel() {
   type EditingTarget = 'text' | 'name';
 
@@ -771,7 +779,7 @@ export function CanvasPanel() {
       const newObj: SceneObject = {
         id: crypto.randomUUID(),
         type: data.type || 'material',
-        name: data.name,
+        name: makeUniqueName(data.name, objects.map((o) => o.name), ''),
         materialId: data.materialId,
         x: x,
         y: y,
@@ -1061,8 +1069,10 @@ export function CanvasPanel() {
   const commitTextChange = () => {
     if (editingTextId && textareaRef.current) {
       if (editingTarget === 'name') {
+        const trimmedName = editingValue.replace(/\r?\n/g, ' ').trim();
+        const otherNames = objects.filter((o) => o.id !== editingTextId).map((o) => o.name);
         updateSceneObject(editingTextId, {
-          name: editingValue.replace(/\r?\n/g, ' ').trim(),
+          name: makeUniqueName(trimmedName, otherNames, '_'),
         });
         setEditingTextId(null);
         setEditingTarget('text');
