@@ -81,7 +81,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       trRef.current.nodes([shapeRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected, isEditingText, sceneObject.type]);
+  }, [isSelected, isEditingText, sceneObject.locked, sceneObject.type]);
 
   useEffect(() => {
     if (!isApplyFlash) {
@@ -1285,6 +1285,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
 
   const shouldShowApplyFlash = isApplyFlash && applyFlashProgress < 1;
   const flashBox = shouldShowApplyFlash ? getApplyFlashBox() : null;
+  const lockedBox = isLocked ? getApplyFlashBox() : null;
   const flashOpacity = shouldShowApplyFlash
     ? Math.max(0, 1 - applyFlashProgress)
     : 0;
@@ -1329,6 +1330,31 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
             return newBox;
           }}
         />
+      )}
+      {lockedBox && (
+        <Group {...flashProps}>
+          {isSelected && !(isEditingText ?? isEditing) && (
+            <Rect
+              x={lockedBox.x - 3}
+              y={lockedBox.y - 3}
+              width={lockedBox.width + 6}
+              height={lockedBox.height + 6}
+              stroke="#f59e0b"
+              strokeWidth={2}
+              dash={[6, 3]}
+              fill="transparent"
+              cornerRadius={4}
+              listening={false}
+            />
+          )}
+          <Text
+            text="🔒"
+            x={lockedBox.x + lockedBox.width - 18}
+            y={lockedBox.y + 2}
+            fontSize={14}
+            listening={false}
+          />
+        </Group>
       )}
     </Group>
   );
