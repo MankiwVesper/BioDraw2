@@ -292,7 +292,7 @@
 
 .tl-dist-marker-count {
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 3px;
   font-size: 7px;
   font-weight: 700;
@@ -303,7 +303,7 @@
 
 .tl-dist-marker-clip-count {
   position: absolute;
-  bottom: 0;
+  top: 0;
   left: 3px;
   font-size: 7px;
   font-weight: 700;

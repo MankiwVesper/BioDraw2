@@ -417,6 +417,7 @@ const buildApplyTargetPreview = (
 export function TimelinePanel() {
   // ── 原有状态（保持不变）
   const [flashClipId, setFlashClipId] = useState<string | null>(null);
+  const [scrollToClipId, setScrollToClipId] = useState<string | null>(null);
   const [cursorSnapGuideMs, setCursorSnapGuideMs] = useState<number | null>(null);
   const [isCursorDragging, setIsCursorDragging] = useState(false);
   const [batchSelectedClipIds, setBatchSelectedClipIds] = useState<string[]>([]);
@@ -762,6 +763,7 @@ export function TimelinePanel() {
   const distHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countTextRef = useRef<HTMLSpanElement>(null);
   const [isCountTruncated, setIsCountTruncated] = useState(false);
+  const pendingDistJumpRef = useRef<{ objectId: string; timeMs: number } | null>(null);
 
   const scheduleHideDistPopup = useCallback(() => {
     if (distHideTimer.current) clearTimeout(distHideTimer.current);
@@ -809,6 +811,23 @@ export function TimelinePanel() {
     const el = countTextRef.current;
     if (el) setIsCountTruncated(el.scrollWidth > el.clientWidth);
   }, [distMarkers]);
+
+  // 分布轴弹窗点击跳转：selectObject 后等 selectedObject 更新再定位段和展开 clip
+  useEffect(() => {
+    const jump = pendingDistJumpRef.current;
+    if (!jump || !selectedObject || selectedObject.id !== jump.objectId) return;
+    pendingDistJumpRef.current = null;
+    const seg = effectiveSegments.find((s) => s.startMs <= jump.timeMs && s.endMs >= jump.timeMs);
+    if (!seg) return;
+    setSelectedSegmentIds([seg.id]);
+    const firstClip = animations.find(
+      (c) => c.objectId === selectedObject.id && c.segmentId === seg.id && c.startTimeMs === jump.timeMs,
+    );
+    if (firstClip) {
+      setExpandedClipIds((prev) => new Set(prev).add(firstClip.id));
+      setScrollToClipId(firstClip.id);
+    }
+  }, [selectedObject?.id, effectiveSegments, animations]);
 
   const selectedBatchClips = useMemo(
     () => selectedObjectClips.filter((c) => batchSelectedClipIdSet.has(c.id)),
@@ -1913,6 +1932,13 @@ export function TimelinePanel() {
   }, [flashClipId]);
 
   useEffect(() => {
+    if (!scrollToClipId) return;
+    const el = clipCardRefs.current.get(scrollToClipId);
+    if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    setScrollToClipId(null);
+  }, [scrollToClipId]);
+
+  useEffect(() => {
     setBatchSelectedClipIds((prev) => {
       if (prev.length === 0) return prev;
       const valid = new Set(selectedObjectClips.map((c) => c.id));
@@ -2299,12 +2325,8 @@ export function TimelinePanel() {
                   onMouseEnter={(e) => { cancelHideDistPopup(); openDistPopup(m.timeMs, e.currentTarget.parentElement as HTMLElement); }}
                   onMouseLeave={scheduleHideDistPopup}
                 />
-                {m.elements.length > 1 && (
-                  <span className="tl-dist-marker-count">{m.elements.length}</span>
-                )}
-                {m.clipCount > m.elements.length && (
-                  <span className="tl-dist-marker-clip-count">{m.clipCount}</span>
-                )}
+                <span className="tl-dist-marker-clip-count">{m.clipCount}</span>
+                <span className="tl-dist-marker-count">{m.elements.length}</span>
               </div>
             );
           })}
@@ -2350,7 +2372,26 @@ export function TimelinePanel() {
               <div
                 key={el.id}
                 className="tl-dist-popup-item"
-                onClick={() => { selectObject(el.id); setDistPopup(null); }}
+                onClick={() => {
+                  if (el.id === selectedObject?.id) {
+                    // 当前已选中该元素，直接定位段和展开 clip
+                    const seg = effectiveSegments.find((s) => s.startMs <= m.timeMs && s.endMs >= m.timeMs);
+                    if (seg) {
+                      setSelectedSegmentIds([seg.id]);
+                      const firstClip = animations.find(
+                        (c) => c.objectId === el.id && c.segmentId === seg.id && c.startTimeMs === m.timeMs,
+                      );
+                      if (firstClip) {
+                        setExpandedClipIds((prev) => new Set(prev).add(firstClip.id));
+                        setScrollToClipId(firstClip.id);
+                      }
+                    }
+                  } else {
+                    pendingDistJumpRef.current = { objectId: el.id, timeMs: m.timeMs };
+                    selectObject(el.id);
+                  }
+                  setDistPopup(null);
+                }}
               >
                 <span>{el.name}</span>
                 <span className="tl-dist-popup-clip-count">{el.clipCount} 个动画</span>
