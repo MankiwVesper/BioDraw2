@@ -414,12 +414,15 @@ const buildApplyTargetPreview = (
     : [];
 
   if (existingDomainLabels.length > 0) {
+    const existingDomainText = existingDomainLabels.length === CONFLICT_DOMAIN_ORDER.length
+      ? '全部类型'
+      : existingDomainLabels.join('/');
     return {
       objectId: targetObj.id,
       status: 'animation-conflict',
       statusLabel: segmentLabel,
-      detailText: `目标片段已有${existingDomainLabels.join('、')}动画`,
-      shortDetailText: `已有${existingDomainLabels.join('、')}动画`,
+      detailText: `目标片段已有${existingDomainText}动画`,
+      shortDetailText: `已有${existingDomainText}动画`,
       actionLabel: '动画冲突',
       canApply: false,
       existingDomainLabels,
@@ -2956,14 +2959,14 @@ export function TimelinePanel() {
                 {showCopyDialog && (
                   <div
                     style={{
-                    position: 'absolute', top: '100%', right: 0, width: 560, zIndex: 200,
+                    position: 'absolute', top: '100%', right: 0, width: 452, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: '8px',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
                     height: 188, display: 'flex', flexDirection: 'column', overflow: 'hidden',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6, flexShrink: 0 }}>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      <div style={{ fontSize: 12, color: 'var(--text-main)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                         选择目标对象（可选 {availableApplyTargetIds.length} / {objects.length - 1}）
                       </div>
                       <div style={{ display: 'flex', gap: 4 }}>
@@ -2976,7 +2979,7 @@ export function TimelinePanel() {
                             setApplyAnimationResultText('');
                             setCopyTargetIds(availableApplyTargetIds);
                           }}
-                          style={{ height: 20, width: 42, padding: 0, fontSize: 10 }}
+                          style={{ height: 20, width: 42, padding: 0, fontSize: 11 }}
                         >
                           全选
                         </button>
@@ -2988,32 +2991,35 @@ export function TimelinePanel() {
                             setApplyAnimationResultText('');
                             setCopyTargetIds([]);
                           }}
-                          style={{ height: 20, width: 42, padding: 0, fontSize: 10 }}
+                          style={{ height: 20, width: 42, padding: 0, fontSize: 11 }}
                         >
                           清空
                         </button>
                       </div>
                     </div>
-                    <div
-                      style={{
-                        display: 'grid',
-                        gridTemplateColumns: '200px 78px minmax(120px,1fr) 72px',
-                        gap: 8,
-                        alignItems: 'center',
-                        height: 16,
-                        marginBottom: 2,
-                        padding: '0 4px',
-                        color: 'var(--text-muted)',
-                        fontSize: 10,
-                        flexShrink: 0,
-                      }}
-                    >
-                      <span>目标对象</span>
-                      <span>片段处理</span>
-                      <span>已有动画/限制</span>
-                      <span>状态</span>
-                    </div>
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
+                    <div style={{ flex: 1, minHeight: 0, padding: '4px 0', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column' }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: '132px 64px 162px 52px',
+                          gap: 4,
+                          alignItems: 'center',
+                          height: 16,
+                          marginBottom: 2,
+                          padding: '0 4px',
+                          color: 'var(--text-main)',
+                          opacity: 0.88,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <span>目标对象</span>
+                        <span style={{ textAlign: 'center' }}>片段处理</span>
+                        <span style={{ textAlign: 'center' }}>已有动画/限制</span>
+                        <span style={{ textAlign: 'center' }}>状态</span>
+                      </div>
+                      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
                       {objects.filter((o) => o.id !== selectedObject.id).map((o) => {
                         const preview = applyTargetPreviewById.get(o.id);
                         const canApply = preview?.canApply ?? false;
@@ -3028,16 +3034,16 @@ export function TimelinePanel() {
                             key={o.id}
                             style={{
                               display: 'grid',
-                              gridTemplateColumns: '200px 78px minmax(120px,1fr) 72px',
+                              gridTemplateColumns: '132px 64px 162px 52px',
                               alignItems: 'center',
-                              gap: 8,
+                              gap: 4,
                               cursor: canApply ? 'pointer' : 'not-allowed',
                               padding: '3px 4px',
                               borderRadius: 6,
                               fontSize: 11,
                               minHeight: 26,
                               flexShrink: 0,
-                              opacity: canApply ? 1 : 0.45,
+                              opacity: canApply ? 1 : 0.58,
                             }}
                             data-tooltip={preview?.detailText ?? '不可套用'}
                             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
@@ -3064,12 +3070,12 @@ export function TimelinePanel() {
                             <TruncatedTooltipText
                               text={preview?.statusLabel ?? '不可用'}
                               tooltip={preview?.statusLabel ?? '不可用'}
-                              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: 10 }}
+                              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)', textAlign: 'center' }}
                             />
                             <TruncatedTooltipText
                               text={preview?.shortDetailText ?? '不可套用'}
                               tooltip={preview?.detailText ?? '不可套用'}
-                              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: 10 }}
+                              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-main)', textAlign: 'center' }}
                             />
                             <span style={{
                               color: badgeColor,
@@ -3077,19 +3083,24 @@ export function TimelinePanel() {
                               background: hexAlpha(badgeColor, 0.1),
                               borderRadius: 4,
                               padding: '1px 4px',
-                              fontSize: 10,
+                              fontSize: 11,
                               lineHeight: 1.3,
                               whiteSpace: 'nowrap',
                               textAlign: 'center',
+                              width: 52,
+                              justifySelf: 'center',
                             }}>
                               {preview?.actionLabel ?? '不可用'}
                             </span>
                           </label>
                         );
                       })}
+                      </div>
                     </div>
                     <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                      <div
+                      <TruncatedTooltipText
+                        text={applyAnimationResultText}
+                        tooltip={applyAnimationResultText}
                         style={{
                           flex: 1,
                           minWidth: 0,
@@ -3100,10 +3111,7 @@ export function TimelinePanel() {
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                         }}
-                        data-tooltip={applyAnimationResultText || undefined}
-                      >
-                        {applyAnimationResultText}
-                      </div>
+                      />
                       <button
                         disabled={copyTargetIds.length === 0}
                         onClick={() => {
