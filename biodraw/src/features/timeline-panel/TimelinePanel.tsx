@@ -961,6 +961,15 @@ export function TimelinePanel() {
     [applyTargetPreviews],
   );
 
+  useEffect(() => {
+    if (!showCopyDialog) return;
+    const availableTargetIdSet = new Set(availableApplyTargetIds);
+    setCopyTargetIds((prev) => {
+      const next = prev.filter((id) => availableTargetIdSet.has(id));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [showCopyDialog, availableApplyTargetIds]);
+
   // ── 吸附辅助
   const getSnapCandidates = (activeClipId: string) => {
     const dragged = animations.find((c) => c.id === activeClipId);
