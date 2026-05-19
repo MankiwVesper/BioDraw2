@@ -496,6 +496,8 @@ export function TimelinePanel() {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [addMenuTab, setAddMenuTab] = useState<'basic' | 'template'>('basic');
   const [showBatchPanel, setShowBatchPanel] = useState(false);
+  const [showBatchDeletePanel, setShowBatchDeletePanel] = useState(false);
+  const [batchDeleteSelectedIds, setBatchDeleteSelectedIds] = useState<string[]>([]);
   const [showCopyDialog, setShowCopyDialog] = useState(false);
   const [copyTargetIds, setCopyTargetIds] = useState<string[]>([]);
   const [applyAnimationResultText, setApplyAnimationResultText] = useState('');
@@ -545,6 +547,7 @@ export function TimelinePanel() {
   const addMenuRef = useRef<HTMLDivElement>(null);
   const copyDialogRef = useRef<HTMLDivElement>(null);
   const batchPanelRef = useRef<HTMLDivElement>(null);
+  const batchDeletePanelRef = useRef<HTMLDivElement>(null);
   const batchEasingDropRef = useRef<HTMLDivElement>(null);
   const batchStateDropRef = useRef<HTMLDivElement>(null);
   const clipDragHappenedRef = useRef(false);
@@ -563,6 +566,7 @@ export function TimelinePanel() {
   const addAnimationClip = useEditorStore((s) => s.addAnimationClip);
   const updateAnimationClip = useEditorStore((s) => s.updateAnimationClip);
   const removeAnimationClip = useEditorStore((s) => s.removeAnimationClip);
+  const removeAnimationClips = useEditorStore((s) => s.removeAnimationClips);
   const setExpandedAnimationClipIds = useEditorStore((s) => s.setExpandedAnimationClipIds);
   const canvasDrawingMode    = useEditorStore((s) => s.canvasDrawingMode);
   const setCanvasDrawingMode = useEditorStore((s) => s.setCanvasDrawingMode);
@@ -664,9 +668,11 @@ export function TimelinePanel() {
 
   useEffect(() => {
     setSelectedSegmentIds((prev) => {
-      if (prev.length === 0) return prev;
       const valid = new Set(effectiveSegments.map((s) => s.id));
       const filtered = prev.filter((id) => valid.has(id));
+      if (filtered.length === 0 && effectiveSegments.length > 0) {
+        return [effectiveSegments[0].id];
+      }
       return filtered.length === prev.length ? prev : filtered;
     });
   }, [effectiveSegments]);
@@ -2147,6 +2153,18 @@ export function TimelinePanel() {
     return () => window.removeEventListener('mousedown', handler);
   }, [showBatchPanel]);
 
+  // 关闭批量删除弹窗（点击外部）
+  useEffect(() => {
+    if (!showBatchDeletePanel) return;
+    const handler = (e: MouseEvent) => {
+      if (batchDeletePanelRef.current && !batchDeletePanelRef.current.contains(e.target as Node)) {
+        setShowBatchDeletePanel(false);
+      }
+    };
+    window.addEventListener('mousedown', handler);
+    return () => window.removeEventListener('mousedown', handler);
+  }, [showBatchDeletePanel]);
+
   // 关闭"增加片段"弹窗（点击外部）
   useEffect(() => {
     if (!showAddSegmentDialog) return;
@@ -2810,6 +2828,81 @@ export function TimelinePanel() {
               >
                 动画排序
               </button>
+              <div style={{ position: 'relative', height: 20, display: 'flex', alignItems: 'center' }} ref={batchDeletePanelRef}>
+                <button
+                  className={`tl-btn${showBatchDeletePanel ? ' is-active' : ''}`}
+                  onClick={() => {
+                    setBatchDeleteSelectedIds(segmentScopedClips.map((c) => c.id));
+                    setShowBatchDeletePanel((p) => !p);
+                  }}
+                  disabled={selectedSegmentIds.length !== 1 || segmentScopedClips.length === 0}
+                  data-tooltip={
+                    selectedSegmentIds.length === 0 ? '请先选中一个时间片段' :
+                    selectedSegmentIds.length > 1 ? '选中多片段时不可用，请只选中一个' :
+                    segmentScopedClips.length === 0 ? '当前片段没有可删除的动画' :
+                    '批量删除当前片段内的动画'
+                  }
+                >
+                  批量删除
+                </button>
+                {showBatchDeletePanel && (
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, zIndex: 200,
+                    background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
+                    borderRadius: 6, padding: 8, width: 156,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                    display: 'flex', flexDirection: 'column', gap: 4, boxSizing: 'border-box',
+                  }}>
+                    <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                      <button className="tl-btn tl-btn-sm" style={{ flex: 1 }} onClick={() => setBatchDeleteSelectedIds(segmentScopedClips.map((c) => c.id))}>全选</button>
+                      <button className="tl-btn tl-btn-sm" style={{ flex: 1 }} onClick={() => setBatchDeleteSelectedIds([])}>清空</button>
+                    </div>
+                    <div style={{ borderTop: '1px solid var(--border-color)' }} />
+                    <div className="tl-batch-clip-list" style={{ flex: 1, maxHeight: 160, minHeight: 0 }}>
+                      {segmentScopedClips.map((clip) => {
+                        const isSel = batchDeleteSelectedIds.includes(clip.id);
+                        return (
+                          <div
+                            key={clip.id}
+                            className={`tl-batch-clip-item${isSel ? ' is-selected' : ''}`}
+                            onClick={() => setBatchDeleteSelectedIds((prev) =>
+                              isSel ? prev.filter((id) => id !== clip.id) : [...prev, clip.id]
+                            )}
+                          >
+                            <input
+                              type="checkbox" checked={isSel} onChange={() => {}}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ margin: 0, cursor: 'pointer', flexShrink: 0 }}
+                            />
+                            <span className={`tl-type-dot tl-type-${clip.type}`} />
+                            <span style={{ flex: 1, fontSize: 11, color: 'var(--text-main)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {clipDisplayLabels.get(clip.id) ?? getClipTypeLabel(clip.type)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <button
+                      disabled={batchDeleteSelectedIds.length === 0}
+                      onClick={() => {
+                        ensurePausedForEdit();
+                        removeAnimationClips(batchDeleteSelectedIds);
+                        setShowBatchDeletePanel(false);
+                      }}
+                      style={{
+                        width: '100%', height: 26,
+                        background: batchDeleteSelectedIds.length === 0 ? 'var(--bg-color)' : '#ef4444',
+                        color: batchDeleteSelectedIds.length === 0 ? 'var(--text-muted)' : '#fff',
+                        border: batchDeleteSelectedIds.length === 0 ? '1px solid var(--border-color)' : 'none',
+                        borderRadius: 5, cursor: batchDeleteSelectedIds.length === 0 ? 'not-allowed' : 'pointer',
+                        fontSize: 11, fontWeight: 600,
+                      }}
+                    >
+                      删除{batchDeleteSelectedIds.length > 0 ? `（${batchDeleteSelectedIds.length}）` : ''}
+                    </button>
+                  </div>
+                )}
+              </div>
               <div className="tl-zoom-row-right-btns">
               <div style={{ position: 'relative' }} ref={batchPanelRef}>
                 <button
