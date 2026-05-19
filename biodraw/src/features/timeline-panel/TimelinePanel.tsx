@@ -276,7 +276,7 @@ const sortConflictDomains = (domains: string[]) =>
     return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
   });
 
-type ApplyTargetStatus = 'reuse-exact' | 'reuse-containing' | 'create' | 'conflict';
+type ApplyTargetStatus = 'reuse-exact' | 'reuse-containing' | 'create' | 'conflict' | 'animation-conflict' | 'locked';
 
 type ApplyTargetPreview = {
   objectId: string;
@@ -284,6 +284,7 @@ type ApplyTargetPreview = {
   statusLabel: string;
   detailText: string;
   shortDetailText: string;
+  actionLabel: string;
   canApply: boolean;
   existingDomainLabels: string[];
 };
@@ -355,13 +356,42 @@ const buildApplyTargetPreview = (
     (seg) => Math.max(seg.startMs, sourceSegment.startMs) < Math.min(seg.endMs, sourceSegment.endMs),
   );
 
-  if (!containing && hasPartialOverlap) {
+  const segmentStatus: ApplyTargetStatus = !containing && hasPartialOverlap
+    ? 'conflict'
+    : exact
+      ? 'reuse-exact'
+      : containing
+        ? 'reuse-containing'
+        : 'create';
+  const segmentLabel = segmentStatus === 'reuse-exact'
+    ? '复用片段'
+    : segmentStatus === 'reuse-containing'
+      ? '套入片段'
+      : segmentStatus === 'create'
+        ? '新建片段'
+        : '时间冲突';
+
+  if (targetObj.locked) {
+    return {
+      objectId: targetObj.id,
+      status: 'locked',
+      statusLabel: segmentLabel,
+      detailText: '元素已锁定，不能套用动画',
+      shortDetailText: '元素已锁定',
+      actionLabel: '不可套用',
+      canApply: false,
+      existingDomainLabels: [],
+    };
+  }
+
+  if (segmentStatus === 'conflict') {
     return {
       objectId: targetObj.id,
       status: 'conflict',
-      statusLabel: '时间冲突',
+      statusLabel: segmentLabel,
       detailText: '目标片段与源片段部分重叠',
-      shortDetailText: '片段冲突',
+      shortDetailText: '片段部分重叠',
+      actionLabel: '时间冲突',
       canApply: false,
       existingDomainLabels: [],
     };
@@ -373,40 +403,40 @@ const buildApplyTargetPreview = (
     ? sortConflictDomains([
       ...new Set(
         allClips
-          .filter((clip) => clip.objectId === targetObj.id && clip.segmentId === targetSegment.id)
+          .filter((clip) => clip.objectId === targetObj.id && (
+            clip.segmentId === targetSegment.id
+            || (targetSegment.id === '__virtual__' && clip.segmentId === undefined)
+          ))
           .map((clip) => getConflictDomain(clip.type))
           .filter((domain) => sourceDomains.has(domain)),
       ),
     ]).map(getConflictDomainLabel)
     : [];
 
-  const status: ApplyTargetStatus = exact
-    ? 'reuse-exact'
-    : containing
-      ? 'reuse-containing'
-      : 'create';
-  const statusLabel = status === 'reuse-exact'
-    ? '复用片段'
-    : status === 'reuse-containing'
-      ? '套入片段'
-      : '新建片段';
-  const detailText = existingDomainLabels.length > 0
-    ? `已有${existingDomainLabels.join('、')}动画`
-    : status === 'create'
+  if (existingDomainLabels.length > 0) {
+    return {
+      objectId: targetObj.id,
+      status: 'animation-conflict',
+      statusLabel: segmentLabel,
+      detailText: `目标片段已有${existingDomainLabels.join('、')}动画`,
+      shortDetailText: `已有${existingDomainLabels.join('、')}动画`,
+      actionLabel: '动画冲突',
+      canApply: false,
+      existingDomainLabels,
+    };
+  }
+
+  const detailText = segmentStatus === 'create'
       ? '将创建同时间片段'
-      : '可直接套用';
-  const shortDetailText = existingDomainLabels.length > 0
-    ? `已有${existingDomainLabels.join('、')}动画`
-    : status === 'create'
-      ? '新建片段'
       : '可直接套用';
 
   return {
     objectId: targetObj.id,
-    status,
-    statusLabel,
+    status: segmentStatus,
+    statusLabel: segmentLabel,
     detailText,
-    shortDetailText,
+    shortDetailText: '无冲突',
+    actionLabel: '可套用',
     canApply: true,
     existingDomainLabels,
   };
@@ -2926,7 +2956,7 @@ export function TimelinePanel() {
                 {showCopyDialog && (
                   <div
                     style={{
-                    position: 'absolute', top: '100%', right: 0, width: 237, zIndex: 200,
+                    position: 'absolute', top: '100%', right: 0, width: 560, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: '8px',
                     boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
@@ -2934,7 +2964,7 @@ export function TimelinePanel() {
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6, flexShrink: 0 }}>
                       <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                        选择目标对象
+                        选择目标对象（可选 {availableApplyTargetIds.length} / {objects.length - 1}）
                       </div>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button
@@ -2964,12 +2994,31 @@ export function TimelinePanel() {
                         </button>
                       </div>
                     </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '200px 78px minmax(120px,1fr) 72px',
+                        gap: 8,
+                        alignItems: 'center',
+                        height: 16,
+                        marginBottom: 2,
+                        padding: '0 4px',
+                        color: 'var(--text-muted)',
+                        fontSize: 10,
+                        flexShrink: 0,
+                      }}
+                    >
+                      <span>目标对象</span>
+                      <span>片段处理</span>
+                      <span>已有动画/限制</span>
+                      <span>状态</span>
+                    </div>
                     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, minHeight: 0 }}>
                       {objects.filter((o) => o.id !== selectedObject.id).map((o) => {
                         const preview = applyTargetPreviewById.get(o.id);
                         const canApply = preview?.canApply ?? false;
                         const isChecked = copyTargetIds.includes(o.id);
-                        const badgeColor = preview?.status === 'conflict'
+                        const badgeColor = preview?.status === 'conflict' || preview?.status === 'animation-conflict' || preview?.status === 'locked'
                           ? '#ef4444'
                           : preview?.status === 'create'
                             ? '#2563eb'
@@ -2979,17 +3028,18 @@ export function TimelinePanel() {
                             key={o.id}
                             style={{
                               display: 'grid',
-                              gridTemplateColumns: 'minmax(72px,1fr) minmax(68px,76px) auto',
+                              gridTemplateColumns: '200px 78px minmax(120px,1fr) 72px',
                               alignItems: 'center',
-                              gap: 4,
+                              gap: 8,
                               cursor: canApply ? 'pointer' : 'not-allowed',
                               padding: '3px 4px',
                               borderRadius: 6,
-                              fontSize: 12,
-                              minHeight: 28,
+                              fontSize: 11,
+                              minHeight: 26,
                               flexShrink: 0,
-                              opacity: canApply ? 1 : 0.48,
+                              opacity: canApply ? 1 : 0.45,
                             }}
+                            data-tooltip={preview?.detailText ?? '不可套用'}
                             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-color)'; }}
                             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                           >
@@ -3012,6 +3062,11 @@ export function TimelinePanel() {
                               />
                             </span>
                             <TruncatedTooltipText
+                              text={preview?.statusLabel ?? '不可用'}
+                              tooltip={preview?.statusLabel ?? '不可用'}
+                              style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: 10 }}
+                            />
+                            <TruncatedTooltipText
                               text={preview?.shortDetailText ?? '不可套用'}
                               tooltip={preview?.detailText ?? '不可套用'}
                               style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-muted)', fontSize: 10 }}
@@ -3025,8 +3080,9 @@ export function TimelinePanel() {
                               fontSize: 10,
                               lineHeight: 1.3,
                               whiteSpace: 'nowrap',
+                              textAlign: 'center',
                             }}>
-                              {preview?.statusLabel ?? '不可用'}
+                              {preview?.actionLabel ?? '不可用'}
                             </span>
                           </label>
                         );
