@@ -379,6 +379,15 @@
   pointer-events: none;
 }
 
+.tl-dist-popup-clip-detail--clickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.tl-dist-popup-clip-detail--clickable:hover {
+  color: var(--primary-color, #3b82f6);
+}
+
 .tl-dist-popup-clip-type {
   flex: 1;
 }

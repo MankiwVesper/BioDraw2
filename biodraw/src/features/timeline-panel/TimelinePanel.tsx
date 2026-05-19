@@ -796,7 +796,7 @@ export function TimelinePanel() {
   const distHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countTextRef = useRef<HTMLSpanElement>(null);
   const [isCountTruncated, setIsCountTruncated] = useState(false);
-  const pendingDistJumpRef = useRef<{ objectId: string; timeMs: number } | null>(null);
+  const pendingDistJumpRef = useRef<{ objectId: string; timeMs: number; clipId?: string } | null>(null);
 
   const scheduleHideDistPopup = useCallback(() => {
     if (distHideTimer.current) clearTimeout(distHideTimer.current);
@@ -853,12 +853,12 @@ export function TimelinePanel() {
     const seg = effectiveSegments.find((s) => s.startMs <= jump.timeMs && s.endMs >= jump.timeMs);
     if (!seg) return;
     setSelectedSegmentIds([seg.id]);
-    const firstClip = animations.find(
-      (c) => c.objectId === selectedObject.id && c.segmentId === seg.id && c.startTimeMs === jump.timeMs,
-    );
-    if (firstClip) {
-      setExpandedClipIds((prev) => new Set(prev).add(firstClip.id));
-      setScrollToClipId(firstClip.id);
+    const targetClip = jump.clipId
+      ? animations.find((c) => c.id === jump.clipId)
+      : animations.find((c) => c.objectId === selectedObject.id && c.segmentId === seg.id && c.startTimeMs === jump.timeMs);
+    if (targetClip) {
+      setExpandedClipIds((prev) => new Set(prev).add(targetClip.id));
+      setScrollToClipId(targetClip.id);
     }
   }, [selectedObject?.id, effectiveSegments, animations]);
 
@@ -2414,35 +2414,37 @@ export function TimelinePanel() {
               const elClips = animations.filter(
                 (c) => c.objectId === el.id && c.startTimeMs === m.timeMs,
               );
+              const handleJump = (clipId?: string) => {
+                if (el.id === selectedObject?.id) {
+                  const seg = effectiveSegments.find((s) => s.startMs <= m.timeMs && s.endMs >= m.timeMs);
+                  if (seg) {
+                    setSelectedSegmentIds([seg.id]);
+                    const target = clipId
+                      ? animations.find((c) => c.id === clipId)
+                      : animations.find((c) => c.objectId === el.id && c.segmentId === seg.id && c.startTimeMs === m.timeMs);
+                    if (target) {
+                      setExpandedClipIds((prev) => new Set(prev).add(target.id));
+                      setScrollToClipId(target.id);
+                    }
+                  }
+                } else {
+                  pendingDistJumpRef.current = { objectId: el.id, timeMs: m.timeMs, clipId };
+                  selectObject(el.id);
+                }
+                setDistPopup(null);
+              };
               return (
                 <div key={el.id}>
-                  <div
-                    className="tl-dist-popup-item"
-                    onClick={() => {
-                      if (el.id === selectedObject?.id) {
-                        const seg = effectiveSegments.find((s) => s.startMs <= m.timeMs && s.endMs >= m.timeMs);
-                        if (seg) {
-                          setSelectedSegmentIds([seg.id]);
-                          const firstClip = animations.find(
-                            (c) => c.objectId === el.id && c.segmentId === seg.id && c.startTimeMs === m.timeMs,
-                          );
-                          if (firstClip) {
-                            setExpandedClipIds((prev) => new Set(prev).add(firstClip.id));
-                            setScrollToClipId(firstClip.id);
-                          }
-                        }
-                      } else {
-                        pendingDistJumpRef.current = { objectId: el.id, timeMs: m.timeMs };
-                        selectObject(el.id);
-                      }
-                      setDistPopup(null);
-                    }}
-                  >
+                  <div className="tl-dist-popup-item" onClick={() => handleJump()}>
                     <span>{el.name}</span>
                     <span className="tl-dist-popup-clip-count">{el.clipCount} 个动画</span>
                   </div>
                   {elClips.map((clip) => (
-                    <div key={clip.id} className="tl-dist-popup-clip-detail">
+                    <div
+                      key={clip.id}
+                      className="tl-dist-popup-clip-detail tl-dist-popup-clip-detail--clickable"
+                      onClick={() => handleJump(clip.id)}
+                    >
                       <span className={`tl-type-dot tl-type-${clip.type}`} />
                       <span className="tl-dist-popup-clip-type">{getClipTypeLabel(clip.type)}</span>
                       <span className="tl-dist-popup-clip-duration">{(clip.durationMs / 1000).toFixed(3)}s</span>
