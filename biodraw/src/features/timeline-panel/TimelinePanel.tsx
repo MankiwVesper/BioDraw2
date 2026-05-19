@@ -2410,35 +2410,47 @@ export function TimelinePanel() {
             onMouseLeave={scheduleHideDistPopup}
           >
             <div className="tl-dist-popup-time">{(m.timeMs / 1000).toFixed(2)}s</div>
-            {m.elements.map((el) => (
-              <div
-                key={el.id}
-                className="tl-dist-popup-item"
-                onClick={() => {
-                  if (el.id === selectedObject?.id) {
-                    // 当前已选中该元素，直接定位段和展开 clip
-                    const seg = effectiveSegments.find((s) => s.startMs <= m.timeMs && s.endMs >= m.timeMs);
-                    if (seg) {
-                      setSelectedSegmentIds([seg.id]);
-                      const firstClip = animations.find(
-                        (c) => c.objectId === el.id && c.segmentId === seg.id && c.startTimeMs === m.timeMs,
-                      );
-                      if (firstClip) {
-                        setExpandedClipIds((prev) => new Set(prev).add(firstClip.id));
-                        setScrollToClipId(firstClip.id);
+            {m.elements.map((el) => {
+              const elClips = animations.filter(
+                (c) => c.objectId === el.id && c.startTimeMs === m.timeMs,
+              );
+              return (
+                <div key={el.id}>
+                  <div
+                    className="tl-dist-popup-item"
+                    onClick={() => {
+                      if (el.id === selectedObject?.id) {
+                        const seg = effectiveSegments.find((s) => s.startMs <= m.timeMs && s.endMs >= m.timeMs);
+                        if (seg) {
+                          setSelectedSegmentIds([seg.id]);
+                          const firstClip = animations.find(
+                            (c) => c.objectId === el.id && c.segmentId === seg.id && c.startTimeMs === m.timeMs,
+                          );
+                          if (firstClip) {
+                            setExpandedClipIds((prev) => new Set(prev).add(firstClip.id));
+                            setScrollToClipId(firstClip.id);
+                          }
+                        }
+                      } else {
+                        pendingDistJumpRef.current = { objectId: el.id, timeMs: m.timeMs };
+                        selectObject(el.id);
                       }
-                    }
-                  } else {
-                    pendingDistJumpRef.current = { objectId: el.id, timeMs: m.timeMs };
-                    selectObject(el.id);
-                  }
-                  setDistPopup(null);
-                }}
-              >
-                <span>{el.name}</span>
-                <span className="tl-dist-popup-clip-count">{el.clipCount} 个动画</span>
-              </div>
-            ))}
+                      setDistPopup(null);
+                    }}
+                  >
+                    <span>{el.name}</span>
+                    <span className="tl-dist-popup-clip-count">{el.clipCount} 个动画</span>
+                  </div>
+                  {elClips.map((clip) => (
+                    <div key={clip.id} className="tl-dist-popup-clip-detail">
+                      <span className={`tl-type-dot tl-type-${clip.type}`} />
+                      <span className="tl-dist-popup-clip-type">{getClipTypeLabel(clip.type)}</span>
+                      <span className="tl-dist-popup-clip-duration">{(clip.durationMs / 1000).toFixed(3)}s</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>,
           document.body,
         );

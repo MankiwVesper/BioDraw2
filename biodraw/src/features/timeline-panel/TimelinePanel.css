@@ -369,6 +369,25 @@
   flex-shrink: 0;
 }
 
+.tl-dist-popup-clip-detail {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 0 1px 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.tl-dist-popup-clip-type {
+  flex: 1;
+}
+
+.tl-dist-popup-clip-duration {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 /* 右列元素计数 */
 .tl-dist-count {
   justify-self: stretch;
