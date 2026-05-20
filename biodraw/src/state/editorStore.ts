@@ -674,6 +674,7 @@ export const useEditorStore = create<EditorState>()(
         state.objects = state.objects.map((o) =>
           o.groupId === groupId ? { ...o, groupId: undefined } : o,
         );
+        state.selectedIds = [];
       }),
 
     selectSceneObjects: (ids) =>
@@ -1181,6 +1182,7 @@ export const useEditorStore = create<EditorState>()(
           x: src.x + 20,
           y: src.y + 20,
           animationIds: [],
+          groupId: undefined,
           // 段集合需要重新分配 id（避免与源对象段 id 冲突，便于后续归属判断）
           appearSegments: (src.appearSegments ?? []).map((s) => ({
             ...s,

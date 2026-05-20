@@ -300,6 +300,34 @@ export function CanvasPanel() {
       .map((o) => ({ ...o, opacity: (o.opacity ?? 1) * 0.35 }));
   }, [focusMode, currentTimeMs, previewObjects, objects]);
 
+  // 组合整体包围框：所有选中对象共享同一 groupId 时计算旋转感知的 AABB
+  // sceneObject.x/y 是中心点坐标，形状在 Group 内以 (-w/2, -h/2) 为起点
+  const groupSelectionBox = useMemo(() => {
+    if (selectedIds.length < 2) return null;
+    const sel = objects.filter((o) => selectedIds.includes(o.id));
+    const gid = sel[0]?.groupId;
+    if (!gid || !sel.every((o) => o.groupId === gid)) return null;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const o of sel) {
+      const hw = (o.width * (o.scaleX ?? 1)) / 2;
+      const hh = (o.height * (o.scaleY ?? 1)) / 2;
+      const rad = ((o.rotation ?? 0) * Math.PI) / 180;
+      const cos = Math.cos(rad);
+      const sin = Math.sin(rad);
+      for (const [lx, ly] of [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]] as const) {
+        const cx = o.x + lx * cos - ly * sin;
+        const cy = o.y + lx * sin + ly * cos;
+        minX = Math.min(minX, cx);
+        minY = Math.min(minY, cy);
+        maxX = Math.max(maxX, cx);
+        maxY = Math.max(maxY, cy);
+      }
+    }
+    const dx = groupDragOffset?.dx ?? 0;
+    const dy = groupDragOffset?.dy ?? 0;
+    return { x: minX - 4 + dx, y: minY - 4 + dy, width: maxX - minX + 8, height: maxY - minY + 8 };
+  }, [selectedIds, objects, groupDragOffset]);
+
   const isSequenceExportRunning = sequenceExportStatus === 'running';
   const isVideoExportRunning = videoExportStatus === 'running';
   const isAnyExportRunning = isSequenceExportRunning || isVideoExportRunning;
@@ -341,64 +369,6 @@ export function CanvasPanel() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable) {
-        return;
-      }
-
-      if (e.key === 'z' && (e.ctrlKey || e.metaKey) && !e.shiftKey) {
-        e.preventDefault();
-        undo();
-        return;
-      }
-      if (e.key === 'y' && (e.ctrlKey || e.metaKey)) {
-        e.preventDefault();
-        redo();
-        return;
-      }
-
-      if (selectedIds.length === 0) return;
-
-      const step = e.shiftKey ? 10 : 1;
-      let dx = 0, dy = 0;
-      if (e.key === 'ArrowUp') { e.preventDefault(); dy = -step; }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); dy = step; }
-      else if (e.key === 'ArrowLeft') { e.preventDefault(); dx = -step; }
-      else if (e.key === 'ArrowRight') { e.preventDefault(); dx = step; }
-
-      if (dx !== 0 || dy !== 0) {
-        const moves = selectedIds
-          .map((sid) => objects.find((o) => o.id === sid))
-          .filter(Boolean)
-          .filter((obj) => !obj!.locked)
-          .map((obj) => ({ id: obj!.id, x: obj!.x + dx, y: obj!.y + dy }));
-        if (moves.length === 1) {
-          updateSceneObject(moves[0].id, { x: moves[0].x, y: moves[0].y });
-        } else if (moves.length > 1) {
-          moveMultipleSceneObjects(moves);
-        }
-        return;
-      }
-
-      if (e.key === 'Backspace' || e.key === 'Delete') {
-        e.preventDefault();
-        const deletableIds = selectedIds.filter((sid) => {
-          const obj = objects.find((o) => o.id === sid);
-          return obj && !obj.locked;
-        });
-        if (deletableIds.length > 1) {
-          removeSceneObjects(deletableIds);
-        } else if (deletableIds.length === 1) {
-          removeSceneObject(deletableIds[0]);
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedIds, objects, removeSceneObject, removeSceneObjects, updateSceneObject, moveMultipleSceneObjects, undo, redo]);
   // Space key toggles temporary pan mode.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -1175,6 +1145,7 @@ export function CanvasPanel() {
                   key={obj.id}
                   sceneObject={obj}
                   isSelected={!isAnyExportRunning && selectedIds.includes(obj.id)}
+                  isGroupSelected={!!groupSelectionBox && selectedIds.includes(obj.id)}
                   onEditStart={handleEditStart}
                   isEditing={editingTextId === obj.id}
                   isEditingText={editingTextId === obj.id && editingTarget === 'text'}
@@ -1196,6 +1167,7 @@ export function CanvasPanel() {
                     key={obj.id}
                     sceneObject={obj}
                     isSelected={isSelected}
+                    isGroupSelected={!!groupSelectionBox && isSelected}
                     onEditStart={handleEditStart}
                     isEditing={editingTextId === obj.id}
                     isEditingText={editingTextId === obj.id && editingTarget === 'text'}
@@ -1210,6 +1182,19 @@ export function CanvasPanel() {
                   />
                 );
               })}
+              {groupSelectionBox && !isAnyExportRunning && (
+                <Rect
+                  x={groupSelectionBox.x}
+                  y={groupSelectionBox.y}
+                  width={groupSelectionBox.width}
+                  height={groupSelectionBox.height}
+                  stroke="#3b82f6"
+                  strokeWidth={1.5 / stageScale}
+                  dash={[6 / stageScale, 3 / stageScale]}
+                  fill="transparent"
+                  listening={false}
+                />
+              )}
             </Layer>
             {/* 参考线层 */}
             {snapLines.length > 0 && (

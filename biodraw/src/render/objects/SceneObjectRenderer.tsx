@@ -23,10 +23,12 @@ interface Props {
   onDragStop?: () => void;
   /** When true, automatically focus the name label for editing (used on first drop) */
   autoFocusName?: boolean;
-  /** 短暂显示“套用动画成功”的画布反馈效果 */
+  /** 短暂显示”套用动画成功”的画布反馈效果 */
   isApplyFlash?: boolean;
   /** 每次触发套用反馈时递增，用于同一对象连续触发时重新播放 */
   applyFlashKey?: number;
+  /** 作为分组整体被选中时为 true；此时隐藏各自的 Transformer，由 CanvasPanel 渲染统一包围框 */
+  isGroupSelected?: boolean;
 }
 
 const APPLY_ANIMATION_FLASH_DURATION_MS = 3000;
@@ -48,7 +50,7 @@ const toVerticalText = (value: string) =>
     .map((line) => line.split('').join('\n'))
     .join('\n\n');
 
-export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, isEditingText, xOverride, yOverride, onDragStart, onDragMove, onDragStop, autoFocusName, isApplyFlash = false, applyFlashKey = 0 }: Props) {
+export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, isEditingText, xOverride, yOverride, onDragStart, onDragMove, onDragStop, autoFocusName, isApplyFlash = false, applyFlashKey = 0, isGroupSelected = false }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
   const materialNameRef = useRef<Konva.Text>(null);
@@ -1315,7 +1317,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           />
         </Group>
       )}
-      {isSelected && !(isEditingText ?? isEditing) && !isLocked && (
+      {isSelected && !isGroupSelected && !(isEditingText ?? isEditing) && !isLocked && (
         <Transformer
           ref={trRef}
           keepRatio={isRatioLocked}

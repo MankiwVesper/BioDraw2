@@ -70,10 +70,11 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Delete / Backspace：删除所有选中对象
+      // Delete / Backspace：删除所有选中对象（跳过锁定对象）
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedAll.length > 0) {
         e.preventDefault();
-        removeSceneObjects(selectedAll);
+        const deletable = selectedAll.filter((id) => !objectsRef.current.find((o) => o.id === id)?.locked);
+        if (deletable.length > 0) removeSceneObjects(deletable);
         return;
       }
 
@@ -124,6 +125,7 @@ export function useEditorKeyboard() {
             x: src.x + 20,
             y: src.y + 20,
             animationIds: [],
+            groupId: undefined,
           };
           addSceneObject(newObj);
         });
