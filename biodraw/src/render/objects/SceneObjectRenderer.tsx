@@ -29,6 +29,10 @@ interface Props {
   applyFlashKey?: number;
   /** 作为分组整体被选中时为 true；此时隐藏各自的 Transformer，由 CanvasPanel 渲染统一包围框 */
   isGroupSelected?: boolean;
+  /** 组内编辑模式下，属于同组但非当前编辑对象时为 true（半透明显示） */
+  isGroupMember?: boolean;
+  /** 双击组合成员时触发，进入组内编辑模式 */
+  onGroupEditEnter?: (id: string) => void;
 }
 
 const APPLY_ANIMATION_FLASH_DURATION_MS = 3000;
@@ -50,7 +54,7 @@ const toVerticalText = (value: string) =>
     .map((line) => line.split('').join('\n'))
     .join('\n\n');
 
-export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, isEditingText, xOverride, yOverride, onDragStart, onDragMove, onDragStop, autoFocusName, isApplyFlash = false, applyFlashKey = 0, isGroupSelected = false }: Props) {
+export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sceneObject, isSelected, onEditStart, isEditing, isEditingText, xOverride, yOverride, onDragStart, onDragMove, onDragStop, autoFocusName, isApplyFlash = false, applyFlashKey = 0, isGroupSelected = false, isGroupMember = false, onGroupEditEnter }: Props) {
   const trRef = useRef<Konva.Transformer>(null);
   const shapeRef = useRef<Konva.Node>(null);
   const materialNameRef = useRef<Konva.Text>(null);
@@ -168,7 +172,8 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       if (shiftKey) toggleSelectObject(sceneObject.id);
       else selectObject(sceneObject.id);
     },
-    opacity: sceneObject.opacity,
+    name: sceneObject.id,
+    opacity: isGroupMember ? (sceneObject.opacity ?? 1) * 0.45 : sceneObject.opacity,
   };
 
   const flashProps = {

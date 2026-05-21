@@ -68,6 +68,7 @@ interface EditorState {
   past: EditorSnapshot[];
   future: EditorSnapshot[];
   selectedIds: string[];
+  groupEditingId: string | null;
   applyAnimationFlashObjectIds: string[];
   applyAnimationFlashKey: number;
   isRatioLocked: boolean;
@@ -104,6 +105,8 @@ interface EditorState {
   toggleObjectLock: (id: string) => void;
   groupObjects: (ids: string[]) => void;
   ungroupObjects: (groupId: string) => void;
+  enterGroupEditing: (id: string) => void;
+  exitGroupEditing: () => void;
   selectSceneObjects: (ids: string[]) => void;
   triggerApplyAnimationFlash: (ids: string[]) => void;
   clearApplyAnimationFlash: () => void;
@@ -520,6 +523,7 @@ export const useEditorStore = create<EditorState>()(
     past: [],
     future: [],
     selectedIds: [],
+    groupEditingId: null,
     applyAnimationFlashObjectIds: [],
     applyAnimationFlashKey: 0,
     isRatioLocked: true,
@@ -675,6 +679,25 @@ export const useEditorStore = create<EditorState>()(
           o.groupId === groupId ? { ...o, groupId: undefined } : o,
         );
         state.selectedIds = [];
+        state.groupEditingId = null;
+      }),
+
+    enterGroupEditing: (id) =>
+      set((state) => {
+        state.groupEditingId = id;
+        state.selectedIds = [id];
+      }),
+
+    exitGroupEditing: () =>
+      set((state) => {
+        const id = state.groupEditingId;
+        state.groupEditingId = null;
+        if (id) {
+          const obj = state.objects.find((o) => o.id === id);
+          state.selectedIds = obj?.groupId
+            ? state.objects.filter((o) => o.groupId === obj.groupId).map((o) => o.id)
+            : [];
+        }
       }),
 
     selectSceneObjects: (ids) =>
@@ -1108,6 +1131,7 @@ export const useEditorStore = create<EditorState>()(
 
     selectObject: (id) =>
       set((state) => {
+        state.groupEditingId = null;
         if (id === null) {
           state.selectedIds = [];
         } else {

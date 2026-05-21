@@ -17,6 +17,7 @@ export function useEditorKeyboard() {
   const duplicateObject          = useEditorStore((s) => s.duplicateObject);
   const groupObjects             = useEditorStore((s) => s.groupObjects);
   const ungroupObjects           = useEditorStore((s) => s.ungroupObjects);
+  const exitGroupEditing         = useEditorStore((s) => s.exitGroupEditing);
   const moveMultipleSceneObjects = useEditorStore((s) => s.moveMultipleSceneObjects);
   const play                     = useEditorStore((s) => s.play);
   const pause                    = useEditorStore((s) => s.pause);
@@ -70,17 +71,19 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Delete / Backspace：删除所有选中对象（跳过锁定对象）
+      // Delete / Backspace：删除所有选中对象（跳过锁定对象；组内编辑时无效）
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedAll.length > 0) {
+        if (useEditorStore.getState().groupEditingId) return;
         e.preventDefault();
         const deletable = selectedAll.filter((id) => !objectsRef.current.find((o) => o.id === id)?.locked);
         if (deletable.length > 0) removeSceneObjects(deletable);
         return;
       }
 
-      // Escape：优先取消自由绘制，其次退出预览模式，否则取消选中
+      // Escape：优先取消自由绘制，其次退出组内编辑，再退出预览模式，否则取消选中
       if (e.key === 'Escape') {
         if (canvasDrawingModeRef.current) { setCanvasDrawingMode(null); return; }
+        if (useEditorStore.getState().groupEditingId) { exitGroupEditing(); return; }
         if (isPreviewModeRef.current) { setPreviewMode(false); return; }
         selectObject(null);
         return;
@@ -201,7 +204,7 @@ export function useEditorKeyboard() {
     return () => window.removeEventListener('keydown', handler);
   }, [
     removeSceneObjects, addSceneObject, selectObject,
-    selectAllObjects, duplicateObject, groupObjects, ungroupObjects,
+    selectAllObjects, duplicateObject, groupObjects, ungroupObjects, exitGroupEditing,
     play, pause, undo, redo, markSaved, setPreviewMode, isPreviewMode,
     setCanvasDrawingMode,
   ]);

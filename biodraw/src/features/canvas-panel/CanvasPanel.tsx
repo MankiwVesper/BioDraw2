@@ -211,6 +211,8 @@ export function CanvasPanel() {
   const canvasHeight   = useEditorStore((state) => state.canvasHeight);
   const canvasBgColor  = useEditorStore((state) => state.canvasBgColor);
   const selectObject = useEditorStore(state => state.selectObject);
+  const groupEditingId = useEditorStore(state => state.groupEditingId);
+  const enterGroupEditing = useEditorStore(state => state.enterGroupEditing);
   const removeSceneObject = useEditorStore(state => state.removeSceneObject);
   const removeSceneObjects = useEditorStore(state => state.removeSceneObjects);
   const selectSceneObjects = useEditorStore(state => state.selectSceneObjects);
@@ -303,6 +305,7 @@ export function CanvasPanel() {
   // 组合整体包围框：所有选中对象共享同一 groupId 时计算旋转感知的 AABB
   // sceneObject.x/y 是中心点坐标，形状在 Group 内以 (-w/2, -h/2) 为起点
   const groupSelectionBox = useMemo(() => {
+    if (groupEditingId) return null;   // 组内编辑时不显示大包围框
     if (selectedIds.length < 2) return null;
     const sel = objects.filter((o) => selectedIds.includes(o.id));
     const gid = sel[0]?.groupId;
@@ -326,7 +329,7 @@ export function CanvasPanel() {
     const dx = groupDragOffset?.dx ?? 0;
     const dy = groupDragOffset?.dy ?? 0;
     return { x: minX - 4 + dx, y: minY - 4 + dy, width: maxX - minX + 8, height: maxY - minY + 8 };
-  }, [selectedIds, objects, groupDragOffset]);
+  }, [selectedIds, objects, groupDragOffset, groupEditingId]);
 
   const isSequenceExportRunning = sequenceExportStatus === 'running';
   const isVideoExportRunning = videoExportStatus === 'running';
@@ -933,6 +936,21 @@ export function CanvasPanel() {
     if (moves.length > 0) moveMultipleSceneObjects(moves);
   }, [moveMultipleSceneObjects]);
 
+  const handleStageDblClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
+    // 若名称/文字编辑刚被内层触发，跳过组内编辑
+    if (nameEditJustStartedRef.current) { nameEditJustStartedRef.current = false; return; }
+    if (e.target === e.target.getStage()) return;
+    // 向上遍历找到带 name 属性的节点（SceneObjectRenderer 给主 Group 设了 name=id）
+    let node: Konva.Node | null = e.target as Konva.Node;
+    while (node && !node.name()) node = node.parent as Konva.Node | null;
+    const objectId = node?.name();
+    if (!objectId) return;
+    const obj = objects.find(o => o.id === objectId);
+    if (obj?.groupId && !editingTextId) {
+      enterGroupEditing(objectId);
+    }
+  };
+
   const checkDeselect = (e: Konva.KonvaEventObject<MouseEvent | TouchEvent>) => {
     // When editing, clicking elsewhere should commit the edit first.
     if (editingTextId) {
@@ -1025,6 +1043,8 @@ export function CanvasPanel() {
     if (ids.length > 0) selectSceneObjects(ids);
   };
 
+  const nameEditJustStartedRef = useRef(false);
+
   const handleEditStart = (
     id: string,
     rect: { x: number, y: number, width: number, height: number },
@@ -1032,6 +1052,7 @@ export function CanvasPanel() {
   ) => {
     const obj = objects.find(o => o.id === id);
     if (!obj || obj.locked) return;
+    nameEditJustStartedRef.current = true;
 
     setEditingTextId(id);
     setEditingTarget(target);
@@ -1124,6 +1145,7 @@ export function CanvasPanel() {
             onMouseDown={handleStageMouseDown}
             onMouseMove={handleStageMouseMove}
             onMouseUp={handleStageMouseUp}
+            onDblClick={handleStageDblClick}
             onTouchStart={checkDeselect}
             listening={!interactionLocked}
             style={{ cursor: isPanMode ? 'grab' : canvasDrawingMode ? 'crosshair' : 'default' }}
@@ -1146,6 +1168,8 @@ export function CanvasPanel() {
                   sceneObject={obj}
                   isSelected={!isAnyExportRunning && selectedIds.includes(obj.id)}
                   isGroupSelected={!!groupSelectionBox && selectedIds.includes(obj.id)}
+                  isGroupMember={!!groupEditingId && obj.id !== groupEditingId && obj.groupId === objects.find(o => o.id === groupEditingId)?.groupId}
+                  onGroupEditEnter={enterGroupEditing}
                   onEditStart={handleEditStart}
                   isEditing={editingTextId === obj.id}
                   isEditingText={editingTextId === obj.id && editingTarget === 'text'}
@@ -1168,6 +1192,8 @@ export function CanvasPanel() {
                     sceneObject={obj}
                     isSelected={isSelected}
                     isGroupSelected={!!groupSelectionBox && isSelected}
+                    isGroupMember={!!groupEditingId && obj.id !== groupEditingId && obj.groupId === objects.find(o => o.id === groupEditingId)?.groupId}
+                    onGroupEditEnter={enterGroupEditing}
                     onEditStart={handleEditStart}
                     isEditing={editingTextId === obj.id}
                     isEditingText={editingTextId === obj.id && editingTarget === 'text'}
