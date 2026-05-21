@@ -202,536 +202,168 @@ export function InspectorPanel() {
         e.currentTarget.style.borderColor = "var(--border-color)";
         e.currentTarget.style.background = "transparent";
       };
+      const groupIds = selectedObjects.map((o) => o.groupId).filter(Boolean) as string[];
+      const uniqueGroups = Array.from(new Set(groupIds));
+      const allSameGroup = uniqueGroups.length === 1 && groupIds.length === selectedObjects.length;
+      const abStyle: React.CSSProperties = {
+        flex: 1, height: 24, padding: 0,
+        border: "1px solid var(--border-color)", background: "transparent",
+        borderRadius: 6, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center",
+      };
+      const abHoverOn = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = "var(--primary-color)";
+        e.currentTarget.style.background = "rgba(59,130,246,0.05)";
+      };
+      const abHoverOff = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.currentTarget.style.borderColor = "var(--border-color)";
+        e.currentTarget.style.background = "transparent";
+      };
       return (
         <aside className="ip-inspector-panel">
-          <InspectorTabHeader
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
+          <InspectorTabHeader activeTab={activeTab} onTabChange={setActiveTab} />
           {activeTab === "layers" ? (
             <LayerPanel />
           ) : (
             <div className="ip-inspector-content">
+
+              {/* 基础操作 */}
               <div className="ip-property-group">
-                <h4 className="ip-group-title">
-                  已选中 {selectedIds.length} 个对象
+                <h4
+                  className={`ip-group-title${collapsedSections["ms-ops"] ? " is-collapsed" : ""}`}
+                  onClick={() => toggleSection("ms-ops")}
+                >
+                  基础操作
+                  {sectionChevron("ms-ops")}
                 </h4>
+                {!collapsedSections["ms-ops"] && (
+                  <div className="ip-property-row" style={{ gap: 4 }}>
+                    <button
+                      data-tooltip="将选中对象组合为一个分组 (Ctrl+G)"
+                      disabled={allSameGroup}
+                      onClick={() => groupObjects(selectedIds)}
+                      style={{
+                        flex: 1, height: 24, borderRadius: 6, cursor: allSameGroup ? "not-allowed" : "pointer", fontSize: 13,
+                        border: "1px solid var(--border-color)", background: "transparent",
+                        color: "var(--text-muted)", opacity: allSameGroup ? 0.4 : 1,
+                      }}
+                    >
+                      组合
+                    </button>
+                    <button
+                      data-tooltip="解散分组，恢复为独立对象 (Ctrl+Shift+G)"
+                      disabled={!allSameGroup}
+                      onClick={() => ungroupObjects(uniqueGroups[0])}
+                      style={{
+                        flex: 1, height: 24, borderRadius: 6, cursor: allSameGroup ? "pointer" : "not-allowed", fontSize: 13,
+                        border: allSameGroup ? "1px solid var(--primary-color)" : "1px solid var(--border-color)",
+                        background: allSameGroup ? "rgba(59,130,246,0.08)" : "transparent",
+                        color: allSameGroup ? "var(--primary-color)" : "var(--text-muted)",
+                        opacity: allSameGroup ? 1 : 0.4,
+                      }}
+                    >
+                      解组
+                    </button>
+                    <button
+                      data-tooltip="删除所有选中对象 (Delete)"
+                      onClick={() => removeSceneObjects(selectedIds)}
+                      style={{
+                        flex: 1, height: 24, borderRadius: 6, cursor: "pointer", fontSize: 13,
+                        border: "1px solid rgba(239,68,68,0.4)", background: "transparent", color: "#ef4444",
+                      }}
+                    >
+                      删除
+                    </button>
+                  </div>
+                )}
+              </div>
 
-                {/* 对齐到彼此 */}
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-muted)",
-                    marginBottom: 6,
-                  }}
+              {/* 组内对齐 */}
+              <div className="ip-property-group">
+                <h4
+                  className={`ip-group-title${collapsedSections["ms-align-self"] ? " is-collapsed" : ""}`}
+                  onClick={() => toggleSection("ms-align-self")}
                 >
-                  对齐到彼此
-                </div>
-                <div
-                  className="ip-property-row"
-                  style={{ gap: 4, marginBottom: 4 }}
-                >
-                  <button
-                    style={btnStyle}
-                    data-tooltip="左边缘对齐"
-                    onMouseEnter={hoverOn}
-                    onMouseLeave={hoverOff}
-                    onClick={() => alignToEdge("left", null)}
-                  >
-                    <svg
-                      viewBox="0 0 14 14"
-                      width="14"
-                      height="14"
-                      fill="currentColor"
-                    >
-                      <rect x="0" y="0" width="2" height="14" />
-                      <rect x="2" y="3" width="5" height="4" opacity="0.55" />
-                      <rect x="2" y="8" width="8" height="3" opacity="0.35" />
-                    </svg>
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: 9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      左对齐
-                    </span>
-                  </button>
-                  <button
-                    style={btnStyle}
-                    data-tooltip="水平居中对齐"
-                    onMouseEnter={hoverOn}
-                    onMouseLeave={hoverOff}
-                    onClick={() => alignToEdge("cx", null)}
-                  >
-                    <svg
-                      viewBox="0 0 14 14"
-                      width="14"
-                      height="14"
-                      fill="currentColor"
-                    >
-                      <rect x="6.5" y="0" width="1" height="14" />
-                      <rect x="3" y="2" width="8" height="4" opacity="0.35" />
-                      <rect x="4" y="7" width="6" height="4" opacity="0.55" />
-                    </svg>
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: 9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      水平中
-                    </span>
-                  </button>
-                  <button
-                    style={btnStyle}
-                    data-tooltip="右边缘对齐"
-                    onMouseEnter={hoverOn}
-                    onMouseLeave={hoverOff}
-                    onClick={() => alignToEdge("right", null)}
-                  >
-                    <svg
-                      viewBox="0 0 14 14"
-                      width="14"
-                      height="14"
-                      fill="currentColor"
-                    >
-                      <rect x="12" y="0" width="2" height="14" />
-                      <rect x="7" y="3" width="5" height="4" opacity="0.55" />
-                      <rect x="4" y="8" width="8" height="3" opacity="0.35" />
-                    </svg>
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: 9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      右对齐
-                    </span>
-                  </button>
-                </div>
-                <div
-                  className="ip-property-row"
-                  style={{ gap: 4, marginBottom: 8 }}
-                >
-                  <button
-                    style={btnStyle}
-                    data-tooltip="顶边缘对齐"
-                    onMouseEnter={hoverOn}
-                    onMouseLeave={hoverOff}
-                    onClick={() => alignToEdge(null, "top")}
-                  >
-                    <svg
-                      viewBox="0 0 14 14"
-                      width="14"
-                      height="14"
-                      fill="currentColor"
-                    >
-                      <rect x="0" y="0" width="14" height="2" />
-                      <rect x="2" y="2" width="4" height="6" opacity="0.55" />
-                      <rect x="8" y="2" width="4" height="9" opacity="0.35" />
-                    </svg>
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: 9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      顶对齐
-                    </span>
-                  </button>
-                  <button
-                    style={btnStyle}
-                    data-tooltip="垂直居中对齐"
-                    onMouseEnter={hoverOn}
-                    onMouseLeave={hoverOff}
-                    onClick={() => alignToEdge(null, "cy")}
-                  >
-                    <svg
-                      viewBox="0 0 14 14"
-                      width="14"
-                      height="14"
-                      fill="currentColor"
-                    >
-                      <rect x="0" y="6.5" width="14" height="1" />
-                      <rect x="2" y="3" width="4" height="8" opacity="0.35" />
-                      <rect x="8" y="4" width="4" height="6" opacity="0.55" />
-                    </svg>
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: 9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      垂直中
-                    </span>
-                  </button>
-                  <button
-                    style={btnStyle}
-                    data-tooltip="底边缘对齐"
-                    onMouseEnter={hoverOn}
-                    onMouseLeave={hoverOff}
-                    onClick={() => alignToEdge(null, "bottom")}
-                  >
-                    <svg
-                      viewBox="0 0 14 14"
-                      width="14"
-                      height="14"
-                      fill="currentColor"
-                    >
-                      <rect x="0" y="12" width="14" height="2" />
-                      <rect x="2" y="5" width="4" height="7" opacity="0.55" />
-                      <rect x="8" y="3" width="4" height="9" opacity="0.35" />
-                    </svg>
-                    <span
-                      style={{
-                        color: "var(--text-muted)",
-                        fontSize: 9,
-                        lineHeight: 1,
-                      }}
-                    >
-                      底对齐
-                    </span>
-                  </button>
-                </div>
-
-                {/* 等间距分布（3个以上才有意义）*/}
-                {selectedIds.length >= 3 && (
+                  组内对齐
+                  {sectionChevron("ms-align-self")}
+                </h4>
+                {!collapsedSections["ms-align-self"] && (
                   <>
-                    <div
-                      style={{
-                        fontSize: 11,
-                        color: "var(--text-muted)",
-                        marginBottom: 6,
-                      }}
-                    >
-                      等间距分布
+                    <div className="ip-property-row" style={{ gap: 8, marginBottom: 8 }}>
+                      {[
+                        { tooltip: "组内对象左边缘对齐", onClick: () => alignToEdge("left", null), icon: <><rect x="0" y="0" width="2" height="14" fill="var(--primary-color)"/><rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6"/><rect x="2" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35"/></> },
+                        { tooltip: "组内对象水平居中对齐", onClick: () => alignToEdge("cx", null), icon: <><rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6"/><rect x="4" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35"/><rect x="6" y="0" width="2" height="14" fill="var(--primary-color)"/></> },
+                        { tooltip: "组内对象右边缘对齐", onClick: () => alignToEdge("right", null), icon: <><rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6"/><rect x="6" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35"/><rect x="12" y="0" width="2" height="14" fill="var(--primary-color)"/></> },
+                      ].map((b, i) => (
+                        <button key={i} style={abStyle} data-tooltip={b.tooltip} onMouseEnter={abHoverOn} onMouseLeave={abHoverOff} onClick={b.onClick}>
+                          <svg viewBox="0 0 14 14" width="14" height="14">{b.icon}</svg>
+                        </button>
+                      ))}
                     </div>
-                    <div
-                      className="ip-property-row"
-                      style={{ gap: 4, marginBottom: 8 }}
-                    >
-                      <button
-                        style={btnStyle}
-                        data-tooltip="水平等间距"
-                        onMouseEnter={hoverOn}
-                        onMouseLeave={hoverOff}
-                        onClick={distributeH}
-                      >
-                        <svg
-                          viewBox="0 0 14 14"
-                          width="14"
-                          height="14"
-                          fill="currentColor"
-                        >
-                          <rect
-                            x="0"
-                            y="0"
-                            width="1"
-                            height="14"
-                            opacity="0.4"
-                          />
-                          <rect
-                            x="13"
-                            y="0"
-                            width="1"
-                            height="14"
-                            opacity="0.4"
-                          />
-                          <rect
-                            x="3"
-                            y="3"
-                            width="3"
-                            height="8"
-                            opacity="0.55"
-                          />
-                          <rect
-                            x="8"
-                            y="3"
-                            width="3"
-                            height="8"
-                            opacity="0.55"
-                          />
-                        </svg>
-                        <span
-                          style={{
-                            color: "var(--text-muted)",
-                            fontSize: 9,
-                            lineHeight: 1,
-                          }}
-                        >
-                          水平分布
-                        </span>
-                      </button>
-                      <button
-                        style={btnStyle}
-                        data-tooltip="垂直等间距"
-                        onMouseEnter={hoverOn}
-                        onMouseLeave={hoverOff}
-                        onClick={distributeV}
-                      >
-                        <svg
-                          viewBox="0 0 14 14"
-                          width="14"
-                          height="14"
-                          fill="currentColor"
-                        >
-                          <rect
-                            x="0"
-                            y="0"
-                            width="14"
-                            height="1"
-                            opacity="0.4"
-                          />
-                          <rect
-                            x="0"
-                            y="13"
-                            width="14"
-                            height="1"
-                            opacity="0.4"
-                          />
-                          <rect
-                            x="3"
-                            y="3"
-                            width="8"
-                            height="3"
-                            opacity="0.55"
-                          />
-                          <rect
-                            x="3"
-                            y="8"
-                            width="8"
-                            height="3"
-                            opacity="0.55"
-                          />
-                        </svg>
-                        <span
-                          style={{
-                            color: "var(--text-muted)",
-                            fontSize: 9,
-                            lineHeight: 1,
-                          }}
-                        >
-                          垂直分布
-                        </span>
-                      </button>
+                    <div className="ip-property-row" style={{ gap: 8, marginBottom: selectedIds.length >= 3 ? 8 : 0 }}>
+                      {[
+                        { tooltip: "组内对象顶边缘对齐", onClick: () => alignToEdge(null, "top"), icon: <><rect x="0" y="0" width="14" height="2" fill="var(--primary-color)"/><rect x="2" y="2" width="3" height="10" fill="var(--primary-color)" opacity="0.6"/><rect x="8" y="2" width="3" height="6" fill="var(--primary-color)" opacity="0.35"/></> },
+                        { tooltip: "组内对象垂直居中对齐", onClick: () => alignToEdge(null, "cy"), icon: <><rect x="2" y="2" width="3" height="10" fill="var(--primary-color)" opacity="0.6"/><rect x="8" y="4" width="3" height="6" fill="var(--primary-color)" opacity="0.35"/><rect x="0" y="6" width="14" height="2" fill="var(--primary-color)"/></> },
+                        { tooltip: "组内对象底边缘对齐", onClick: () => alignToEdge(null, "bottom"), icon: <><rect x="2" y="1" width="3" height="11" fill="var(--primary-color)" opacity="0.6"/><rect x="8" y="5" width="3" height="7" fill="var(--primary-color)" opacity="0.35"/><rect x="0" y="12" width="14" height="2" fill="var(--primary-color)"/></> },
+                      ].map((b, i) => (
+                        <button key={i} style={abStyle} data-tooltip={b.tooltip} onMouseEnter={abHoverOn} onMouseLeave={abHoverOff} onClick={b.onClick}>
+                          <svg viewBox="0 0 14 14" width="14" height="14">{b.icon}</svg>
+                        </button>
+                      ))}
+                    </div>
+                    {selectedIds.length >= 3 && (
+                      <div className="ip-property-row" style={{ gap: 8 }}>
+                        {[
+                          { tooltip: "组内对象水平等间距分布", onClick: distributeH, icon: <><rect x="0" y="0" width="1" height="14" fill="var(--primary-color)" opacity="0.4"/><rect x="13" y="0" width="1" height="14" fill="var(--primary-color)" opacity="0.4"/><rect x="3" y="3" width="3" height="8" fill="var(--primary-color)" opacity="0.6"/><rect x="8" y="3" width="3" height="8" fill="var(--primary-color)" opacity="0.6"/></> },
+                          { tooltip: "组内对象垂直等间距分布", onClick: distributeV, icon: <><rect x="0" y="0" width="14" height="1" fill="var(--primary-color)" opacity="0.4"/><rect x="0" y="13" width="14" height="1" fill="var(--primary-color)" opacity="0.4"/><rect x="3" y="3" width="8" height="3" fill="var(--primary-color)" opacity="0.6"/><rect x="3" y="8" width="8" height="3" fill="var(--primary-color)" opacity="0.6"/></> },
+                        ].map((b, i) => (
+                          <button key={i} style={abStyle} data-tooltip={b.tooltip} onMouseEnter={abHoverOn} onMouseLeave={abHoverOff} onClick={b.onClick}>
+                            <svg viewBox="0 0 14 14" width="14" height="14">{b.icon}</svg>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* 画布对齐 */}
+              <div className="ip-property-group">
+                <h4
+                  className={`ip-group-title${collapsedSections["ms-align-canvas"] ? " is-collapsed" : ""}`}
+                  onClick={() => toggleSection("ms-align-canvas")}
+                >
+                  画布对齐
+                  {sectionChevron("ms-align-canvas")}
+                </h4>
+                {!collapsedSections["ms-align-canvas"] && (
+                  <>
+                    <div className="ip-property-row" style={{ gap: 8, marginBottom: 8 }}>
+                      {[
+                        { tooltip: "所有对象左边缘贴画布左边", onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: w/2, y: o.y }; })), icon: <><rect x="0" y="0" width="2" height="14" fill="var(--primary-color)"/><rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6"/><rect x="2" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35"/></> },
+                        { tooltip: "所有对象水平居中于画布", onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: canvasWidth/2, y: o.y }))), icon: <><rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6"/><rect x="4" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35"/><rect x="6" y="0" width="2" height="14" fill="var(--primary-color)"/></> },
+                        { tooltip: "所有对象右边缘贴画布右边", onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const w = o.width*(o.scaleX??1); return { id: o.id, x: canvasWidth-w/2, y: o.y }; })), icon: <><rect x="2" y="2" width="10" height="3" fill="var(--primary-color)" opacity="0.6"/><rect x="6" y="8" width="6" height="3" fill="var(--primary-color)" opacity="0.35"/><rect x="12" y="0" width="2" height="14" fill="var(--primary-color)"/></> },
+                      ].map((b, i) => (
+                        <button key={i} style={abStyle} data-tooltip={b.tooltip} onMouseEnter={abHoverOn} onMouseLeave={abHoverOff} onClick={b.onClick}>
+                          <svg viewBox="0 0 14 14" width="14" height="14">{b.icon}</svg>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="ip-property-row" style={{ gap: 8 }}>
+                      {[
+                        { tooltip: "所有对象顶边缘贴画布顶部", onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: h/2 }; })), icon: <><rect x="0" y="0" width="14" height="2" fill="var(--primary-color)"/><rect x="2" y="2" width="3" height="10" fill="var(--primary-color)" opacity="0.6"/><rect x="8" y="2" width="3" height="6" fill="var(--primary-color)" opacity="0.35"/></> },
+                        { tooltip: "所有对象垂直居中于画布", onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => ({ id: o.id, x: o.x, y: canvasHeight/2 }))), icon: <><rect x="2" y="2" width="3" height="10" fill="var(--primary-color)" opacity="0.6"/><rect x="8" y="4" width="3" height="6" fill="var(--primary-color)" opacity="0.35"/><rect x="0" y="6" width="14" height="2" fill="var(--primary-color)"/></> },
+                        { tooltip: "所有对象底边缘贴画布底部", onClick: () => moveMultipleSceneObjects(selectedObjects.map((o) => { const h = o.height*(o.scaleY??1); return { id: o.id, x: o.x, y: canvasHeight-h/2 }; })), icon: <><rect x="2" y="1" width="3" height="11" fill="var(--primary-color)" opacity="0.6"/><rect x="8" y="5" width="3" height="7" fill="var(--primary-color)" opacity="0.35"/><rect x="0" y="12" width="14" height="2" fill="var(--primary-color)"/></> },
+                      ].map((b, i) => (
+                        <button key={i} style={abStyle} data-tooltip={b.tooltip} onMouseEnter={abHoverOn} onMouseLeave={abHoverOff} onClick={b.onClick}>
+                          <svg viewBox="0 0 14 14" width="14" height="14">{b.icon}</svg>
+                        </button>
+                      ))}
                     </div>
                   </>
                 )}
-
-                {/* 对齐方式 */}
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-muted)",
-                    marginBottom: 6,
-                  }}
-                >
-                  对齐方式
-                </div>
-                <div
-                  className="ip-property-row"
-                  style={{ gap: 4, marginBottom: 4 }}
-                >
-                  {[
-                    {
-                      label: "左",
-                      title: "左边缘贴画布左边",
-                      onClick: () =>
-                        moveMultipleSceneObjects(
-                          selectedObjects.map((o) => {
-                            const w = o.width * (o.scaleX ?? 1);
-                            return { id: o.id, x: w / 2, y: o.y };
-                          }),
-                        ),
-                    },
-                    {
-                      label: "水平中",
-                      title: "水平居中于画布",
-                      onClick: () =>
-                        moveMultipleSceneObjects(
-                          selectedObjects.map((o) => ({
-                            id: o.id,
-                            x: canvasWidth / 2,
-                            y: o.y,
-                          })),
-                        ),
-                    },
-                    {
-                      label: "右",
-                      title: "右边缘贴画布右边",
-                      onClick: () =>
-                        moveMultipleSceneObjects(
-                          selectedObjects.map((o) => {
-                            const w = o.width * (o.scaleX ?? 1);
-                            return { id: o.id, x: canvasWidth - w / 2, y: o.y };
-                          }),
-                        ),
-                    },
-                  ].map((b) => (
-                    <button
-                      key={b.label}
-                      style={btnStyle}
-                      data-tooltip={b.title}
-                      onMouseEnter={hoverOn}
-                      onMouseLeave={hoverOff}
-                      onClick={b.onClick}
-                    >
-                      <span
-                        style={{
-                          color: "var(--text-muted)",
-                          fontSize: 9,
-                          lineHeight: 1,
-                        }}
-                      >
-                        {b.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div
-                  className="ip-property-row"
-                  style={{ gap: 4, marginBottom: 8 }}
-                >
-                  {[
-                    {
-                      label: "顶",
-                      title: "顶边缘贴画布顶部",
-                      onClick: () =>
-                        moveMultipleSceneObjects(
-                          selectedObjects.map((o) => {
-                            const h = o.height * (o.scaleY ?? 1);
-                            return { id: o.id, x: o.x, y: h / 2 };
-                          }),
-                        ),
-                    },
-                    {
-                      label: "垂直中",
-                      title: "垂直居中于画布",
-                      onClick: () =>
-                        moveMultipleSceneObjects(
-                          selectedObjects.map((o) => ({
-                            id: o.id,
-                            x: o.x,
-                            y: canvasHeight / 2,
-                          })),
-                        ),
-                    },
-                    {
-                      label: "底",
-                      title: "底边缘贴画布底部",
-                      onClick: () =>
-                        moveMultipleSceneObjects(
-                          selectedObjects.map((o) => {
-                            const h = o.height * (o.scaleY ?? 1);
-                            return {
-                              id: o.id,
-                              x: o.x,
-                              y: canvasHeight - h / 2,
-                            };
-                          }),
-                        ),
-                    },
-                  ].map((b) => (
-                    <button
-                      key={b.label}
-                      style={btnStyle}
-                      data-tooltip={b.title}
-                      onMouseEnter={hoverOn}
-                      onMouseLeave={hoverOff}
-                      onClick={b.onClick}
-                    >
-                      <span
-                        style={{
-                          color: "var(--text-muted)",
-                          fontSize: 9,
-                          lineHeight: 1,
-                        }}
-                      >
-                        {b.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                {/* 分组 / 解组 */}
-                {(() => {
-                  const groupIds = selectedObjects
-                    .map((o) => o.groupId)
-                    .filter(Boolean) as string[];
-                  const uniqueGroups = Array.from(new Set(groupIds));
-                  const allSameGroup =
-                    uniqueGroups.length === 1 &&
-                    groupIds.length === selectedObjects.length;
-                  return (
-                    <div
-                      className="ip-property-row"
-                      style={{ gap: 4, marginBottom: 8 }}
-                    >
-                      {allSameGroup ? (
-                        <button
-                          data-tooltip="解散分组，恢复为独立对象"
-                          onClick={() => ungroupObjects(uniqueGroups[0])}
-                          style={{
-                            flex: 1,
-                            height: 24,
-                            border: "1px solid var(--primary-color)",
-                            background: "rgba(59,130,246,0.08)",
-                            color: "var(--primary-color)",
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            fontSize: 11,
-                          }}
-                        >
-                          🔓 解组
-                        </button>
-                      ) : (
-                        <button
-                          data-tooltip="将选中对象组合为一个分组（点击任意成员即选中整组）"
-                          onClick={() => groupObjects(selectedIds)}
-                          style={{
-                            flex: 1,
-                            height: 24,
-                            border: "1px solid var(--border-color)",
-                            background: "transparent",
-                            color: "var(--text-main)",
-                            borderRadius: 6,
-                            cursor: "pointer",
-                            fontSize: 11,
-                          }}
-                        >
-                          🔗 组合
-                        </button>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* 删除多选 */}
-                <div className="ip-property-row" style={{ gap: 4 }}>
-                  <button
-                    data-tooltip="删除所有选中对象 (Delete)"
-                    onClick={() => removeSceneObjects(selectedIds)}
-                    style={{
-                      flex: 1,
-                      height: 24,
-                      border: "1px solid rgba(239,68,68,0.4)",
-                      background: "transparent",
-                      color: "#ef4444",
-                      borderRadius: 6,
-                      cursor: "pointer",
-                      fontSize: 11,
-                    }}
-                  >
-                    删除全部
-                  </button>
-                </div>
               </div>
+
             </div>
           )}
         </aside>
