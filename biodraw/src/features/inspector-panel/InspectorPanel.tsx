@@ -17,6 +17,7 @@ export function InspectorPanel() {
     Partial<Record<BasicParamField, string>>
   >({});
   const basicParamCancelledRef = useRef<BasicParamField | null>(null);
+  const [msParamDrafts, setMsParamDrafts] = useState<{ w?: string; h?: string; rot?: string }>({});
   const toggleSection = (key: string) =>
     setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -80,6 +81,9 @@ export function InspectorPanel() {
   useEffect(() => {
     setBasicParamDrafts({});
   }, [selectedObj?.id]);
+  useEffect(() => {
+    setMsParamDrafts({});
+  }, [selectedIds.join(',')]);
 
   // ── 多选对齐逻辑 ─────────────────────────────────────────────
   const selectedObjects = objects.filter((o) => selectedIds.includes(o.id));
@@ -239,29 +243,31 @@ export function InspectorPanel() {
                 const refH = Math.round(refObj.height * (refObj.scaleY ?? 1));
                 const refRot = Math.round(refObj.rotation || 0);
 
-                const batchDim = (field: 'width' | 'height', val: string) => {
-                  let num = parseFloat(val);
-                  if (isNaN(num) || num < 1) num = 1;
-                  batchUpdateSceneObjects(
-                    selectedObjects.filter(o => !o.locked).map(o => {
-                      if (field === 'width') {
-                        const sx = o.width ? num / o.width : 1;
-                        return { id: o.id, patch: { scaleX: sx, ...(isRatioLocked ? { scaleY: sx } : {}) } };
-                      } else {
-                        const sy = o.height ? num / o.height : 1;
-                        return { id: o.id, patch: { scaleY: sy, ...(isRatioLocked ? { scaleX: sy } : {}) } };
-                      }
-                    })
-                  );
+                const wVal = msParamDrafts.w ?? String(refW);
+                const hVal = msParamDrafts.h ?? String(refH);
+                const rotVal = msParamDrafts.rot ?? String(refRot);
+
+                const applyW = (num: number) => {
+                  batchUpdateSceneObjects(selectedObjects.filter(o => !o.locked).map(o => {
+                    const sx = o.width ? num / o.width : 1;
+                    return { id: o.id, patch: { scaleX: sx, ...(isRatioLocked ? { scaleY: sx } : {}) } };
+                  }));
+                  if (isRatioLocked) setMsParamDrafts(prev => ({ ...prev, h: undefined }));
                 };
-                const batchRot = (val: string) => {
-                  const num = parseInt(val, 10);
-                  if (isNaN(num)) return;
+                const applyH = (num: number) => {
+                  batchUpdateSceneObjects(selectedObjects.filter(o => !o.locked).map(o => {
+                    const sy = o.height ? num / o.height : 1;
+                    return { id: o.id, patch: { scaleY: sy, ...(isRatioLocked ? { scaleX: sy } : {}) } };
+                  }));
+                  if (isRatioLocked) setMsParamDrafts(prev => ({ ...prev, w: undefined }));
+                };
+                const applyRot = (num: number) => {
                   batchUpdateSceneObjects(selectedObjects.filter(o => !o.locked).map(o => ({ id: o.id, patch: { rotation: num } })));
                 };
-                const batchReset = () => batchUpdateSceneObjects(
-                  selectedObjects.filter(o => !o.locked).map(o => ({ id: o.id, patch: { scaleX: 1, scaleY: 1, rotation: 0 } }))
-                );
+                const batchReset = () => {
+                  batchUpdateSceneObjects(selectedObjects.filter(o => !o.locked).map(o => ({ id: o.id, patch: { scaleX: 1, scaleY: 1, rotation: 0 } })));
+                  setMsParamDrafts({});
+                };
 
                 const inputStyle: React.CSSProperties = { padding: "3px 4px", height: "24px" };
                 const layerBtnStyle: React.CSSProperties = {
@@ -287,9 +293,14 @@ export function InspectorPanel() {
                         <div style={{ display: "flex", gap: "8px", flex: 1, alignItems: "center", minWidth: 0 }}>
                           <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
                             <input className="ip-input-nospin" type="number" inputMode="numeric" min={1} step={1}
-                              defaultValue={refW}
-                              key={`ms-w-${refObj.id}`}
-                              onBlur={(e) => batchDim('width', e.target.value)}
+                              value={wVal}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/[^0-9]/g, '').slice(0, 5);
+                                setMsParamDrafts(prev => ({ ...prev, w: digits }));
+                                const num = parseInt(digits, 10);
+                                if (!isNaN(num) && num >= 1) applyW(num);
+                              }}
+                              onBlur={() => setMsParamDrafts(prev => ({ ...prev, w: undefined }))}
                               onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                               onFocus={(e) => e.target.select()}
                               style={inputStyle}
@@ -297,9 +308,14 @@ export function InspectorPanel() {
                           </div>
                           <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
                             <input className="ip-input-nospin" type="number" inputMode="numeric" min={1} step={1}
-                              defaultValue={refH}
-                              key={`ms-h-${refObj.id}`}
-                              onBlur={(e) => batchDim('height', e.target.value)}
+                              value={hVal}
+                              onChange={(e) => {
+                                const digits = e.target.value.replace(/[^0-9]/g, '').slice(0, 5);
+                                setMsParamDrafts(prev => ({ ...prev, h: digits }));
+                                const num = parseInt(digits, 10);
+                                if (!isNaN(num) && num >= 1) applyH(num);
+                              }}
+                              onBlur={() => setMsParamDrafts(prev => ({ ...prev, h: undefined }))}
                               onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                               onFocus={(e) => e.target.select()}
                               style={inputStyle}
@@ -320,9 +336,18 @@ export function InspectorPanel() {
                         <div style={{ display: "flex", gap: "8px", flex: 1, alignItems: "center", minWidth: 0 }}>
                           <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
                             <input className="ip-input-nospin" type="number" inputMode="numeric" step={1}
-                              defaultValue={refRot}
-                              key={`ms-rot-${refObj.id}`}
-                              onBlur={(e) => batchRot(e.target.value)}
+                              value={rotVal}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                const sign = raw.startsWith('-') ? '-' : '';
+                                const digits = raw.replace(/[^0-9]/g, '').slice(0, 5);
+                                const cleaned = `${sign}${digits}`;
+                                setMsParamDrafts(prev => ({ ...prev, rot: cleaned }));
+                                if (cleaned === '' || cleaned === '-') return;
+                                const num = parseInt(cleaned, 10);
+                                if (!isNaN(num)) applyRot(num);
+                              }}
+                              onBlur={() => setMsParamDrafts(prev => ({ ...prev, rot: undefined }))}
                               onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
                               onFocus={(e) => e.target.select()}
                               style={inputStyle}
