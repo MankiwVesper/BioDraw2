@@ -194,29 +194,6 @@ export function InspectorPanel() {
   if (!selectedObj) {
     // 多选时显示对齐面板
     if (selectedIds.length > 1) {
-      const btnStyle: React.CSSProperties = {
-        flex: 1,
-        height: 24,
-        border: "1px solid var(--border-color)",
-        background: "transparent",
-        color: "var(--text-main)",
-        borderRadius: 6,
-        cursor: "pointer",
-        fontSize: 10,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 2,
-      };
-      const hoverOn = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.currentTarget.style.borderColor = "var(--primary-color)";
-        e.currentTarget.style.background = "rgba(59,130,246,0.05)";
-      };
-      const hoverOff = (e: React.MouseEvent<HTMLButtonElement>) => {
-        e.currentTarget.style.borderColor = "var(--border-color)";
-        e.currentTarget.style.background = "transparent";
-      };
       const groupIds = selectedObjects.map((o) => o.groupId).filter(Boolean) as string[];
       const uniqueGroups = Array.from(new Set(groupIds));
       const allSameGroup = uniqueGroups.length === 1 && groupIds.length === selectedObjects.length;

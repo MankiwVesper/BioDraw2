@@ -213,13 +213,9 @@ export function CanvasPanel() {
   const selectObject = useEditorStore(state => state.selectObject);
   const groupEditingId = useEditorStore(state => state.groupEditingId);
   const enterGroupEditing = useEditorStore(state => state.enterGroupEditing);
-  const removeSceneObject = useEditorStore(state => state.removeSceneObject);
-  const removeSceneObjects = useEditorStore(state => state.removeSceneObjects);
   const selectSceneObjects = useEditorStore(state => state.selectSceneObjects);
   const updateSceneObject = useEditorStore(state => state.updateSceneObject);
   const moveMultipleSceneObjects = useEditorStore(state => state.moveMultipleSceneObjects);
-  const undo = useEditorStore(state => state.undo);
-  const redo = useEditorStore(state => state.redo);
   const animations = useEditorStore(state => state.animations);
   const previewClipId = useEditorStore(state => state.previewClipId);
   const playbackStatus = useEditorStore(state => state.playbackStatus);
