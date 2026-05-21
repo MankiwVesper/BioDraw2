@@ -74,6 +74,10 @@ export function InspectorPanel() {
   const moveMultipleObjectsBackward = useEditorStore((state) => state.moveMultipleObjectsBackward);
   const flipSceneObject = useEditorStore((state) => state.flipSceneObject);
   const flipMultipleSceneObjects = useEditorStore((state) => state.flipMultipleSceneObjects);
+  const axisFlipSceneObject = useEditorStore((state) => state.axisFlipSceneObject);
+  const axisFlipMultipleSceneObjects = useEditorStore((state) => state.axisFlipMultipleSceneObjects);
+  const centerFlipSceneObject = useEditorStore((state) => state.centerFlipSceneObject);
+  const centerFlipMultipleSceneObjects = useEditorStore((state) => state.centerFlipMultipleSceneObjects);
 
   const selectedObj =
     selectedIds.length === 1 || groupEditingId
@@ -457,6 +461,41 @@ export function InspectorPanel() {
                       }}
                     >
                       垂直翻转
+                    </button>
+                  </div>
+                  <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
+                    <button
+                      data-tooltip="以各元素自身纵轴为对称轴，原地左右镜像"
+                      onClick={() => axisFlipMultipleSceneObjects(selectedIds, 'x')}
+                      style={{
+                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                        border: "1px solid var(--border-color)", background: "transparent",
+                        color: "var(--text-muted)", cursor: "pointer",
+                      }}
+                    >
+                      纵轴对称
+                    </button>
+                    <button
+                      data-tooltip="以各元素自身横轴为对称轴，原地上下镜像"
+                      onClick={() => axisFlipMultipleSceneObjects(selectedIds, 'y')}
+                      style={{
+                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                        border: "1px solid var(--border-color)", background: "transparent",
+                        color: "var(--text-muted)", cursor: "pointer",
+                      }}
+                    >
+                      横轴对称
+                    </button>
+                    <button
+                      data-tooltip="以各元素自身几何中心为对称中心，原地旋转180°"
+                      onClick={() => centerFlipMultipleSceneObjects(selectedIds)}
+                      style={{
+                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                        border: "1px solid var(--border-color)", background: "transparent",
+                        color: "var(--text-muted)", cursor: "pointer",
+                      }}
+                    >
+                      中心对称
                     </button>
                   </div>
                 </>)}
@@ -1679,6 +1718,50 @@ export function InspectorPanel() {
                   }}
                 >
                   垂直翻转
+                </button>
+              </div>
+              <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
+                <button
+                  data-tooltip="以元素自身纵轴为对称轴，原地左右镜像（位置不变）"
+                  disabled={!!selectedObj.locked}
+                  onClick={() => axisFlipSceneObject(selectedObj.id, 'x')}
+                  style={{
+                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                    border: "1px solid var(--border-color)", background: "transparent",
+                    color: "var(--text-muted)",
+                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
+                    opacity: selectedObj.locked ? 0.4 : 1,
+                  }}
+                >
+                  纵轴对称
+                </button>
+                <button
+                  data-tooltip="以元素自身横轴为对称轴，原地上下镜像（位置不变）"
+                  disabled={!!selectedObj.locked}
+                  onClick={() => axisFlipSceneObject(selectedObj.id, 'y')}
+                  style={{
+                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                    border: "1px solid var(--border-color)", background: "transparent",
+                    color: "var(--text-muted)",
+                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
+                    opacity: selectedObj.locked ? 0.4 : 1,
+                  }}
+                >
+                  横轴对称
+                </button>
+                <button
+                  data-tooltip="以元素自身几何中心为对称中心，原地旋转180°"
+                  disabled={!!selectedObj.locked}
+                  onClick={() => centerFlipSceneObject(selectedObj.id)}
+                  style={{
+                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                    border: "1px solid var(--border-color)", background: "transparent",
+                    color: "var(--text-muted)",
+                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
+                    opacity: selectedObj.locked ? 0.4 : 1,
+                  }}
+                >
+                  中心对称
                 </button>
               </div>
               </>)}

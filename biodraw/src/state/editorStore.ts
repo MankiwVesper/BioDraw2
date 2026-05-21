@@ -107,6 +107,10 @@ interface EditorState {
   moveMultipleObjectsToBack: (ids: string[]) => void;
   flipSceneObject: (id: string, axis: 'x' | 'y') => void;
   flipMultipleSceneObjects: (ids: string[], axis: 'x' | 'y') => void;
+  axisFlipSceneObject: (id: string, axis: 'x' | 'y') => void;
+  axisFlipMultipleSceneObjects: (ids: string[], axis: 'x' | 'y') => void;
+  centerFlipSceneObject: (id: string) => void;
+  centerFlipMultipleSceneObjects: (ids: string[]) => void;
   reorderObject: (id: string, toObjIndex: number) => void;
   setIsRatioLocked: (locked: boolean) => void;
   toggleObjectLock: (id: string) => void;
@@ -223,6 +227,17 @@ function pushHistory(state: EditorState) {
   state.future = [];
   state.hasUnsavedChanges = true;
 }
+
+// 计算线/曲线点集的局部坐标中心（用于原地轴对称/中心对称）
+const getLineLocalCenter = (points: number[]) => {
+  const xs = points.filter((_, i) => i % 2 === 0);
+  const ys = points.filter((_, i) => i % 2 === 1);
+  if (xs.length === 0) return { cx: 0, cy: 0 };
+  return {
+    cx: (Math.min(...xs) + Math.max(...xs)) / 2,
+    cy: (Math.min(...ys) + Math.max(...ys)) / 2,
+  };
+};
 
 const getObjectSegment = (obj: SceneObject, segmentId: string, fallbackEndMs: number) => {
   if (obj.appearSegments) {
@@ -704,6 +719,90 @@ export const useEditorStore = create<EditorState>()(
           } else {
             obj.y = state.canvasHeight - obj.y;
             obj.scaleY = -(obj.scaleY ?? 1);
+          }
+        });
+      }),
+
+    // 以元素自身轴原地翻转（位置不变，视觉内容镜像）
+    axisFlipSceneObject: (id, axis) =>
+      set((state) => {
+        const obj = state.objects.find((o) => o.id === id);
+        if (!obj || obj.locked) return;
+        pushHistory(state);
+        const isLine = ['line', 'arrow', 'curve'].includes(obj.type);
+        if (isLine) {
+          const { cx, cy } = getLineLocalCenter((obj.data?.points as number[]) || []);
+          if (axis === 'x') {
+            obj.x += 2 * (obj.scaleX ?? 1) * cx;
+            obj.scaleX = -(obj.scaleX ?? 1);
+          } else {
+            obj.y += 2 * (obj.scaleY ?? 1) * cy;
+            obj.scaleY = -(obj.scaleY ?? 1);
+          }
+        } else {
+          if (axis === 'x') obj.scaleX = -(obj.scaleX ?? 1);
+          else obj.scaleY = -(obj.scaleY ?? 1);
+        }
+      }),
+
+    axisFlipMultipleSceneObjects: (ids, axis) =>
+      set((state) => {
+        if (ids.length === 0) return;
+        pushHistory(state);
+        const idSet = new Set(ids);
+        state.objects.forEach((obj) => {
+          if (!idSet.has(obj.id) || obj.locked) return;
+          const isLine = ['line', 'arrow', 'curve'].includes(obj.type);
+          if (isLine) {
+            const { cx, cy } = getLineLocalCenter((obj.data?.points as number[]) || []);
+            if (axis === 'x') {
+              obj.x += 2 * (obj.scaleX ?? 1) * cx;
+              obj.scaleX = -(obj.scaleX ?? 1);
+            } else {
+              obj.y += 2 * (obj.scaleY ?? 1) * cy;
+              obj.scaleY = -(obj.scaleY ?? 1);
+            }
+          } else {
+            if (axis === 'x') obj.scaleX = -(obj.scaleX ?? 1);
+            else obj.scaleY = -(obj.scaleY ?? 1);
+          }
+        });
+      }),
+
+    // 以元素自身几何中心原地旋转180°（中心对称）
+    centerFlipSceneObject: (id) =>
+      set((state) => {
+        const obj = state.objects.find((o) => o.id === id);
+        if (!obj || obj.locked) return;
+        pushHistory(state);
+        const isLine = ['line', 'arrow', 'curve'].includes(obj.type);
+        if (isLine) {
+          const { cx, cy } = getLineLocalCenter((obj.data?.points as number[]) || []);
+          obj.x += 2 * (obj.scaleX ?? 1) * cx;
+          obj.y += 2 * (obj.scaleY ?? 1) * cy;
+          obj.scaleX = -(obj.scaleX ?? 1);
+          obj.scaleY = -(obj.scaleY ?? 1);
+        } else {
+          obj.rotation = ((obj.rotation ?? 0) + 180) % 360;
+        }
+      }),
+
+    centerFlipMultipleSceneObjects: (ids) =>
+      set((state) => {
+        if (ids.length === 0) return;
+        pushHistory(state);
+        const idSet = new Set(ids);
+        state.objects.forEach((obj) => {
+          if (!idSet.has(obj.id) || obj.locked) return;
+          const isLine = ['line', 'arrow', 'curve'].includes(obj.type);
+          if (isLine) {
+            const { cx, cy } = getLineLocalCenter((obj.data?.points as number[]) || []);
+            obj.x += 2 * (obj.scaleX ?? 1) * cx;
+            obj.y += 2 * (obj.scaleY ?? 1) * cy;
+            obj.scaleX = -(obj.scaleX ?? 1);
+            obj.scaleY = -(obj.scaleY ?? 1);
+          } else {
+            obj.rotation = ((obj.rotation ?? 0) + 180) % 360;
           }
         });
       }),
