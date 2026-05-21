@@ -67,6 +67,10 @@ export function InspectorPanel() {
   const ungroupObjects = useEditorStore((state) => state.ungroupObjects);
   const groupEditingId = useEditorStore((state) => state.groupEditingId);
   const batchUpdateSceneObjects = useEditorStore((state) => state.batchUpdateSceneObjects);
+  const moveMultipleObjectsToFront = useEditorStore((state) => state.moveMultipleObjectsToFront);
+  const moveMultipleObjectsToBack = useEditorStore((state) => state.moveMultipleObjectsToBack);
+  const moveMultipleObjectsForward = useEditorStore((state) => state.moveMultipleObjectsForward);
+  const moveMultipleObjectsBackward = useEditorStore((state) => state.moveMultipleObjectsBackward);
 
   const selectedObj =
     selectedIds.length === 1 || groupEditingId
@@ -227,6 +231,134 @@ export function InspectorPanel() {
             <LayerPanel />
           ) : (
             <div className="ip-inspector-content">
+
+              {/* 基础参数 */}
+              {(() => {
+                const refObj = [...selectedObjects].sort((a, b) => (a.x + a.y) - (b.x + b.y))[0];
+                const refW = Math.round(refObj.width * (refObj.scaleX ?? 1));
+                const refH = Math.round(refObj.height * (refObj.scaleY ?? 1));
+                const refRot = Math.round(refObj.rotation || 0);
+
+                const batchDim = (field: 'width' | 'height', val: string) => {
+                  let num = parseFloat(val);
+                  if (isNaN(num) || num < 1) num = 1;
+                  batchUpdateSceneObjects(
+                    selectedObjects.filter(o => !o.locked).map(o => {
+                      if (field === 'width') {
+                        const sx = o.width ? num / o.width : 1;
+                        return { id: o.id, patch: { scaleX: sx, ...(isRatioLocked ? { scaleY: sx } : {}) } };
+                      } else {
+                        const sy = o.height ? num / o.height : 1;
+                        return { id: o.id, patch: { scaleY: sy, ...(isRatioLocked ? { scaleX: sy } : {}) } };
+                      }
+                    })
+                  );
+                };
+                const batchRot = (val: string) => {
+                  const num = parseInt(val, 10);
+                  if (isNaN(num)) return;
+                  batchUpdateSceneObjects(selectedObjects.filter(o => !o.locked).map(o => ({ id: o.id, patch: { rotation: num } })));
+                };
+                const batchReset = () => batchUpdateSceneObjects(
+                  selectedObjects.filter(o => !o.locked).map(o => ({ id: o.id, patch: { scaleX: 1, scaleY: 1, rotation: 0 } }))
+                );
+
+                const inputStyle: React.CSSProperties = { padding: "3px 4px", height: "24px" };
+                const layerBtnStyle: React.CSSProperties = {
+                  flex: 1, padding: "4px", backgroundColor: "var(--bg-color)",
+                  border: "1px solid var(--border-color)", borderRadius: "6px",
+                  cursor: "pointer", color: "var(--text-main)",
+                  display: "flex", alignItems: "center", justifyContent: "center", height: "24px",
+                };
+
+                return (
+                  <div className="ip-property-group">
+                    <h4
+                      className={`ip-group-title${collapsedSections["ms-params"] ? " is-collapsed" : ""}`}
+                      onClick={() => toggleSection("ms-params")}
+                    >
+                      基础参数
+                      {sectionChevron("ms-params")}
+                    </h4>
+                    {!collapsedSections["ms-params"] && (<>
+                      {/* 宽 / 高 */}
+                      <div className="ip-property-field" style={{ marginBottom: "8px", flexDirection: "row", alignItems: "center" }}>
+                        <label style={{ width: "70px", flexShrink: 0, marginBottom: 0, fontSize: "13px" }}>宽/高(px)：</label>
+                        <div style={{ display: "flex", gap: "8px", flex: 1, alignItems: "center", minWidth: 0 }}>
+                          <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
+                            <input className="ip-input-nospin" type="number" inputMode="numeric" min={1} step={1}
+                              defaultValue={refW}
+                              key={`ms-w-${refObj.id}`}
+                              onBlur={(e) => batchDim('width', e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                              onFocus={(e) => e.target.select()}
+                              style={inputStyle}
+                            />
+                          </div>
+                          <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
+                            <input className="ip-input-nospin" type="number" inputMode="numeric" min={1} step={1}
+                              defaultValue={refH}
+                              key={`ms-h-${refObj.id}`}
+                              onBlur={(e) => batchDim('height', e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                              onFocus={(e) => e.target.select()}
+                              style={inputStyle}
+                            />
+                          </div>
+                          <button
+                            style={{ background: "none", border: "none", cursor: "pointer", padding: "0", width: "28px", flexShrink: 0, fontSize: "1rem", display: "flex", justifyContent: "center", alignItems: "center", color: isRatioLocked ? "var(--primary-color)" : "var(--text-muted)" }}
+                            onClick={() => setIsRatioLocked(!isRatioLocked)}
+                            data-tooltip={isRatioLocked ? "解锁宽高比" : "锁定宽高比"}
+                          >
+                            {isRatioLocked ? "🔒" : "🔓"}
+                          </button>
+                        </div>
+                      </div>
+                      {/* 旋转角度 */}
+                      <div className="ip-property-field" style={{ marginBottom: "8px", flexDirection: "row", alignItems: "center" }}>
+                        <label style={{ width: "70px", flexShrink: 0, marginBottom: 0, fontSize: "13px" }}>旋转角度：</label>
+                        <div style={{ display: "flex", gap: "8px", flex: 1, alignItems: "center", minWidth: 0 }}>
+                          <div className="ip-input-group" style={{ flex: 1, minWidth: 0 }}>
+                            <input className="ip-input-nospin" type="number" inputMode="numeric" step={1}
+                              defaultValue={refRot}
+                              key={`ms-rot-${refObj.id}`}
+                              onBlur={(e) => batchRot(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                              onFocus={(e) => e.target.select()}
+                              style={inputStyle}
+                            />
+                          </div>
+                          <button
+                            style={{ background: "none", border: "none", cursor: "pointer", padding: "0", width: "28px", flexShrink: 0, fontSize: "1.1rem", display: "flex", justifyContent: "center", alignItems: "center", color: "var(--text-main)", opacity: 0.8 }}
+                            onClick={batchReset}
+                            data-tooltip="重置尺寸与角度"
+                            onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                            onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.8")}
+                          >
+                            🔄
+                          </button>
+                        </div>
+                      </div>
+                      {/* 图层顺序 */}
+                      <div className="ip-property-field" style={{ marginBottom: "8px", flexDirection: "row", alignItems: "center" }}>
+                        <label style={{ width: "70px", flexShrink: 0, marginBottom: 0, fontSize: "13px" }}>图层顺序：</label>
+                        <div style={{ display: "flex", gap: "8px", flex: 1, justifyContent: "space-between" }}>
+                          {[
+                            { tooltip: "置底", onClick: () => moveMultipleObjectsToBack(selectedIds), icon: <><line x1="12" y1="3" x2="12" y2="17"/><polyline points="19 10 12 17 5 10"/><line x1="4" y1="21" x2="20" y2="21"/></> },
+                            { tooltip: "下移一层", onClick: () => moveMultipleObjectsBackward(selectedIds), icon: <><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></> },
+                            { tooltip: "上移一层", onClick: () => moveMultipleObjectsForward(selectedIds), icon: <><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></> },
+                            { tooltip: "置顶", onClick: () => moveMultipleObjectsToFront(selectedIds), icon: <><line x1="12" y1="21" x2="12" y2="7"/><polyline points="5 14 12 7 19 14"/><line x1="4" y1="3" x2="20" y2="3"/></> },
+                          ].map((b, i) => (
+                            <button key={i} style={layerBtnStyle} data-tooltip={b.tooltip} onClick={b.onClick}>
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{b.icon}</svg>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>)}
+                  </div>
+                );
+              })()}
 
               {/* 基础操作 */}
               <div className="ip-property-group">

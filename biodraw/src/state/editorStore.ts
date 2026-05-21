@@ -101,6 +101,10 @@ interface EditorState {
   moveObjectBackward: (id: string) => void;
   moveObjectToFront: (id: string) => void;
   moveObjectToBack: (id: string) => void;
+  moveMultipleObjectsForward: (ids: string[]) => void;
+  moveMultipleObjectsBackward: (ids: string[]) => void;
+  moveMultipleObjectsToFront: (ids: string[]) => void;
+  moveMultipleObjectsToBack: (ids: string[]) => void;
   reorderObject: (id: string, toObjIndex: number) => void;
   setIsRatioLocked: (locked: boolean) => void;
   toggleObjectLock: (id: string) => void;
@@ -637,6 +641,64 @@ export const useEditorStore = create<EditorState>()(
         if (idx > 0) {
           const [obj] = state.objects.splice(idx, 1);
           state.objects.unshift(obj);
+        }
+      }),
+
+    moveMultipleObjectsToFront: (ids) =>
+      set((state) => {
+        if (ids.length === 0) return;
+        pushHistory(state);
+        const idSet = new Set(ids);
+        const selected = state.objects.filter((o) => idSet.has(o.id));
+        const rest = state.objects.filter((o) => !idSet.has(o.id));
+        state.objects = [...rest, ...selected];
+      }),
+
+    moveMultipleObjectsToBack: (ids) =>
+      set((state) => {
+        if (ids.length === 0) return;
+        pushHistory(state);
+        const idSet = new Set(ids);
+        const selected = state.objects.filter((o) => idSet.has(o.id));
+        const rest = state.objects.filter((o) => !idSet.has(o.id));
+        state.objects = [...selected, ...rest];
+      }),
+
+    moveMultipleObjectsForward: (ids) =>
+      set((state) => {
+        if (ids.length === 0) return;
+        const idSet = new Set(ids);
+        const indices = state.objects
+          .map((o, i) => (idSet.has(o.id) ? i : -1))
+          .filter((i) => i >= 0)
+          .sort((a, b) => b - a);
+        if (indices.length === 0 || indices[0] >= state.objects.length - 1) return;
+        pushHistory(state);
+        for (const idx of indices) {
+          if (idx < state.objects.length - 1 && !idSet.has(state.objects[idx + 1].id)) {
+            const temp = state.objects[idx];
+            state.objects[idx] = state.objects[idx + 1];
+            state.objects[idx + 1] = temp;
+          }
+        }
+      }),
+
+    moveMultipleObjectsBackward: (ids) =>
+      set((state) => {
+        if (ids.length === 0) return;
+        const idSet = new Set(ids);
+        const indices = state.objects
+          .map((o, i) => (idSet.has(o.id) ? i : -1))
+          .filter((i) => i >= 0)
+          .sort((a, b) => a - b);
+        if (indices.length === 0 || indices[0] <= 0) return;
+        pushHistory(state);
+        for (const idx of indices) {
+          if (idx > 0 && !idSet.has(state.objects[idx - 1].id)) {
+            const temp = state.objects[idx];
+            state.objects[idx] = state.objects[idx - 1];
+            state.objects[idx - 1] = temp;
+          }
         }
       }),
 
