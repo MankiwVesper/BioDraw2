@@ -418,30 +418,6 @@ export function InspectorPanel() {
                   </div>
                   <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
                     <button
-                      data-tooltip="以画布垂直中线为轴水平翻转所有选中对象"
-                      onClick={() => flipMultipleSceneObjects(selectedIds, 'x')}
-                      style={{
-                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
-                        border: "1px solid var(--border-color)", background: "transparent",
-                        color: "var(--text-muted)", cursor: "pointer",
-                      }}
-                    >
-                      水平翻转
-                    </button>
-                    <button
-                      data-tooltip="以画布水平中线为轴垂直翻转所有选中对象"
-                      onClick={() => flipMultipleSceneObjects(selectedIds, 'y')}
-                      style={{
-                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
-                        border: "1px solid var(--border-color)", background: "transparent",
-                        color: "var(--text-muted)", cursor: "pointer",
-                      }}
-                    >
-                      垂直翻转
-                    </button>
-                  </div>
-                  <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
-                    <button
                       data-tooltip="以各元素自身纵轴为对称轴，原地左右镜像"
                       onClick={() => axisFlipMultipleSceneObjects(selectedIds, 'x')}
                       style={{
@@ -473,6 +449,30 @@ export function InspectorPanel() {
                       }}
                     >
                       中心对称
+                    </button>
+                  </div>
+                  <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
+                    <button
+                      data-tooltip="以画布垂直中线为轴水平翻转所有选中对象"
+                      onClick={() => flipMultipleSceneObjects(selectedIds, 'x')}
+                      style={{
+                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                        border: "1px solid var(--border-color)", background: "transparent",
+                        color: "var(--text-muted)", cursor: "pointer",
+                      }}
+                    >
+                      水平翻转
+                    </button>
+                    <button
+                      data-tooltip="以画布水平中线为轴垂直翻转所有选中对象"
+                      onClick={() => flipMultipleSceneObjects(selectedIds, 'y')}
+                      style={{
+                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                        border: "1px solid var(--border-color)", background: "transparent",
+                        color: "var(--text-muted)", cursor: "pointer",
+                      }}
+                    >
+                      垂直翻转
                     </button>
                   </div>
                 </>)}
@@ -1669,36 +1669,6 @@ export function InspectorPanel() {
               </div>
               <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
                 <button
-                  data-tooltip="以画布垂直中线为轴水平翻转"
-                  disabled={!!selectedObj.locked}
-                  onClick={() => flipSceneObject(selectedObj.id, 'x')}
-                  style={{
-                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
-                    border: "1px solid var(--border-color)", background: "transparent",
-                    color: "var(--text-muted)",
-                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
-                    opacity: selectedObj.locked ? 0.4 : 1,
-                  }}
-                >
-                  水平翻转
-                </button>
-                <button
-                  data-tooltip="以画布水平中线为轴垂直翻转"
-                  disabled={!!selectedObj.locked}
-                  onClick={() => flipSceneObject(selectedObj.id, 'y')}
-                  style={{
-                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
-                    border: "1px solid var(--border-color)", background: "transparent",
-                    color: "var(--text-muted)",
-                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
-                    opacity: selectedObj.locked ? 0.4 : 1,
-                  }}
-                >
-                  垂直翻转
-                </button>
-              </div>
-              <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
-                <button
                   data-tooltip="以元素自身纵轴为对称轴，原地左右镜像（位置不变）"
                   disabled={!!selectedObj.locked}
                   onClick={() => axisFlipSceneObject(selectedObj.id, 'x')}
@@ -1739,6 +1709,36 @@ export function InspectorPanel() {
                   }}
                 >
                   中心对称
+                </button>
+              </div>
+              <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
+                <button
+                  data-tooltip="以画布垂直中线为轴水平翻转"
+                  disabled={!!selectedObj.locked}
+                  onClick={() => flipSceneObject(selectedObj.id, 'x')}
+                  style={{
+                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                    border: "1px solid var(--border-color)", background: "transparent",
+                    color: "var(--text-muted)",
+                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
+                    opacity: selectedObj.locked ? 0.4 : 1,
+                  }}
+                >
+                  水平翻转
+                </button>
+                <button
+                  data-tooltip="以画布水平中线为轴垂直翻转"
+                  disabled={!!selectedObj.locked}
+                  onClick={() => flipSceneObject(selectedObj.id, 'y')}
+                  style={{
+                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                    border: "1px solid var(--border-color)", background: "transparent",
+                    color: "var(--text-muted)",
+                    cursor: selectedObj.locked ? "not-allowed" : "pointer",
+                    opacity: selectedObj.locked ? 0.4 : 1,
+                  }}
+                >
+                  垂直翻转
                 </button>
               </div>
               </>)}
