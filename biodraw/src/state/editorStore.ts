@@ -228,7 +228,7 @@ function pushHistory(state: EditorState) {
   state.hasUnsavedChanges = true;
 }
 
-// 计算线/曲线点集的局部坐标中心（用于原地轴对称/中心对称）
+// 计算线/曲线点集的局部坐标中心（用于单元素原地轴对称/中心对称）
 const getLineLocalCenter = (points: number[]) => {
   const xs = points.filter((_, i) => i % 2 === 0);
   const ys = points.filter((_, i) => i % 2 === 1);
@@ -237,6 +237,21 @@ const getLineLocalCenter = (points: number[]) => {
     cx: (Math.min(...xs) + Math.max(...xs)) / 2,
     cy: (Math.min(...ys) + Math.max(...ys)) / 2,
   };
+};
+
+// 计算元素在画布上的实际包围盒（忽略旋转，用于组合整体变换的基准计算）
+const getElementBounds = (obj: SceneObject) => {
+  if (['line', 'arrow', 'curve'].includes(obj.type)) {
+    const pts = (obj.data?.points as number[]) || [];
+    const sx = obj.scaleX ?? 1, sy = obj.scaleY ?? 1;
+    const xs = pts.filter((_, i) => i % 2 === 0).map((px) => obj.x + sx * px);
+    const ys = pts.filter((_, i) => i % 2 === 1).map((py) => obj.y + sy * py);
+    if (xs.length === 0) return { minX: obj.x, maxX: obj.x, minY: obj.y, maxY: obj.y };
+    return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+  }
+  const hw = Math.abs(obj.scaleX ?? 1) * obj.width / 2;
+  const hh = Math.abs(obj.scaleY ?? 1) * obj.height / 2;
+  return { minX: obj.x - hw, maxX: obj.x + hw, minY: obj.y - hh, maxY: obj.y + hh };
 };
 
 const getObjectSegment = (obj: SceneObject, segmentId: string, fallbackEndMs: number) => {
@@ -750,21 +765,26 @@ export const useEditorStore = create<EditorState>()(
         if (ids.length === 0) return;
         pushHistory(state);
         const idSet = new Set(ids);
+        // 第一遍：计算组合包围盒
+        let gMinX = Infinity, gMaxX = -Infinity;
+        let gMinY = Infinity, gMaxY = -Infinity;
         state.objects.forEach((obj) => {
           if (!idSet.has(obj.id) || obj.locked) return;
-          const isLine = ['line', 'arrow', 'curve'].includes(obj.type);
-          if (isLine) {
-            const { cx, cy } = getLineLocalCenter((obj.data?.points as number[]) || []);
-            if (axis === 'x') {
-              obj.x += 2 * (obj.scaleX ?? 1) * cx;
-              obj.scaleX = -(obj.scaleX ?? 1);
-            } else {
-              obj.y += 2 * (obj.scaleY ?? 1) * cy;
-              obj.scaleY = -(obj.scaleY ?? 1);
-            }
+          const { minX, maxX, minY, maxY } = getElementBounds(obj);
+          gMinX = Math.min(gMinX, minX); gMaxX = Math.max(gMaxX, maxX);
+          gMinY = Math.min(gMinY, minY); gMaxY = Math.max(gMaxY, maxY);
+        });
+        const cx = (gMinX + gMaxX) / 2;
+        const cy = (gMinY + gMaxY) / 2;
+        // 第二遍：以包围盒中心为轴镜像每个元素的位置 + 翻转视觉内容
+        state.objects.forEach((obj) => {
+          if (!idSet.has(obj.id) || obj.locked) return;
+          if (axis === 'x') {
+            obj.x = 2 * cx - obj.x;
+            obj.scaleX = -(obj.scaleX ?? 1);
           } else {
-            if (axis === 'x') obj.scaleX = -(obj.scaleX ?? 1);
-            else obj.scaleY = -(obj.scaleY ?? 1);
+            obj.y = 2 * cy - obj.y;
+            obj.scaleY = -(obj.scaleY ?? 1);
           }
         });
       }),
@@ -792,18 +812,24 @@ export const useEditorStore = create<EditorState>()(
         if (ids.length === 0) return;
         pushHistory(state);
         const idSet = new Set(ids);
+        // 第一遍：计算组合包围盒中心
+        let gMinX = Infinity, gMaxX = -Infinity;
+        let gMinY = Infinity, gMaxY = -Infinity;
         state.objects.forEach((obj) => {
           if (!idSet.has(obj.id) || obj.locked) return;
-          const isLine = ['line', 'arrow', 'curve'].includes(obj.type);
-          if (isLine) {
-            const { cx, cy } = getLineLocalCenter((obj.data?.points as number[]) || []);
-            obj.x += 2 * (obj.scaleX ?? 1) * cx;
-            obj.y += 2 * (obj.scaleY ?? 1) * cy;
-            obj.scaleX = -(obj.scaleX ?? 1);
-            obj.scaleY = -(obj.scaleY ?? 1);
-          } else {
-            obj.rotation = ((obj.rotation ?? 0) + 180) % 360;
-          }
+          const { minX, maxX, minY, maxY } = getElementBounds(obj);
+          gMinX = Math.min(gMinX, minX); gMaxX = Math.max(gMaxX, maxX);
+          gMinY = Math.min(gMinY, minY); gMaxY = Math.max(gMaxY, maxY);
+        });
+        const cx = (gMinX + gMaxX) / 2;
+        const cy = (gMinY + gMaxY) / 2;
+        // 第二遍：以包围盒中心为对称中心，镜像每个元素的位置 + 翻转两轴视觉内容
+        state.objects.forEach((obj) => {
+          if (!idSet.has(obj.id) || obj.locked) return;
+          obj.x = 2 * cx - obj.x;
+          obj.y = 2 * cy - obj.y;
+          obj.scaleX = -(obj.scaleX ?? 1);
+          obj.scaleY = -(obj.scaleY ?? 1);
         });
       }),
 
