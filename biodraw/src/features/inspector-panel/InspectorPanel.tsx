@@ -66,6 +66,7 @@ export function InspectorPanel() {
   const groupObjects = useEditorStore((state) => state.groupObjects);
   const ungroupObjects = useEditorStore((state) => state.ungroupObjects);
   const groupEditingId = useEditorStore((state) => state.groupEditingId);
+  const batchUpdateSceneObjects = useEditorStore((state) => state.batchUpdateSceneObjects);
 
   const selectedObj =
     selectedIds.length === 1 || groupEditingId
@@ -363,6 +364,173 @@ export function InspectorPanel() {
                   </>
                 )}
               </div>
+
+              {/* 文字设置（批量应用）*/}
+              {(() => {
+                const refObj = [...selectedObjects].sort((a, b) => (a.x + a.y) - (b.x + b.y))[0];
+                const refTextColor = (refObj.type === 'text' || refObj.type === 'material')
+                  ? refObj.style?.fill || '#000000'
+                  : refObj.style?.textColor || '#334155';
+                const batchTextColorChange = (val: string) => {
+                  batchUpdateSceneObjects(selectedObjects.filter(o => !o.locked).map(o => ({
+                    id: o.id,
+                    patch: { style: { ...(o.style || {}), ...((o.type === 'text' || o.type === 'material') ? { fill: val } : { textColor: val }) } },
+                  })));
+                };
+                const batchStyleChange = (field: string, val: string | number) => {
+                  batchUpdateSceneObjects(selectedObjects.filter(o => !o.locked).map(o => ({
+                    id: o.id,
+                    patch: { style: { ...(o.style || {}), [field]: val } },
+                  })));
+                };
+                return (
+                  <div className="ip-property-group">
+                    <h4
+                      className={`ip-group-title${collapsedSections["ms-text"] ? " is-collapsed" : ""}`}
+                      onClick={() => toggleSection("ms-text")}
+                    >
+                      文字设置
+                      {sectionChevron("ms-text")}
+                    </h4>
+                    {!collapsedSections["ms-text"] && (
+                      <>
+                        {/* 文字颜色 | 字体大小 */}
+                        <div className="ip-property-field" style={{ flexDirection: "row", gap: "8px", marginBottom: "8px" }}>
+                          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
+                            <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>文字颜色：</label>
+                            <div className="ip-input-group" style={{ width: "45px" }}>
+                              <input type="color" value={refTextColor}
+                                onChange={(e) => batchTextColorChange(e.target.value)}
+                                style={{ width: "100%", height: "24px", padding: 0, cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius)", backgroundColor: "white" }}
+                              />
+                            </div>
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>字体大小：</label>
+                            <div className="ip-input-group" style={{ width: "45px" }}>
+                              <input type="number" min="5" max="120"
+                                value={refObj.style?.fontSize || 14}
+                                onChange={(e) => {
+                                  let val = parseInt(e.target.value);
+                                  if (isNaN(val)) val = 5;
+                                  if (val < 5) val = 5;
+                                  if (val > 120) val = 120;
+                                  batchStyleChange("fontSize", val);
+                                }}
+                                style={{ textAlign: "center", padding: "3px 4px", height: "24px" }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        {/* 对齐方式 */}
+                        <div className="ip-property-field" style={{ flexDirection: "row", gap: "28px", marginBottom: "8px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                            <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>对齐方式：</label>
+                            <div style={{ display: "flex", flex: 1, gap: "1px", backgroundColor: "rgba(0,0,0,0.05)", padding: "2px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+                              {[
+                                { id: "left", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="18" y2="18"/></svg> },
+                                { id: "center", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="5" y1="18" x2="19" y2="18"/></svg> },
+                                { id: "right", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg> },
+                              ].map((btn) => (
+                                <button key={btn.id} onClick={() => batchStyleChange("textAlign", btn.id)}
+                                  style={{ flex: 1, height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", backgroundColor: (refObj.style?.textAlign || "center") === btn.id ? "white" : "transparent", color: (refObj.style?.textAlign || "center") === btn.id ? "var(--primary-color)" : "var(--text-muted)", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s" }}
+                                >{btn.icon}</button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        {/* 文字方向 */}
+                        <div className="ip-property-field" style={{ flexDirection: "row", gap: "28px", marginBottom: "8px" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                            <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>文字方向：</label>
+                            <div style={{ display: "flex", flex: 1, gap: "1px", backgroundColor: "rgba(0,0,0,0.05)", padding: "2px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
+                              {[{ id: "horizontal", label: "横排" }, { id: "vertical", label: "纵排" }].map((btn) => (
+                                <button key={btn.id} onClick={() => batchStyleChange("textDirection", btn.id)}
+                                  style={{ flex: 1, height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", backgroundColor: (refObj.style?.textDirection || "horizontal") === btn.id ? "white" : "transparent", color: (refObj.style?.textDirection || "horizontal") === btn.id ? "var(--primary-color)" : "var(--text-muted)", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s", fontSize: "13px" }}
+                                >{btn.label}</button>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* 样式设置（批量应用，仅对形状/路径类元素生效）*/}
+              {selectedObjects.some(o => !['text', 'material'].includes(o.type)) && (() => {
+                const refObj = [...selectedObjects].sort((a, b) => (a.x + a.y) - (b.x + b.y))[0];
+                const shapeTypes = ['rect', 'circle', 'triangle', 'trapezoid', 'line', 'arrow', 'curve'];
+                const fillTypes = ['rect', 'circle', 'triangle', 'trapezoid'];
+                const refForStroke = [...selectedObjects].sort((a, b) => (a.x + a.y) - (b.x + b.y)).find(o => shapeTypes.includes(o.type)) || refObj;
+                const refForFill = [...selectedObjects].sort((a, b) => (a.x + a.y) - (b.x + b.y)).find(o => fillTypes.includes(o.type));
+                const batchStroke = (val: string) => batchUpdateSceneObjects(
+                  selectedObjects.filter(o => !o.locked && shapeTypes.includes(o.type)).map(o => ({ id: o.id, patch: { style: { ...(o.style || {}), stroke: val } } }))
+                );
+                const batchFill = (val: string) => batchUpdateSceneObjects(
+                  selectedObjects.filter(o => !o.locked && fillTypes.includes(o.type)).map(o => ({ id: o.id, patch: { style: { ...(o.style || {}), fill: val } } }))
+                );
+                const batchStrokeWidth = (val: number) => batchUpdateSceneObjects(
+                  selectedObjects.filter(o => !o.locked && shapeTypes.includes(o.type)).map(o => ({ id: o.id, patch: { style: { ...(o.style || {}), strokeWidth: val } } }))
+                );
+                return (
+                  <div className="ip-property-group">
+                    <h4
+                      className={`ip-group-title${collapsedSections["ms-style"] ? " is-collapsed" : ""}`}
+                      onClick={() => toggleSection("ms-style")}
+                    >
+                      样式设置
+                      {sectionChevron("ms-style")}
+                    </h4>
+                    {!collapsedSections["ms-style"] && (
+                      <>
+                        {/* 描边颜色 | 填充颜色 */}
+                        <div className="ip-property-field" style={{ flexDirection: "row", gap: "8px", marginBottom: "8px" }}>
+                          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
+                            <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>描边颜色：</label>
+                            <div className="ip-input-group" style={{ width: "45px" }}>
+                              <input type="color" value={refForStroke.style?.stroke || '#000000'}
+                                onChange={(e) => batchStroke(e.target.value)}
+                                style={{ width: "100%", height: "24px", padding: 0, cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius)", backgroundColor: "white" }}
+                              />
+                            </div>
+                          </div>
+                          {refForFill && (
+                            <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                              <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "40px", flexShrink: 0 }}>填充颜色：</label>
+                              <div className="ip-input-group" style={{ width: "45px" }}>
+                                <input type="color" value={refForFill.style?.fill || '#000000'}
+                                  onChange={(e) => batchFill(e.target.value)}
+                                  style={{ width: "100%", height: "24px", padding: 0, cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius)", backgroundColor: "white" }}
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {/* 描边粗细 */}
+                        <div className="ip-property-field" style={{ flexDirection: "row", gap: "8px", marginBottom: "8px" }}>
+                          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: "8px" }}>
+                            <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>描边粗细：</label>
+                            <div className="ip-input-group" style={{ width: "45px" }}>
+                              <input type="number" min="1" max="20" value={refForStroke.style?.strokeWidth || 1}
+                                onChange={(e) => {
+                                  let val = parseInt(e.target.value);
+                                  if (isNaN(val)) val = 1;
+                                  if (val < 1) val = 1;
+                                  if (val > 20) val = 20;
+                                  batchStrokeWidth(val);
+                                }}
+                                style={{ textAlign: "center", padding: "3px 4px", height: "24px" }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })()}
 
             </div>
           )}

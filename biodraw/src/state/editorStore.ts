@@ -94,6 +94,7 @@ interface EditorState {
   selectAllObjects: () => void;
   duplicateObject: (id: string) => void;
   moveMultipleSceneObjects: (moves: Array<{ id: string; x: number; y: number }>) => void;
+  batchUpdateSceneObjects: (updates: Array<{ id: string; patch: Partial<SceneObject> }>) => void;
   setCanvasSize: (width: number, height: number) => void;
   setCanvasBgColor: (color: string) => void;
   moveObjectForward: (id: string) => void;
@@ -1192,6 +1193,18 @@ export const useEditorStore = create<EditorState>()(
           const m = moveMap.get(o.id);
           if (!m) return o;
           return { ...o, x: m.x, y: m.y };
+        });
+      }),
+
+    batchUpdateSceneObjects: (updates) =>
+      set((state) => {
+        if (updates.length === 0) return;
+        pushHistory(state);
+        const patchMap = new Map(updates.map((u) => [u.id, u.patch]));
+        state.objects = state.objects.map((o) => {
+          const patch = patchMap.get(o.id);
+          if (!patch || o.locked) return o;
+          return { ...o, ...patch };
         });
       }),
 
