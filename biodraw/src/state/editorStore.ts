@@ -649,9 +649,14 @@ export const useEditorStore = create<EditorState>()(
         if (ids.length === 0) return;
         pushHistory(state);
         const idSet = new Set(ids);
-        const selected = state.objects.filter((o) => idSet.has(o.id));
-        const rest = state.objects.filter((o) => !idSet.has(o.id));
-        state.objects = [...rest, ...selected];
+        // 从高 index 向低 index 移除，保留原始相对顺序
+        const toMove: SceneObject[] = [];
+        for (let i = state.objects.length - 1; i >= 0; i--) {
+          if (idSet.has(state.objects[i].id)) {
+            toMove.unshift(state.objects.splice(i, 1)[0]);
+          }
+        }
+        toMove.forEach((obj) => state.objects.push(obj));
       }),
 
     moveMultipleObjectsToBack: (ids) =>
@@ -659,9 +664,15 @@ export const useEditorStore = create<EditorState>()(
         if (ids.length === 0) return;
         pushHistory(state);
         const idSet = new Set(ids);
-        const selected = state.objects.filter((o) => idSet.has(o.id));
-        const rest = state.objects.filter((o) => !idSet.has(o.id));
-        state.objects = [...selected, ...rest];
+        // 从高 index 向低 index 移除，保留原始相对顺序
+        const toMove: SceneObject[] = [];
+        for (let i = state.objects.length - 1; i >= 0; i--) {
+          if (idSet.has(state.objects[i].id)) {
+            toMove.unshift(state.objects.splice(i, 1)[0]);
+          }
+        }
+        // 按原始相对顺序插入到头部
+        toMove.forEach((obj, idx) => state.objects.splice(idx, 0, obj));
       }),
 
     moveMultipleObjectsForward: (ids) =>
