@@ -110,8 +110,9 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Ctrl+C：复制所有选中对象
+      // Ctrl+C：复制所有选中对象（组内编辑时禁用）
       if (ctrl && e.key === 'c' && selectedAll.length > 0) {
+        if (useEditorStore.getState().groupEditingId) return;
         clipboard = objectsRef.current
           .filter((o) => selectedAll.includes(o.id))
           .map((o) => JSON.parse(JSON.stringify(o)));
@@ -135,8 +136,9 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Ctrl+D：就地复制所有选中对象
+      // Ctrl+D：就地复制所有选中对象（组内编辑时禁用）
       if (ctrl && e.key === 'd' && selectedAll.length > 0) {
+        if (useEditorStore.getState().groupEditingId) return;
         e.preventDefault();
         selectedAll.forEach((id) => duplicateObject(id));
         return;

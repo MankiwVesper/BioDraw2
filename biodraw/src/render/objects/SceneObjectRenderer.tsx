@@ -164,10 +164,24 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
     onDragEnd: isLocked ? undefined : handleDragEnd,
     onTransformEnd: isLocked ? undefined : handleTransformEnd,
     onClick: (e: Konva.KonvaEventObject<MouseEvent>) => {
+      if (sceneObject.groupId && onGroupEditEnter) {
+        const { groupEditingId, objects } = useEditorStore.getState();
+        if (groupEditingId && objects.find(o => o.id === groupEditingId)?.groupId === sceneObject.groupId) {
+          onGroupEditEnter(sceneObject.id);
+          return;
+        }
+      }
       if (e.evt.shiftKey) toggleSelectObject(sceneObject.id);
       else selectObject(sceneObject.id);
     },
     onTap: (e: Konva.KonvaEventObject<TouchEvent>) => {
+      if (sceneObject.groupId && onGroupEditEnter) {
+        const { groupEditingId, objects } = useEditorStore.getState();
+        if (groupEditingId && objects.find(o => o.id === groupEditingId)?.groupId === sceneObject.groupId) {
+          onGroupEditEnter(sceneObject.id);
+          return;
+        }
+      }
       const shiftKey = (e.evt as TouchEvent & { shiftKey?: boolean }).shiftKey;
       if (shiftKey) toggleSelectObject(sceneObject.id);
       else selectObject(sceneObject.id);

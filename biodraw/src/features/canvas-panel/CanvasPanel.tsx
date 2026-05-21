@@ -1052,6 +1052,9 @@ export function CanvasPanel() {
   ) => {
     const obj = objects.find(o => o.id === id);
     if (!obj || obj.locked) return;
+    // 组合成员：第一次双击应进入组内编辑模式，而非直接开始编辑文字/名称。
+    // 只有已经在编辑该成员（groupEditingId === id）时，才允许继续触发文字/名称编辑。
+    if (obj.groupId && groupEditingId !== id) return;
     nameEditJustStartedRef.current = true;
 
     setEditingTextId(id);
