@@ -105,6 +105,8 @@ interface EditorState {
   moveMultipleObjectsBackward: (ids: string[]) => void;
   moveMultipleObjectsToFront: (ids: string[]) => void;
   moveMultipleObjectsToBack: (ids: string[]) => void;
+  flipSceneObject: (id: string, axis: 'x' | 'y') => void;
+  flipMultipleSceneObjects: (ids: string[], axis: 'x' | 'y') => void;
   reorderObject: (id: string, toObjIndex: number) => void;
   setIsRatioLocked: (locked: boolean) => void;
   toggleObjectLock: (id: string) => void;
@@ -673,6 +675,37 @@ export const useEditorStore = create<EditorState>()(
         }
         // 按原始相对顺序插入到头部
         toMove.forEach((obj, idx) => state.objects.splice(idx, 0, obj));
+      }),
+
+    flipSceneObject: (id, axis) =>
+      set((state) => {
+        const obj = state.objects.find((o) => o.id === id);
+        if (!obj || obj.locked) return;
+        pushHistory(state);
+        if (axis === 'x') {
+          obj.x = state.canvasWidth - obj.x;
+          obj.scaleX = -(obj.scaleX ?? 1);
+        } else {
+          obj.y = state.canvasHeight - obj.y;
+          obj.scaleY = -(obj.scaleY ?? 1);
+        }
+      }),
+
+    flipMultipleSceneObjects: (ids, axis) =>
+      set((state) => {
+        if (ids.length === 0) return;
+        pushHistory(state);
+        const idSet = new Set(ids);
+        state.objects.forEach((obj) => {
+          if (!idSet.has(obj.id) || obj.locked) return;
+          if (axis === 'x') {
+            obj.x = state.canvasWidth - obj.x;
+            obj.scaleX = -(obj.scaleX ?? 1);
+          } else {
+            obj.y = state.canvasHeight - obj.y;
+            obj.scaleY = -(obj.scaleY ?? 1);
+          }
+        });
       }),
 
     moveMultipleObjectsForward: (ids) =>
