@@ -1625,43 +1625,6 @@ export function InspectorPanel() {
                   删除
                 </button>
               </div>
-              <div className="ip-property-row" style={{ gap: 4, marginTop: 4 }}>
-                <button
-                  data-tooltip={selectedObj.groupId ? "解散当前组合 (Ctrl+Shift+G)" : "请先多选元素再进行组合"}
-                  disabled={!selectedObj.groupId}
-                  onClick={() => selectedObj.groupId && ungroupObjects(selectedObj.groupId)}
-                  style={{
-                    flex: 1,
-                    height: 24,
-                    border: "1px solid var(--border-color)",
-                    background: "transparent",
-                    color: "var(--text-muted)",
-                    borderRadius: 6,
-                    cursor: selectedObj.groupId ? "pointer" : "not-allowed",
-                    fontSize: 13,
-                    opacity: selectedObj.groupId ? 1 : 0.4,
-                  }}
-                >
-                  解组
-                </button>
-                <button
-                  data-tooltip="请先多选元素再进行组合 (Ctrl+G)"
-                  disabled
-                  style={{
-                    flex: 1,
-                    height: 24,
-                    border: "1px solid var(--border-color)",
-                    background: "transparent",
-                    color: "var(--text-muted)",
-                    borderRadius: 6,
-                    cursor: "not-allowed",
-                    fontSize: 13,
-                    opacity: 0.4,
-                  }}
-                >
-                  组合
-                </button>
-              </div>
               </>)}
             </div>
 
