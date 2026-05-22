@@ -117,3 +117,36 @@
 .pv-exit:hover {
   background: var(--primary-hover);
 }
+
+.pv-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.pv-progress-track {
+  width: 140px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.pv-progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 2px;
+  transition: width 0.05s linear;
+}
+
+.pv-time-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 68px;
+  text-align: left;
+  user-select: none;
+}
