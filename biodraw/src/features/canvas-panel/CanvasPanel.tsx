@@ -186,6 +186,13 @@ const makeUniqueName = (desired: string, existingNames: string[], sep: string): 
   return `${desired}${sep}${n}`;
 };
 
+const formatPlaybackTime = (ms: number) => {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${String(sec).padStart(2, '0')}`;
+};
+
 export function CanvasPanel() {
   type EditingTarget = 'text' | 'name';
 
@@ -1403,6 +1410,26 @@ export function CanvasPanel() {
           <button className="pv-btn" onClick={() => stepPlaybackFrame(1)} data-tooltip="下一帧">
             <SkipForward size={14} strokeWidth={2} />
           </button>
+          <div className="pv-divider" />
+          <div
+            className="pv-progress-wrap"
+            data-tooltip="点击跳转"
+            onClick={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+              setCurrentTimeMs(ratio * globalDurationMs);
+            }}
+          >
+            <div className="pv-progress-track">
+              <div
+                className="pv-progress-fill"
+                style={{ width: `${globalDurationMs > 0 ? (currentTimeMs / globalDurationMs) * 100 : 0}%` }}
+              />
+            </div>
+            <span className="pv-time-label">
+              {formatPlaybackTime(currentTimeMs)} / {formatPlaybackTime(globalDurationMs)}
+            </span>
+          </div>
           <div className="pv-divider" />
           <button className="pv-exit" onClick={() => setPreviewMode(false)} data-tooltip="退出预览 (Esc)">
             ✕ 退出
