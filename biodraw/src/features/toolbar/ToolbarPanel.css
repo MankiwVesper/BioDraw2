@@ -233,6 +233,38 @@
   gap: 4px;
 }
 
+/* ── 面板收起/展开切换按钮组（固定在工具栏最右侧） ── */
+.tb-panel-toggles {
+  position: absolute;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tb-panel-toggle-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color 0.15s;
+  padding: 0;
+}
+
+.tb-panel-toggle-icon.is-on {
+  color: var(--primary-color);
+}
+
+.tb-panel-toggle-icon:hover {
+  color: var(--text-main);
+}
+
 /* ── 导出状态浮层（居中显示，不占布局空间） ── */
 .tb-export-status {
   position: absolute;

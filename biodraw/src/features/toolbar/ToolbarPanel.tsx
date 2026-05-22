@@ -1,10 +1,26 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock } from 'lucide-react';
+import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock, PanelLeft, PanelRight, PanelBottom, LayoutDashboard, Maximize2 } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
 import { downloadDocument, parseDocumentFile, clearAutoSave } from '../../infrastructure/documentSerializer';
 import './ToolbarPanel.css';
 
-export function ToolbarPanel() {
+interface ToolbarPanelProps {
+  showMaterials: boolean;
+  onToggleMaterials: () => void;
+  showInspector: boolean;
+  onToggleInspector: () => void;
+  showTimeline: boolean;
+  onToggleTimeline: () => void;
+  onRestoreDefault: () => void;
+  onFullscreen: () => void;
+}
+
+export function ToolbarPanel({
+  showMaterials, onToggleMaterials,
+  showInspector, onToggleInspector,
+  showTimeline,  onToggleTimeline,
+  onRestoreDefault, onFullscreen,
+}: ToolbarPanelProps) {
   const playbackStatus  = useEditorStore((s) => s.playbackStatus);
   const currentTimeMs   = useEditorStore((s) => s.currentTimeMs);
   const globalDurationMs = useEditorStore((s) => s.globalDurationMs);
@@ -148,29 +164,9 @@ export function ToolbarPanel() {
     setCanvasDropdownStyle({ width: exportRight - loopLeft, right: wrapperRight - exportRight });
   }, [showCanvasPanel]);
 
-  // 预览按钮右边界偏移（对齐 konvajs-content 右边界，动态测量）
-  // ToolbarPanel 在预览模式下被卸载，退出时重新挂载。
-  // 用 setTimeout(0) 推迟测量，确保 MaterialsPanel/InspectorPanel
-  // 全部完成布局后再读取坐标，避免拿到过渡期间的错误值。
-  const [previewRight, setPreviewRight] = useState(304);
-  useEffect(() => {
-    const update = () => {
-      const el = document.querySelector('.konvajs-content') as HTMLElement | null;
-      if (el) {
-        setPreviewRight(window.innerWidth - el.getBoundingClientRect().right);
-      }
-    };
-    const timer = setTimeout(update, 0);
-    window.addEventListener('resize', update);
-    const wrapper = document.querySelector('.canvas-wrapper');
-    const ro = new ResizeObserver(update);
-    if (wrapper) ro.observe(wrapper);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', update);
-      ro.disconnect();
-    };
-  }, []);
+  // 右侧控制组与 InspectorPanel(280px) + canvas padding(24px) 对齐，固定不动
+  // 避免面板收起/展开时因画布宽度变化导致按钮位置跳动
+  const previewRight = 304;
 
   // 速率下拉状态
   const [showRateMenu, setShowRateMenu] = useState(false);
@@ -647,6 +643,45 @@ export function ToolbarPanel() {
       </div>
 
       {/* 导出状态与进度（浮于中区，不影响布局） */}
+      {/* ── 面板收起/展开切换（右侧固定区域） */}
+      <div className="tb-panel-toggles">
+        <button
+          className={`tb-panel-toggle-icon${showMaterials ? ' is-on' : ''}`}
+          onClick={onToggleMaterials}
+          data-tooltip={showMaterials ? '收起素材面板' : '展开素材面板'}
+        >
+          <PanelLeft size={16} />
+        </button>
+        <button
+          className={`tb-panel-toggle-icon${showTimeline ? ' is-on' : ''}`}
+          onClick={onToggleTimeline}
+          data-tooltip={showTimeline ? '收起时间轴' : '展开时间轴'}
+        >
+          <PanelBottom size={16} />
+        </button>
+        <button
+          className={`tb-panel-toggle-icon${showInspector ? ' is-on' : ''}`}
+          onClick={onToggleInspector}
+          data-tooltip={showInspector ? '收起属性面板' : '展开属性面板'}
+        >
+          <PanelRight size={16} />
+        </button>
+        <button
+          className={`tb-panel-toggle-icon${!(showMaterials && showInspector && showTimeline) ? ' is-on' : ''}`}
+          onClick={onRestoreDefault}
+          data-tooltip="恢复默认布局"
+        >
+          <LayoutDashboard size={16} />
+        </button>
+        <button
+          className={`tb-panel-toggle-icon${(showMaterials || showInspector || showTimeline) ? ' is-on' : ''}`}
+          onClick={onFullscreen}
+          data-tooltip="全屏画布"
+        >
+          <Maximize2 size={16} />
+        </button>
+      </div>
+
       {(exportStatusText || isExporting) && (
         <div className="tb-export-status">
           {exportStatusText && (
