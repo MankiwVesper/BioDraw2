@@ -9,6 +9,10 @@
   padding: 24px; /* 添加四周空隙 */
 }
 
+.canvas-panel--preview {
+  padding: 54px 24px; /* 预览模式：上下留出工具条区域 */
+}
+
 .canvas-wrapper {
   flex: 1;
   background-color: var(--panel-bg); /* 纯白画布 */
@@ -27,11 +31,12 @@
   user-select: none;
 }
 
-/* ── 预览模式浮动控制栏（canvas-wrapper 内 top:12px right:12px） ── */
+/* ── 预览模式浮动控制栏（canvas-panel 内居中，不覆盖白色画布） ── */
 .pv-controls {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 4px;

@@ -1119,7 +1119,7 @@ export function CanvasPanel() {
 
 
   return (
-    <main className="canvas-panel">
+    <main className={`canvas-panel${isPreviewMode ? ' canvas-panel--preview' : ''}`}>
       <div 
         className="canvas-wrapper" 
         ref={containerRef}
@@ -1363,84 +1363,85 @@ export function CanvasPanel() {
             </div>
           </div>
         )}
+      </div>
 
-        {/* 閸欏厖绗傜憴鎺撳亾濞搭喗鎸欓柨鈧?闁插秴浠涢幒褍鍩楅弶?*/}
-
-        {/* 预览模式浮动控制栏（top:12px right:12px，与底部缩放控件对称） */}
-        {isPreviewMode && (
-          <div className="pv-controls">
-            <button className="pv-btn" onClick={() => stepPlaybackFrame(-1)} data-tooltip="上一帧">
-              <SkipBack size={14} strokeWidth={2} />
-            </button>
-            <button
-              className={`pv-btn pv-play${playbackStatus === 'playing' ? ' pv-playing' : ''}`}
-              onClick={playbackStatus === 'playing' ? pausePlayback : playPlayback}
-              data-tooltip={playbackStatus === 'playing' ? '暂停' : '播放'}
-            >
-              {playbackStatus === 'playing'
-                ? <Pause size={13} strokeWidth={2.5} fill="currentColor" />
-                : <Play  size={13} strokeWidth={2.5} fill="currentColor" />}
-            </button>
-            <button className="pv-btn" onClick={stopPlayback} data-tooltip="停止">
-              <Square size={11} strokeWidth={0} fill="currentColor" />
-            </button>
-            <button className="pv-btn" onClick={() => stepPlaybackFrame(1)} data-tooltip="下一帧">
-              <SkipForward size={14} strokeWidth={2} />
-            </button>
-            <div className="pv-divider" />
-            <button className="pv-exit" onClick={() => setPreviewMode(false)} data-tooltip="退出预览 (Esc)">
-              ✕ 退出
-            </button>
-          </div>
-        )}
-
-        {/* 缩放控件 */}
-        <div style={{
-          position: 'absolute', bottom: '12px', right: '12px',
-          display: 'flex', alignItems: 'center', gap: '4px',
-          backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)',
-          borderRadius: '6px', padding: '4px 8px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          zIndex: 100, userSelect: 'none',
-        }}>
-          <button
-            onClick={() => {
-              const newScale = Math.max(0.05, stageScale / 1.2);
-              const cx = dimensions.width / 2;
-              const cy = dimensions.height / 2;
-              const pointTo = { x: (cx - stagePos.x) / stageScale, y: (cy - stagePos.y) / stageScale };
-              setStageScale(newScale);
-              setStagePos({ x: cx - pointTo.x * newScale, y: cy - pointTo.y * newScale });
-            }}
-            data-tooltip="缩小"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: '16px', lineHeight: 1, padding: '0 2px' }}
-          >-</button>
-          <button
-            onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }}
-            data-tooltip="重置到 100% (Ctrl+0)"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '12px', minWidth: '44px', textAlign: 'center', padding: '0 4px' }}
-          >
-            {Math.round(stageScale * 100)}%
+      {/* 预览模式浮动控制栏（居中，位于画布上方灰色区域） */}
+      {isPreviewMode && (
+        <div className="pv-controls">
+          <button className="pv-btn" onClick={() => stepPlaybackFrame(-1)} data-tooltip="上一帧">
+            <SkipBack size={14} strokeWidth={2} />
           </button>
           <button
-            onClick={fitCanvas}
-            data-tooltip="适应画布 (Ctrl+Shift+F)"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '11px', padding: '0 4px' }}
+            className={`pv-btn pv-play${playbackStatus === 'playing' ? ' pv-playing' : ''}`}
+            onClick={playbackStatus === 'playing' ? pausePlayback : playPlayback}
+            data-tooltip={playbackStatus === 'playing' ? '暂停' : '播放'}
           >
-            适配
+            {playbackStatus === 'playing'
+              ? <Pause size={13} strokeWidth={2.5} fill="currentColor" />
+              : <Play  size={13} strokeWidth={2.5} fill="currentColor" />}
           </button>
-          <button
-            onClick={() => {
-              const newScale = Math.min(10, stageScale * 1.2);
-              const cx = dimensions.width / 2;
-              const cy = dimensions.height / 2;
-              const pointTo = { x: (cx - stagePos.x) / stageScale, y: (cy - stagePos.y) / stageScale };
-              setStageScale(newScale);
-              setStagePos({ x: cx - pointTo.x * newScale, y: cy - pointTo.y * newScale });
-            }}
-            data-tooltip="放大"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: '16px', lineHeight: 1, padding: '0 2px' }}
-          >+</button>
+          <button className="pv-btn" onClick={stopPlayback} data-tooltip="停止">
+            <Square size={11} strokeWidth={0} fill="currentColor" />
+          </button>
+          <button className="pv-btn" onClick={() => stepPlaybackFrame(1)} data-tooltip="下一帧">
+            <SkipForward size={14} strokeWidth={2} />
+          </button>
+          <div className="pv-divider" />
+          <button className="pv-exit" onClick={() => setPreviewMode(false)} data-tooltip="退出预览 (Esc)">
+            ✕ 退出
+          </button>
         </div>
+      )}
+
+      {/* 缩放控件：预览模式居中+较大，非预览模式恢复原始位置和尺寸 */}
+      <div style={{
+        position: 'absolute',
+        ...(isPreviewMode
+          ? { bottom: '5px', left: '50%', transform: 'translateX(-50%)', padding: '6px 14px', gap: undefined }
+          : { bottom: '36px', right: '36px', padding: '4px 8px' }),
+        display: 'flex', alignItems: 'center', gap: isPreviewMode ? '6px' : '4px',
+        backgroundColor: 'var(--panel-bg)', border: '1px solid var(--border-color)',
+        borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+        zIndex: 100, userSelect: 'none' as const,
+      }}>
+        <button
+          onClick={() => {
+            const newScale = Math.max(0.05, stageScale / 1.2);
+            const cx = dimensions.width / 2;
+            const cy = dimensions.height / 2;
+            const pointTo = { x: (cx - stagePos.x) / stageScale, y: (cy - stagePos.y) / stageScale };
+            setStageScale(newScale);
+            setStagePos({ x: cx - pointTo.x * newScale, y: cy - pointTo.y * newScale });
+          }}
+          data-tooltip="缩小"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: isPreviewMode ? '20px' : '16px', lineHeight: 1, padding: '0 2px' }}
+        >-</button>
+        <button
+          onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }}
+          data-tooltip="重置到 100% (Ctrl+0)"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: isPreviewMode ? '14px' : '12px', minWidth: isPreviewMode ? '50px' : '44px', textAlign: 'center', padding: '0 4px' }}
+        >
+          {Math.round(stageScale * 100)}%
+        </button>
+        <button
+          onClick={fitCanvas}
+          data-tooltip="适应画布 (Ctrl+Shift+F)"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: isPreviewMode ? '13px' : '11px', padding: '0 4px' }}
+        >
+          适配
+        </button>
+        <button
+          onClick={() => {
+            const newScale = Math.min(10, stageScale * 1.2);
+            const cx = dimensions.width / 2;
+            const cy = dimensions.height / 2;
+            const pointTo = { x: (cx - stagePos.x) / stageScale, y: (cy - stagePos.y) / stageScale };
+            setStageScale(newScale);
+            setStagePos({ x: cx - pointTo.x * newScale, y: cy - pointTo.y * newScale });
+          }}
+          data-tooltip="放大"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: isPreviewMode ? '20px' : '16px', lineHeight: 1, padding: '0 2px' }}
+        >+</button>
       </div>
     </main>
   );
