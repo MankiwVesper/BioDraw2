@@ -1,5 +1,5 @@
 import './EditorPage.css';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ToolbarPanel } from '../../features/toolbar/ToolbarPanel';
 import { MaterialsPanel } from '../../features/materials-panel/MaterialsPanel';
 import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
@@ -11,6 +11,10 @@ import { useBeforeUnload } from '../../hooks/useBeforeUnload';
 import { useEditorStore } from '../../state/editorStore';
 
 export default function EditorPage() {
+  const [showMaterials, setShowMaterials] = useState(true);
+  const [showInspector, setShowInspector] = useState(true);
+  const [showTimeline,  setShowTimeline]  = useState(true);
+
   useEditorKeyboard();
   useAutoSave();
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
@@ -38,18 +42,30 @@ export default function EditorPage() {
     if (isPreviewMode) requestFit();
   }, [isPreviewMode, requestFit]);
 
+  // 面板收起/展开后自动适配画布到新的可用空间
+  useEffect(() => {
+    requestFit();
+  }, [showMaterials, showInspector, showTimeline, requestFit]);
+
   return (
     <div className="editor-layout">
-      {!isPreviewMode && <ToolbarPanel />}
+      {!isPreviewMode && (
+        <ToolbarPanel
+          showMaterials={showMaterials} onToggleMaterials={() => setShowMaterials((p) => !p)}
+          showInspector={showInspector} onToggleInspector={() => setShowInspector((p) => !p)}
+          showTimeline={showTimeline}   onToggleTimeline={() => setShowTimeline((p) => !p)}
+          onRestoreDefault={() => { setShowMaterials(true); setShowInspector(true); setShowTimeline(true); }}
+          onFullscreen={() => { setShowMaterials(false); setShowInspector(false); setShowTimeline(false); }}
+        />
+      )}
       <div className="editor-main">
-        {!isPreviewMode && <MaterialsPanel />}
+        {!isPreviewMode && showMaterials && <MaterialsPanel />}
         <div className="editor-center">
           <CanvasPanel />
-          {!isPreviewMode && <TimelinePanel />}
+          {!isPreviewMode && showTimeline && <TimelinePanel />}
         </div>
-        {!isPreviewMode && <InspectorPanel />}
+        {!isPreviewMode && showInspector && <InspectorPanel />}
       </div>
-
     </div>
   );
 }
