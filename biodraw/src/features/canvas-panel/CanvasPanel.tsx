@@ -368,26 +368,25 @@ export function CanvasPanel() {
     return () => observer.disconnect();
   }, []);
 
-  // Space key toggles temporary pan mode.
+  // H 键切换持久平移模式；Escape 也可退出（与 Space 播放/暂停互不干扰）
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && e.target === document.body) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+      if ((e.key === 'h' || e.key === 'H') && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
-        setIsPanMode(true);
+        setIsPanMode((prev) => !prev);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setIsPanMode(false);
       }
     };
-    const onKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'Space') setIsPanMode(false);
-    };
     window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('keyup', onKeyUp);
-    return () => {
-      window.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('keyup', onKeyUp);
-    };
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  // 濠婃俺鐤嗛敍娆硉rl+濠婃俺鐤?= 缂傗晜鏂侀敍灞炬珮闁碍绮存潪?= 楠炲磭些
+  // sequenceExportRequestId 变化时触发序列帧导出
   useEffect(() => {
     if (sequenceExportRequestId <= 0) return;
     if (lastHandledExportRequestRef.current === sequenceExportRequestId) return;
@@ -1364,6 +1363,24 @@ export function CanvasPanel() {
           </div>
         )}
       </div>
+
+      {/* 平移模式提示条（非预览模式：位于顶部工具栏与白色画布之间的灰色区域） */}
+      {isPanMode && !isPreviewMode && (
+        <div style={{
+          position: 'absolute', top: '2px', left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(59,130,246,0.80)',
+          backdropFilter: 'blur(6px)',
+          border: '1px solid rgba(255,255,255,0.25)',
+          color: '#fff', borderRadius: '4px', padding: '2px 12px',
+          fontSize: '12px', lineHeight: '16px', pointerEvents: 'none',
+          zIndex: 200, whiteSpace: 'nowrap',
+          display: 'flex', alignItems: 'center', gap: '6px',
+        }}>
+          <span>✋ 平移模式</span>
+          <span style={{ opacity: 0.75 }}>再按 H 或 Esc 退出</span>
+        </div>
+      )}
 
       {/* 预览模式浮动控制栏（居中，位于画布上方灰色区域） */}
       {isPreviewMode && (
