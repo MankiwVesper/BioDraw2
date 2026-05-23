@@ -27,10 +27,7 @@ export function ToolbarPanel({
   const playbackRate    = useEditorStore((s) => s.playbackRate);
   const playbackLoopEnabled = useEditorStore((s) => s.playbackLoopEnabled);
   const sequenceExportStatus  = useEditorStore((s) => s.sequenceExportStatus);
-  const sequenceExportMessage = useEditorStore((s) => s.sequenceExportMessage);
   const videoExportStatus     = useEditorStore((s) => s.videoExportStatus);
-  const setVideoExportStatus  = useEditorStore((s) => s.setVideoExportStatus);
-  const videoExportMessage    = useEditorStore((s) => s.videoExportMessage);
   const past   = useEditorStore((s) => s.past);
   const future = useEditorStore((s) => s.future);
   const canvasWidth    = useEditorStore((s) => s.canvasWidth);
@@ -47,9 +44,7 @@ export function ToolbarPanel({
   const stepPlaybackFrame  = useEditorStore((s) => s.stepPlaybackFrame);
   const requestSequenceExport = useEditorStore((s) => s.requestSequenceExport);
   const requestVideoExport    = useEditorStore((s) => s.requestVideoExport);
-  const cancelExport          = useEditorStore((s) => s.cancelExport);
   const requestSingleFrameExport = useEditorStore((s) => s.requestSingleFrameExport);
-  const setSequenceExportStatus  = useEditorStore((s) => s.setSequenceExportStatus);
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
@@ -182,7 +177,6 @@ export function ToolbarPanel({
   const [exportDropdownWidth,   setExportDropdownWidth]   = useState(280);
   const [exportIsRatioLocked,  setExportIsRatioLocked]  = useState(false);
   const [exportPrefix,         setExportPrefix]         = useState('biodraw');
-  const [singleFrameExported,  setSingleFrameExported]  = useState(false);
 
   useLayoutEffect(() => {
     if (!showExportPanel) return;
@@ -269,42 +263,6 @@ export function ToolbarPanel({
   const playbackRateOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
   const exportFpsOptions    = [12, 24, 30, 60];
 
-  const exportStatusText = useMemo(() => {
-    if (videoExportStatus === 'running')     return `视频导出中${videoExportMessage ? ` · ${videoExportMessage}` : ''}`;
-    if (sequenceExportStatus === 'running')  return `序列帧导出中${sequenceExportMessage ? ` · ${sequenceExportMessage}` : ''}`;
-    if (videoExportStatus === 'error')       return `视频导出失败${videoExportMessage ? `: ${videoExportMessage}` : ''}`;
-    if (sequenceExportStatus === 'error')    return `序列帧导出失败${sequenceExportMessage ? `: ${sequenceExportMessage}` : ''}`;
-    if (videoExportStatus === 'done')        return '视频导出完成';
-    if (sequenceExportStatus === 'done')     return '序列帧导出完成';
-    return null;
-  }, [sequenceExportMessage, sequenceExportStatus, videoExportMessage, videoExportStatus]);
-
-  const isExportError = videoExportStatus === 'error' || sequenceExportStatus === 'error';
-
-  // 导出完成或出错后 3 秒自动重置状态
-  useEffect(() => {
-    if (sequenceExportStatus === 'done' || sequenceExportStatus === 'error') {
-      const timer = setTimeout(() => setSequenceExportStatus('idle'), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [sequenceExportStatus, setSequenceExportStatus]);
-
-  useEffect(() => {
-    if (videoExportStatus === 'done' || videoExportStatus === 'error') {
-      const timer = setTimeout(() => setVideoExportStatus('idle'), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [videoExportStatus, setVideoExportStatus]);
-
-  // 解析导出进度（序列帧 / 视频）
-  let exportProgress = 0;
-  const progressMatch = sequenceExportMessage?.match(/^(\d+)\/(\d+)/);
-  if (progressMatch) exportProgress = parseInt(progressMatch[1]) / parseInt(progressMatch[2]);
-  let videoExportProgress = 0;
-  const videoProgressMatch = videoExportMessage?.match(/^(\d+)\/(\d+)/);
-  if (videoProgressMatch) videoExportProgress = parseInt(videoProgressMatch[1]) / parseInt(videoProgressMatch[2]);
-
-  const showExportStatus = exportStatusText !== null || singleFrameExported;
 
   return (
     <header className="tb-panel">
@@ -362,7 +320,7 @@ export function ToolbarPanel({
       </div>
 
       {/* ── 绝对居中：播放四键，与 konvajs-content 中心对齐 */}
-      <div className="tb-playback" style={showExportStatus ? { visibility: 'hidden' } : undefined}>
+      <div className="tb-playback">
         <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(-1)} data-tooltip="上一帧">
           <SkipBack size={15} strokeWidth={2} />
         </button>
@@ -650,12 +608,7 @@ export function ToolbarPanel({
                   <div className="tb-export-action-row">
                     <button
                       className="tb-export-action-btn"
-                      onClick={() => {
-                        requestSingleFrameExport(exportSize.width);
-                        setShowExportPanel(false);
-                        setSingleFrameExported(true);
-                        setTimeout(() => setSingleFrameExported(false), 3000);
-                      }}
+                      onClick={() => { requestSingleFrameExport(exportSize.width); setShowExportPanel(false); }}
                       disabled={isExporting}
                       data-tooltip={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
                     >
@@ -715,39 +668,6 @@ export function ToolbarPanel({
         </button>
       </div>
 
-      {(showExportStatus || isExporting) && (
-        <div className="tb-export-status">
-          {exportStatusText && (
-            <span className={`tb-status${isExportError ? ' is-error' : ''}`}>
-              {exportStatusText}
-            </span>
-          )}
-          {singleFrameExported && !exportStatusText && (
-            <span className="tb-status">当前帧已导出</span>
-          )}
-          {isExporting && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 6 }}>
-                <div style={{
-                  height: '100%',
-                  width: `${Math.round((sequenceExportStatus === 'running' ? exportProgress : videoExportProgress) * 100)}%`,
-                  background: 'var(--primary-color, #3b82f6)',
-                  borderRadius: 6,
-                  transition: 'width 0.1s linear',
-                }} />
-              </div>
-              <button
-                className="tb-btn"
-                style={{ fontSize: 11, padding: '1px 6px', color: 'var(--error-color, #ef4444)' }}
-                onClick={cancelExport}
-                data-tooltip="取消导出"
-              >
-                取消
-              </button>
-            </div>
-          )}
-        </div>
-      )}
     </header>
   );
 }
