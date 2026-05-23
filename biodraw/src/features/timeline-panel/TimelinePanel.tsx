@@ -2304,7 +2304,7 @@ export function TimelinePanel() {
               </div>
             );
           })}
-          <div className="tl-overall-playhead" style={{ left: cursorPercent }} />
+          <div className="tl-overall-playhead" style={{ left: `clamp(0px, calc(${cursorPercent} - 1px), calc(100% - 2px))` }} />
           {isCursorDragging && (
             <div className="tl-overall-badge" style={{ left: cursorPercent }}>
               {cursorTimeLabel}
@@ -2390,7 +2390,7 @@ export function TimelinePanel() {
               </div>
             );
           })}
-          <div className="tl-dist-playhead" style={{ left: cursorPercent }} />
+          <div className="tl-dist-playhead" style={{ left: `clamp(0px, calc(${cursorPercent} - 1px), calc(100% - 2px))` }} />
         </div>
         <span className="tl-dist-count">
           <button
@@ -2608,7 +2608,7 @@ export function TimelinePanel() {
               <span className="tl-element-tick tl-element-tick-end">
                 {(globalDurationMs / 1000).toFixed(globalDurationMs % 1000 === 0 ? 0 : 1)}s
               </span>
-              <div className="tl-element-playhead" style={{ left: cursorPercent }} />
+              <div className="tl-element-playhead" style={{ left: `clamp(0px, calc(${cursorPercent} - 1px), calc(100% - 2px))` }} />
             </div>
 
             {/* 右列 行1：操作按钮（增加/删除片段 + 添加动画） */}
