@@ -226,8 +226,10 @@ export function CanvasPanel() {
   const playbackStatus = useEditorStore(state => state.playbackStatus);
   const currentTimeMs = useEditorStore(state => state.currentTimeMs);
   const globalDurationMs = useEditorStore(state => state.globalDurationMs);
-  const sequenceExportStatus = useEditorStore(state => state.sequenceExportStatus);
-  const videoExportStatus = useEditorStore(state => state.videoExportStatus);
+  const sequenceExportStatus  = useEditorStore(state => state.sequenceExportStatus);
+  const sequenceExportMessage = useEditorStore(state => state.sequenceExportMessage);
+  const videoExportStatus     = useEditorStore(state => state.videoExportStatus);
+  const videoExportMessage    = useEditorStore(state => state.videoExportMessage);
   const setCurrentTimeMs = useEditorStore(state => state.setCurrentTimeMs);
   const playPlayback = useEditorStore(state => state.play);
   const pausePlayback = useEditorStore(state => state.pause);
@@ -1125,10 +1127,78 @@ export function CanvasPanel() {
 
 
 
+  // ── 导出状态显示（移至画布区浮层）────────────────────────
+  const [singleFrameExported, setSingleFrameExported] = useState(false);
+  useEffect(() => {
+    if (singleFrameExportId === 0) return;
+    setSingleFrameExported(true);
+    const timer = setTimeout(() => setSingleFrameExported(false), 3000);
+    return () => clearTimeout(timer);
+  }, [singleFrameExportId]);
+
+  const isExporting = sequenceExportStatus === 'running' || videoExportStatus === 'running';
+  const isExportError = videoExportStatus === 'error' || sequenceExportStatus === 'error';
+
+  const exportStatusText = (() => {
+    if (videoExportStatus === 'running')    return `视频导出中${videoExportMessage ? ` · ${videoExportMessage}` : ''}`;
+    if (sequenceExportStatus === 'running') return `序列帧导出中${sequenceExportMessage ? ` · ${sequenceExportMessage}` : ''}`;
+    if (videoExportStatus === 'error')      return `视频导出失败${videoExportMessage ? `: ${videoExportMessage}` : ''}`;
+    if (sequenceExportStatus === 'error')   return `序列帧导出失败${sequenceExportMessage ? `: ${sequenceExportMessage}` : ''}`;
+    if (videoExportStatus === 'done')       return '视频导出完成';
+    if (sequenceExportStatus === 'done')    return '序列帧导出完成';
+    return null;
+  })();
+
+  useEffect(() => {
+    if (sequenceExportStatus === 'done' || sequenceExportStatus === 'error') {
+      const timer = setTimeout(() => setSequenceExportStatus('idle'), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [sequenceExportStatus, setSequenceExportStatus]);
+
+  useEffect(() => {
+    if (videoExportStatus === 'done' || videoExportStatus === 'error') {
+      const timer = setTimeout(() => setVideoExportStatus('idle'), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [videoExportStatus, setVideoExportStatus]);
+
+  let exportProgress = 0;
+  const progressMatch = sequenceExportMessage?.match(/^(\d+)\/(\d+)/);
+  if (progressMatch) exportProgress = parseInt(progressMatch[1]) / parseInt(progressMatch[2]);
+  let videoExportProgress = 0;
+  const videoProgressMatch = videoExportMessage?.match(/^(\d+)\/(\d+)/);
+  if (videoProgressMatch) videoExportProgress = parseInt(videoProgressMatch[1]) / parseInt(videoProgressMatch[2]);
+
+  const showExportStatus = exportStatusText !== null || singleFrameExported || isExporting;
+
   return (
     <main className={`canvas-panel${isPreviewMode ? ' canvas-panel--preview' : ''}`}>
-      <div 
-        className="canvas-wrapper" 
+      {!isPreviewMode && showExportStatus && (
+        <div className="export-status-bar">
+          {exportStatusText && (
+            <span className={`export-status-text${isExportError ? ' is-error' : ''}`}>
+              {exportStatusText}
+            </span>
+          )}
+          {singleFrameExported && !exportStatusText && (
+            <span className="export-status-text">当前帧已导出</span>
+          )}
+          {isExporting && (
+            <>
+              <div className="export-progress-track">
+                <div
+                  className="export-progress-fill"
+                  style={{ width: `${Math.round((sequenceExportStatus === 'running' ? exportProgress : videoExportProgress) * 100)}%` }}
+                />
+              </div>
+              <button className="export-cancel-btn" onClick={cancelExport}>取消</button>
+            </>
+          )}
+        </div>
+      )}
+      <div
+        className="canvas-wrapper"
         ref={containerRef}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
