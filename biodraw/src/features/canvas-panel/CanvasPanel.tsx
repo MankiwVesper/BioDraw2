@@ -501,6 +501,7 @@ export function CanvasPanel() {
     return () => {
       cancelExport();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- stageScale/stagePos/currentTimeMs/playbackStatus/editingTextId/commitTextChange are snapshotted at export start; adding them would restart the export mid-run
   }, [
     cancelExport,
     globalDurationMs,
@@ -687,6 +688,7 @@ export function CanvasPanel() {
 
     runVideoExport();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- stageScale/stagePos/currentTimeMs/playbackStatus/editingTextId/commitTextChange are snapshotted at export start; adding them would restart the export mid-run
   }, [
     globalDurationMs,
     pausePlayback,
