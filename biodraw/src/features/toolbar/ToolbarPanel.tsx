@@ -181,6 +181,8 @@ export function ToolbarPanel({
   const exportPanelRef = useRef<HTMLDivElement>(null);
   const [exportDropdownWidth,   setExportDropdownWidth]   = useState(280);
   const [exportIsRatioLocked,  setExportIsRatioLocked]  = useState(false);
+  const [exportPrefix,         setExportPrefix]         = useState('biodraw');
+  const [singleFrameExported,  setSingleFrameExported]  = useState(false);
 
   useLayoutEffect(() => {
     if (!showExportPanel) return;
@@ -237,6 +239,11 @@ export function ToolbarPanel({
       return isNaN(v) || v > maxS ? maxS.toFixed(2) : prev;
     });
   }, [globalDurationMs]);
+
+  // 打开导出面板时，将终点同步为当前项目总时长
+  useEffect(() => {
+    if (showExportPanel) setExportEndSec((globalDurationMs / 1000).toFixed(2));
+  }, [showExportPanel]); // eslint-disable-line react-hooks/exhaustive-deps
   const exportStartMs = Math.max(0, Math.round((parseFloat(exportStartSec) || 0) * 1000));
   const exportEndMs   = Math.min(globalDurationMs, Math.round((parseFloat(exportEndSec) || globalDurationMs / 1000) * 1000));
   const exportRange   = { startMs: exportStartMs, endMs: exportEndMs };
@@ -251,11 +258,11 @@ export function ToolbarPanel({
   const isPlaying   = playbackStatus === 'playing';
 
   const triggerSequenceExport = () => {
-    requestSequenceExport({ ...exportSize, ...exportRange, prefix: 'biodraw-frame' });
+    requestSequenceExport({ ...exportSize, ...exportRange, prefix: `${exportPrefix || 'biodraw'}-frame` });
     setShowExportPanel(false);
   };
   const triggerVideoExport = () => {
-    requestVideoExport({ ...exportSize, ...exportRange, prefix: 'biodraw-video', format: videoFormat });
+    requestVideoExport({ ...exportSize, ...exportRange, prefix: `${exportPrefix || 'biodraw'}-video`, format: videoFormat });
     setShowExportPanel(false);
   };
 
@@ -289,12 +296,15 @@ export function ToolbarPanel({
     }
   }, [videoExportStatus, setVideoExportStatus]);
 
-  // 解析序列帧导出进度
+  // 解析导出进度（序列帧 / 视频）
   let exportProgress = 0;
   const progressMatch = sequenceExportMessage?.match(/^(\d+)\/(\d+)/);
-  if (progressMatch) {
-    exportProgress = parseInt(progressMatch[1]) / parseInt(progressMatch[2]);
-  }
+  if (progressMatch) exportProgress = parseInt(progressMatch[1]) / parseInt(progressMatch[2]);
+  let videoExportProgress = 0;
+  const videoProgressMatch = videoExportMessage?.match(/^(\d+)\/(\d+)/);
+  if (videoProgressMatch) videoExportProgress = parseInt(videoProgressMatch[1]) / parseInt(videoProgressMatch[2]);
+
+  const showExportStatus = exportStatusText !== null || singleFrameExported;
 
   return (
     <header className="tb-panel">
@@ -352,7 +362,7 @@ export function ToolbarPanel({
       </div>
 
       {/* ── 绝对居中：播放四键，与 konvajs-content 中心对齐 */}
-      <div className="tb-playback">
+      <div className="tb-playback" style={showExportStatus ? { visibility: 'hidden' } : undefined}>
         <button className="tb-pb-btn" onClick={() => stepPlaybackFrame(-1)} data-tooltip="上一帧">
           <SkipBack size={15} strokeWidth={2} />
         </button>
@@ -585,6 +595,17 @@ export function ToolbarPanel({
                     </svg>
                   </button>
                 </div>
+                <span className="tb-canvas-size-label">文件前缀</span>
+                <div className="tb-canvas-controls">
+                  <input
+                    className="tb-canvas-size-input"
+                    type="text"
+                    value={exportPrefix}
+                    style={{ flex: 1 }}
+                    placeholder="biodraw"
+                    onChange={(e) => setExportPrefix(e.target.value)}
+                  />
+                </div>
                 <span className="tb-canvas-size-label">导出范围</span>
                 <div className="tb-canvas-controls">
                   <input
@@ -607,6 +628,13 @@ export function ToolbarPanel({
                       const maxS = globalDurationMs / 1000;
                       setExportEndSec(isNaN(v) ? maxS.toFixed(2) : Math.min(maxS, Math.max(0, v)).toFixed(2));
                     }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const v = parseFloat(exportEndSec);
+                        const maxS = globalDurationMs / 1000;
+                        setExportEndSec(isNaN(v) ? maxS.toFixed(2) : Math.min(maxS, Math.max(0, v)).toFixed(2));
+                      }
+                    }}
                   />
                   <button
                     className="tb-canvas-lock-btn"
@@ -622,7 +650,12 @@ export function ToolbarPanel({
                   <div className="tb-export-action-row">
                     <button
                       className="tb-export-action-btn"
-                      onClick={() => { requestSingleFrameExport(exportSize.width); setShowExportPanel(false); }}
+                      onClick={() => {
+                        requestSingleFrameExport(exportSize.width);
+                        setShowExportPanel(false);
+                        setSingleFrameExported(true);
+                        setTimeout(() => setSingleFrameExported(false), 3000);
+                      }}
                       disabled={isExporting}
                       data-tooltip={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
                     >
@@ -682,26 +715,27 @@ export function ToolbarPanel({
         </button>
       </div>
 
-      {(exportStatusText || isExporting) && (
+      {(showExportStatus || isExporting) && (
         <div className="tb-export-status">
           {exportStatusText && (
             <span className={`tb-status${isExportError ? ' is-error' : ''}`}>
               {exportStatusText}
             </span>
           )}
+          {singleFrameExported && !exportStatusText && (
+            <span className="tb-status">当前帧已导出</span>
+          )}
           {isExporting && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {sequenceExportStatus === 'running' && (
-                <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 6 }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${Math.round(exportProgress * 100)}%`,
-                    background: 'var(--primary-color, #3b82f6)',
-                    borderRadius: 6,
-                    transition: 'width 0.1s linear',
-                  }} />
-                </div>
-              )}
+              <div style={{ width: 80, height: 4, background: 'var(--border-color)', borderRadius: 6 }}>
+                <div style={{
+                  height: '100%',
+                  width: `${Math.round((sequenceExportStatus === 'running' ? exportProgress : videoExportProgress) * 100)}%`,
+                  background: 'var(--primary-color, #3b82f6)',
+                  borderRadius: 6,
+                  transition: 'width 0.1s linear',
+                }} />
+              </div>
               <button
                 className="tb-btn"
                 style={{ fontSize: 11, padding: '1px 6px', color: 'var(--error-color, #ef4444)' }}
