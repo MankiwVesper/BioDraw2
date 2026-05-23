@@ -13,28 +13,34 @@
   padding: 54px 24px; /* 预览模式：上下留出工具条区域 */
 }
 
-/* ── 导出状态浮层（工具栏与画布之间的空白区） ── */
+/* ── 导出状态浮动卡片（固定宽度，工具栏下方居中悬浮） ── */
 .export-status-bar {
   position: absolute;
-  top: 6px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
+  width: 320px;
+  height: 24px;
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
+  background: #dce8ff;
+  border: 1px solid #b0ccf8;
   border-radius: 8px;
-  padding: 4px 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  white-space: nowrap;
+  padding: 0 12px;
   pointer-events: none;
 }
 
 .export-status-text {
+  flex: 1;
+  min-width: 0;
   font-size: 12px;
-  color: var(--text-muted);
+  color: #3a5080;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .export-status-text.is-error {
@@ -42,9 +48,10 @@
 }
 
 .export-progress-track {
-  width: 80px;
+  flex-shrink: 0;
+  width: 72px;
   height: 4px;
-  background: var(--border-color);
+  background: #a0bce8;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -58,11 +65,12 @@
 
 .export-cancel-btn {
   pointer-events: auto;
+  flex-shrink: 0;
   font-size: 11px;
   padding: 1px 7px;
   border-radius: 4px;
   border: 1px solid var(--border-color);
-  background: var(--panel-bg);
+  background: transparent;
   color: var(--error-color, #ef4444);
   cursor: pointer;
 }
