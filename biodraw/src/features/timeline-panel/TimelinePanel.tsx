@@ -866,7 +866,7 @@ export function TimelinePanel() {
       setExpandedClipIds((prev) => new Set(prev).add(targetClip.id));
       setScrollToClipId(targetClip.id);
     }
-  }, [selectedObject?.id, effectiveSegments, animations]);
+  }, [selectedObject, effectiveSegments, animations]);
 
   const selectedBatchClips = useMemo(
     () => selectedObjectClips.filter((c) => batchSelectedClipIdSet.has(c.id)),
@@ -2064,6 +2064,7 @@ export function TimelinePanel() {
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
     return () => { window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- ensurePausedForEdit/getSnapCandidates are plain functions; their actual deps (playbackStatus, pause, animations, etc.) are already listed
   }, [animations, dragState, globalDurationMs, selectedObjectClips, setGlobalDurationMs, updateAnimationClip, playbackStatus, pause, effectiveSegments]);
 
   // 元素出现段拖拽：mousemove + mouseup（带相邻段硬阻挡）

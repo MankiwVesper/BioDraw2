@@ -87,9 +87,10 @@ export function InspectorPanel() {
   useEffect(() => {
     setBasicParamDrafts({});
   }, [selectedObj?.id]);
+  const selectedIdsKey = selectedIds.join(',');
   useEffect(() => {
     setMsParamDrafts({});
-  }, [selectedIds.join(',')]);
+  }, [selectedIdsKey]);
 
   // ── 多选对齐逻辑 ─────────────────────────────────────────────
   const selectedObjects = objects.filter((o) => selectedIds.includes(o.id));
