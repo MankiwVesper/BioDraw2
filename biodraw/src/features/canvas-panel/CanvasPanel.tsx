@@ -71,8 +71,11 @@ const drawStageToExportCanvas = (
   contentWidth: number,
   contentHeight: number,
 ) => {
-  const pixelRatio = width / contentWidth;
-  const frameCanvas = stage.toCanvas({ x: 0, y: 0, width: contentWidth, height: contentHeight, pixelRatio });
+  const scale = stage.scaleX();
+  const captureW = contentWidth * scale;
+  const captureH = contentHeight * scale;
+  const pixelRatio = width / captureW;
+  const frameCanvas = stage.toCanvas({ x: stage.x(), y: stage.y(), width: captureW, height: captureH, pixelRatio });
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(frameCanvas, 0, 0, width, height);
@@ -273,6 +276,7 @@ export function CanvasPanel() {
   const selectedIdsSnapRef = useRef(selectedIds);
   const canvasWidthRef = useRef(canvasWidth);
   const canvasHeightRef = useRef(canvasHeight);
+  const fitCanvasRef = useRef<() => void>(() => {});
 
   // Keep refs in sync for snap / group-drag callbacks
   useEffect(() => { exportCancelCountRef.current = exportCancelCount; }, [exportCancelCount]);
@@ -433,8 +437,7 @@ export function CanvasPanel() {
           pausePlayback();
         }
         setSequenceExportStatus('running', formatExportProgress(0, totalFrames));
-        setStageScale(1);
-        setStagePos({ x: 0, y: 0 });
+        fitCanvasRef.current();
         await waitForNextPaint();
 
         const targetCanvas = document.createElement('canvas');
@@ -519,8 +522,11 @@ export function CanvasPanel() {
     if (!stage) return;
     const cvW = canvasWidthRef.current;
     const cvH = canvasHeightRef.current;
-    const pixelRatio = singleFrameExportWidth / cvW;
-    const dataUrl = stage.toDataURL({ x: 0, y: 0, width: cvW, height: cvH, pixelRatio, mimeType: 'image/png' });
+    const scale = stage.scaleX();
+    const captureW = cvW * scale;
+    const captureH = cvH * scale;
+    const pixelRatio = singleFrameExportWidth / captureW;
+    const dataUrl = stage.toDataURL({ x: stage.x(), y: stage.y(), width: captureW, height: captureH, pixelRatio, mimeType: 'image/png' });
     const a = document.createElement('a');
     a.href = dataUrl;
     a.download = `frame_${currentTimeMs}ms.png`;
@@ -595,8 +601,7 @@ export function CanvasPanel() {
           pausePlayback();
         }
         setVideoExportStatus('running', formatExportProgress(0, totalFrames));
-        setStageScale(1);
-        setStagePos({ x: 0, y: 0 });
+        fitCanvasRef.current();
         await waitForNextPaint();
 
         const targetCanvas = document.createElement('canvas');
@@ -802,6 +807,7 @@ export function CanvasPanel() {
       y: (dimensions.height - canvasHeight * newScale) / 2,
     });
   }, [dimensions, canvasWidth, canvasHeight]);
+  fitCanvasRef.current = fitCanvas;
 
   // store 发出 requestFit 信号时（进入预览等场景）自动适配画布
   useEffect(() => {
