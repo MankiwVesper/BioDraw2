@@ -622,7 +622,7 @@ export function ToolbarPanel({
                   <div className="tb-export-action-row">
                     <button
                       className="tb-export-action-btn"
-                      onClick={() => { requestSingleFrameExport(); setShowExportPanel(false); }}
+                      onClick={() => { requestSingleFrameExport(exportSize.width); setShowExportPanel(false); }}
                       disabled={isExporting}
                       data-tooltip={`导出当前帧（${(currentTimeMs / 1000).toFixed(2)}s）为 PNG`}
                     >

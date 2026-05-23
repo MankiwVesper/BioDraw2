@@ -241,7 +241,8 @@ export function CanvasPanel() {
   const setVideoExportStatus = useEditorStore(state => state.setVideoExportStatus);
   const exportCancelCount = useEditorStore(state => state.exportCancelCount);
   const cancelExport = useEditorStore(state => state.cancelExport);
-  const singleFrameExportId  = useEditorStore(state => state.singleFrameExportId);
+  const singleFrameExportId    = useEditorStore(state => state.singleFrameExportId);
+  const singleFrameExportWidth = useEditorStore(state => state.singleFrameExportWidth);
   const fitVersion           = useEditorStore(state => state.fitVersion);
   const isPreviewMode        = useEditorStore(state => state.isPreviewMode);
   const focusMode            = useEditorStore(state => state.focusMode);
@@ -516,14 +517,13 @@ export function CanvasPanel() {
   const exportCurrentFrameAsPng = useCallback(() => {
     const stage = stageRef.current;
     if (!stage) return;
-    const exportWidth = sequenceExportOptions.width;
-    const pixelRatio = exportWidth / (stage.width() || exportWidth);
+    const pixelRatio = singleFrameExportWidth / (stage.width() || singleFrameExportWidth);
     const dataUrl = stage.toDataURL({ pixelRatio, mimeType: 'image/png' });
     const a = document.createElement('a');
     a.href = dataUrl;
     a.download = `frame_${currentTimeMs}ms.png`;
     a.click();
-  }, [currentTimeMs, sequenceExportOptions.width]);
+  }, [currentTimeMs, singleFrameExportWidth]);
 
   useEffect(() => {
     if (singleFrameExportId === 0) return;

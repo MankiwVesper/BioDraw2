@@ -145,8 +145,9 @@ interface EditorState {
   stepPlaybackFrame: (direction: 1 | -1) => void;
   exportCancelCount: number;
   singleFrameExportId: number;
+  singleFrameExportWidth: number;
   cancelExport: () => void;
-  requestSingleFrameExport: () => void;
+  requestSingleFrameExport: (width: number) => void;
   isPreviewMode: boolean;
   setPreviewMode: (v: boolean) => void;
   focusMode: boolean;
@@ -540,6 +541,7 @@ export const useEditorStore = create<EditorState>()(
     },
     exportCancelCount: 0,
     singleFrameExportId: 0,
+    singleFrameExportWidth: 1280,
     isPreviewMode: false,
     focusMode: false,
     fitVersion: 0,
@@ -1289,9 +1291,10 @@ export const useEditorStore = create<EditorState>()(
         state.exportCancelCount += 1;
       }),
 
-    requestSingleFrameExport: () =>
+    requestSingleFrameExport: (width) =>
       set((state) => {
         state.singleFrameExportId += 1;
+        state.singleFrameExportWidth = width;
       }),
 
     setPreviewMode: (v) =>
