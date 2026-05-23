@@ -35,11 +35,6 @@ const waitForNextPaint = () =>
     });
   });
 
-const waitForMs = (ms: number) =>
-  new Promise<void>((resolve) => {
-    setTimeout(resolve, ms);
-  });
-
 const formatExportProgress = (current: number, total: number) => {
   if (total <= 0) return '100%';
   const percent = Math.min(100, Math.max(0, Math.round((current / total) * 100)));
@@ -73,8 +68,11 @@ const drawStageToExportCanvas = (
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
+  contentWidth: number,
+  contentHeight: number,
 ) => {
-  const frameCanvas = stage.toCanvas({ pixelRatio: 1 });
+  const pixelRatio = width / contentWidth;
+  const frameCanvas = stage.toCanvas({ x: 0, y: 0, width: contentWidth, height: contentHeight, pixelRatio });
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(frameCanvas, 0, 0, width, height);
@@ -456,7 +454,7 @@ export function CanvasPanel() {
           setCurrentTimeMs(timeMs);
           await waitForNextPaint();
 
-          drawStageToExportCanvas(stage, ctx, width, height);
+          drawStageToExportCanvas(stage, ctx, width, height, canvasWidthRef.current, canvasHeightRef.current);
 
           const frameBlob = await blobFromCanvas(targetCanvas);
           const frameBytes = await blobToUint8Array(frameBlob);
@@ -517,8 +515,10 @@ export function CanvasPanel() {
   const exportCurrentFrameAsPng = useCallback(() => {
     const stage = stageRef.current;
     if (!stage) return;
-    const pixelRatio = singleFrameExportWidth / (stage.width() || singleFrameExportWidth);
-    const dataUrl = stage.toDataURL({ pixelRatio, mimeType: 'image/png' });
+    const cvW = canvasWidthRef.current;
+    const cvH = canvasHeightRef.current;
+    const pixelRatio = singleFrameExportWidth / cvW;
+    const dataUrl = stage.toDataURL({ x: 0, y: 0, width: cvW, height: cvH, pixelRatio, mimeType: 'image/png' });
     const a = document.createElement('a');
     a.href = dataUrl;
     a.download = `frame_${currentTimeMs}ms.png`;
@@ -642,9 +642,8 @@ export function CanvasPanel() {
           setCurrentTimeMs(timeMs);
           await waitForNextPaint();
 
-          drawStageToExportCanvas(stage, ctx, width, height);
+          drawStageToExportCanvas(stage, ctx, width, height, canvasWidthRef.current, canvasHeightRef.current);
           setVideoExportStatus('running', formatExportProgress(frameIndex + 1, totalFrames));
-          await waitForMs(stepMs);
         }
 
         if (recorder.state !== 'inactive') {
