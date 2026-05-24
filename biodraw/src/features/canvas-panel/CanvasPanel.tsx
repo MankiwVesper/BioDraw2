@@ -577,6 +577,7 @@ export function CanvasPanel() {
         const stepMs = 1000 / fps;
         const totalFrames = Math.max(1, Math.floor((endMs - startMs) / stepMs) + 1);
         const prefix = (videoExportOptions.prefix || 'biodraw-video').trim() || 'biodraw-video';
+        const requestedDurationMs = Math.max(0, endMs - startMs);
 
         const preferredMimeTypes = videoExportOptions.format === 'mp4'
           ? [
@@ -596,6 +597,7 @@ export function CanvasPanel() {
           throw new Error('未找到可用的视频编码格式');
         }
         const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
+        const tailHoldMs = extension === 'mp4' ? 1000 : stepMs;
 
         if (wasPlaying) {
           pausePlayback();
@@ -636,6 +638,8 @@ export function CanvasPanel() {
         });
 
         recorder.start(Math.max(100, Math.round(stepMs)));
+        // 记录循环开始的实际时间，用于帧节奏控制
+        const loopStart = performance.now();
 
         for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
           if (exportCancelCountRef.current !== cancelSnapshot) {
@@ -651,6 +655,27 @@ export function CanvasPanel() {
 
           drawStageToExportCanvas(stage, ctx, width, height, canvasWidthRef.current, canvasHeightRef.current);
           setVideoExportStatus('running', formatExportProgress(frameIndex + 1, totalFrames));
+
+          // 使用绝对目标时间控制录制时长，避免 setTimeout 误差逐帧累积。
+          const nextFrameTarget = loopStart + Math.min(requestedDurationMs, (frameIndex + 1) * stepMs);
+          const sleepMs = nextFrameTarget - performance.now();
+          if (sleepMs > 1) {
+            await new Promise<void>((resolve) => setTimeout(resolve, sleepMs));
+          }
+        }
+
+        // Chrome 的 MP4 MediaRecorder 容易在停止时丢掉结尾约 1 秒，保持最后一帧可抵消容器时长偏短。
+        const stopTarget = loopStart + requestedDurationMs + tailHoldMs;
+        const finalSleepMs = stopTarget - performance.now();
+        if (finalSleepMs > 1) {
+          await new Promise<void>((resolve) => setTimeout(resolve, finalSleepMs));
+        }
+
+        if (exportCancelCountRef.current !== cancelSnapshot) {
+          if (recorder.state !== 'inactive') recorder.stop();
+          stream.getTracks().forEach((track) => track.stop());
+          setVideoExportStatus('idle');
+          return;
         }
 
         if (recorder.state !== 'inactive') {
