@@ -515,7 +515,6 @@ export function CanvasPanel() {
           pausePlayback();
         }
         setSequenceExportStatus('running', formatExportProgress(0, totalFrames));
-        fitCanvasRef.current();
         await waitForNextPaint();
 
         const targetCanvas = document.createElement('canvas');
@@ -690,7 +689,6 @@ export function CanvasPanel() {
           pausePlayback();
         }
         setVideoExportStatus('running', formatExportProgress(0, totalFrames));
-        fitCanvasRef.current();
         await waitForNextPaint();
 
         const targetCanvas = document.createElement('canvas');
