@@ -257,6 +257,7 @@ export function CanvasPanel() {
   const lastHandledVideoExportRequestRef = useRef(0);
   const exportCancelCountRef = useRef(exportCancelCount);
   const lastSingleFrameExportIdRef = useRef(0);
+  const [singleFrameExporting, setSingleFrameExporting] = useState(false);
   // ── Group drag state
   const groupDragIdRef = useRef<string | null>(null);
   const groupDragStartsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
@@ -293,13 +294,17 @@ export function CanvasPanel() {
     if (!selectedIds.includes(pendingNameEditId)) setPendingNameEditId(null);
   }, [selectedIds, pendingNameEditId]);
 
+  const isExportingFrame = sequenceExportStatus === 'running' || videoExportStatus === 'running' || singleFrameExporting;
+
   const previewObjects = useMemo(() => {
-    if (currentTimeMs <= 0 && !previewClipId) return objects;
+    if (currentTimeMs <= 0 && !previewClipId && !isExportingFrame) return objects;
     const activeAnimations = previewClipId
       ? animations.filter((c) => c.id === previewClipId)
       : animations;
-    return buildAnimatedPreviewObjects(objects, activeAnimations, currentTimeMs);
-  }, [objects, animations, currentTimeMs, previewClipId]);
+    return buildAnimatedPreviewObjects(objects, activeAnimations, currentTimeMs, {
+      evaluateAtZero: isExportingFrame,
+    });
+  }, [objects, animations, currentTimeMs, previewClipId, isExportingFrame]);
 
   // 全览模式：计算当前时刻不可见的元素，以 35% 不透明度渲染为"幽灵"
   const ghostObjects = useMemo(() => {
@@ -339,10 +344,12 @@ export function CanvasPanel() {
     return { x: minX - 4 + dx, y: minY - 4 + dy, width: maxX - minX + 8, height: maxY - minY + 8 };
   }, [selectedIds, objects, groupDragOffset, groupEditingId]);
 
-  const isSequenceExportRunning = sequenceExportStatus === 'running';
-  const isVideoExportRunning = videoExportStatus === 'running';
-  const isAnyExportRunning = isSequenceExportRunning || isVideoExportRunning;
+  const isAnyExportRunning = isExportingFrame;
   const interactionLocked = playbackStatus === 'playing' || isAnyExportRunning;
+  const renderedGhostObjects = isAnyExportRunning ? [] : ghostObjects;
+  const renderedPreviewObjects = isAnyExportRunning
+    ? previewObjects.filter((obj) => obj.visible)
+    : previewObjects;
 
   // Keep textarea focused while editing text/name.
   useLayoutEffect(() => {
@@ -517,27 +524,35 @@ export function CanvasPanel() {
     setSequenceExportStatus,
   ]);
 
-  const exportCurrentFrameAsPng = useCallback(() => {
-    const stage = stageRef.current;
-    if (!stage) return;
-    const cvW = canvasWidthRef.current;
-    const cvH = canvasHeightRef.current;
-    const scale = stage.scaleX();
-    const captureW = cvW * scale;
-    const captureH = cvH * scale;
-    const pixelRatio = singleFrameExportWidth / captureW;
-    const dataUrl = stage.toDataURL({ x: stage.x(), y: stage.y(), width: captureW, height: captureH, pixelRatio, mimeType: 'image/png' });
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = `frame_${currentTimeMs}ms.png`;
-    a.click();
+  const exportCurrentFrameAsPng = useCallback(async () => {
+    setSingleFrameExporting(true);
+    try {
+      await waitForNextPaint();
+      await waitForNextPaint();
+
+      const stage = stageRef.current;
+      if (!stage) return;
+      const cvW = canvasWidthRef.current;
+      const cvH = canvasHeightRef.current;
+      const scale = stage.scaleX();
+      const captureW = cvW * scale;
+      const captureH = cvH * scale;
+      const pixelRatio = singleFrameExportWidth / captureW;
+      const dataUrl = stage.toDataURL({ x: stage.x(), y: stage.y(), width: captureW, height: captureH, pixelRatio, mimeType: 'image/png' });
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `frame_${currentTimeMs}ms.png`;
+      a.click();
+    } finally {
+      setSingleFrameExporting(false);
+    }
   }, [currentTimeMs, singleFrameExportWidth]);
 
   useEffect(() => {
     if (singleFrameExportId === 0) return;
     if (singleFrameExportId === lastSingleFrameExportIdRef.current) return;
     lastSingleFrameExportIdRef.current = singleFrameExportId;
-    exportCurrentFrameAsPng();
+    void exportCurrentFrameAsPng();
   }, [singleFrameExportId, exportCurrentFrameAsPng]);
 
   useEffect(() => {
@@ -1269,7 +1284,7 @@ export function CanvasPanel() {
                 shadowOffsetY={4 / stageScale}
                 listening={false}
               />
-              {ghostObjects.map((obj) => (
+              {renderedGhostObjects.map((obj) => (
                 <SceneObjectRenderer
                   key={obj.id}
                   sceneObject={obj}
@@ -1287,7 +1302,7 @@ export function CanvasPanel() {
                   applyFlashKey={applyAnimationFlashKey}
                 />
               ))}
-              {previewObjects.map((obj) => {
+              {renderedPreviewObjects.map((obj) => {
                 const isSelected = !isAnyExportRunning && selectedIds.includes(obj.id);
                 const isFollower = groupDragOffset !== null &&
                   groupDragIdRef.current !== null &&

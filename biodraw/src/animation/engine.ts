@@ -232,9 +232,10 @@ export const buildAnimatedPreviewObjects = (
   objects: SceneObject[],
   animations: AnimationClip[],
   currentTimeMs: number,
+  options: { evaluateAtZero?: boolean } = {},
 ) => {
   // t=0 默认编辑态：保留全部对象（即使其出现窗口不含 0），方便用户初始化布局。
-  if (currentTimeMs <= 0) return objects;
+  if (currentTimeMs <= 0 && !options.evaluateAtZero) return objects;
 
   const clipsByObjectId = new Map<string, AnimationClip[]>();
   for (const clip of animations) {
