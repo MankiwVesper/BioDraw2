@@ -114,6 +114,43 @@ const drawCanvasContentToExportCanvas = (
   return frameCanvas;
 };
 
+const waitForImageAsset = (url: string, timeoutMs = 10000) =>
+  new Promise<void>((resolve, reject) => {
+    const image = new window.Image();
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      image.onload = null;
+      image.onerror = null;
+      if (error) reject(error);
+      else resolve();
+    };
+    const timer = window.setTimeout(
+      () => finish(new Error(`素材图片加载超时: ${url}`)),
+      timeoutMs,
+    );
+    image.onload = () => finish();
+    image.onerror = () => finish(new Error(`素材图片加载失败: ${url}`));
+    image.src = url;
+    if (image.complete && image.naturalWidth > 0) {
+      finish();
+    }
+  });
+
+const waitForMaterialImages = async (objects: SceneObject[]) => {
+  const urls = Array.from(new Set(
+    objects
+      .filter((obj) => obj.type === 'material')
+      .map((obj) => obj.data?.url)
+      .filter((url): url is string => typeof url === 'string' && url.length > 0),
+  ));
+  if (urls.length === 0) return;
+  await Promise.all(urls.map((url) => waitForImageAsset(url)));
+  await waitForNextPaint();
+};
+
 const crc32Table = (() => {
   const table = new Uint32Array(256);
   for (let i = 0; i < 256; i += 1) {
@@ -462,6 +499,7 @@ export function CanvasPanel() {
           commitTextChange();
           await waitForNextPaint();
         }
+        await waitForMaterialImages(objectsSnapRef.current);
 
         const width = Math.max(16, Math.round(sequenceExportOptions.width));
         const height = Math.max(16, Math.round(sequenceExportOptions.height));
@@ -564,6 +602,8 @@ export function CanvasPanel() {
 
       const stage = stageRef.current;
       if (!stage) return;
+      await waitForMaterialImages(objectsSnapRef.current);
+      await waitForNextPaint();
       const cvW = canvasWidthRef.current;
       const cvH = canvasHeightRef.current;
       const frameCanvas = captureCanvasContent(stage, cvW, cvH, singleFrameExportWidth);
@@ -612,6 +652,7 @@ export function CanvasPanel() {
           commitTextChange();
           await waitForNextPaint();
         }
+        await waitForMaterialImages(objectsSnapRef.current);
 
         const width = Math.max(16, Math.round(videoExportOptions.width));
         const height = Math.max(16, Math.round(videoExportOptions.height));
