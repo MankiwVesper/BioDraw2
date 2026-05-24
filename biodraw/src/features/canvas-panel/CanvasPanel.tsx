@@ -63,7 +63,43 @@ const asArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
   return copy.buffer;
 };
 
-const drawStageToExportCanvas = (
+const captureCanvasContent = (
+  stage: Konva.Stage,
+  contentWidth: number,
+  contentHeight: number,
+  outputWidth: number,
+) => {
+  const original = {
+    x: stage.x(),
+    y: stage.y(),
+    scaleX: stage.scaleX(),
+    scaleY: stage.scaleY(),
+    width: stage.width(),
+    height: stage.height(),
+  };
+
+  try {
+    stage.position({ x: 0, y: 0 });
+    stage.scale({ x: 1, y: 1 });
+    stage.size({ width: contentWidth, height: contentHeight });
+    stage.batchDraw();
+
+    return stage.toCanvas({
+      x: 0,
+      y: 0,
+      width: contentWidth,
+      height: contentHeight,
+      pixelRatio: outputWidth / contentWidth,
+    });
+  } finally {
+    stage.position({ x: original.x, y: original.y });
+    stage.scale({ x: original.scaleX, y: original.scaleY });
+    stage.size({ width: original.width, height: original.height });
+    stage.batchDraw();
+  }
+};
+
+const drawCanvasContentToExportCanvas = (
   stage: Konva.Stage,
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -71,11 +107,7 @@ const drawStageToExportCanvas = (
   contentWidth: number,
   contentHeight: number,
 ) => {
-  const scale = stage.scaleX();
-  const captureW = contentWidth * scale;
-  const captureH = contentHeight * scale;
-  const pixelRatio = width / captureW;
-  const frameCanvas = stage.toCanvas({ x: stage.x(), y: stage.y(), width: captureW, height: captureH, pixelRatio });
+  const frameCanvas = captureCanvasContent(stage, contentWidth, contentHeight, width);
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(frameCanvas, 0, 0, width, height);
@@ -466,7 +498,7 @@ export function CanvasPanel() {
           setCurrentTimeMs(timeMs);
           await waitForNextPaint();
 
-          drawStageToExportCanvas(stage, ctx, width, height, canvasWidthRef.current, canvasHeightRef.current);
+          drawCanvasContentToExportCanvas(stage, ctx, width, height, canvasWidthRef.current, canvasHeightRef.current);
 
           const frameBlob = await blobFromCanvas(targetCanvas);
           const frameBytes = await blobToUint8Array(frameBlob);
@@ -534,11 +566,8 @@ export function CanvasPanel() {
       if (!stage) return;
       const cvW = canvasWidthRef.current;
       const cvH = canvasHeightRef.current;
-      const scale = stage.scaleX();
-      const captureW = cvW * scale;
-      const captureH = cvH * scale;
-      const pixelRatio = singleFrameExportWidth / captureW;
-      const dataUrl = stage.toDataURL({ x: stage.x(), y: stage.y(), width: captureW, height: captureH, pixelRatio, mimeType: 'image/png' });
+      const frameCanvas = captureCanvasContent(stage, cvW, cvH, singleFrameExportWidth);
+      const dataUrl = frameCanvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
       a.download = `frame_${currentTimeMs}ms.png`;
@@ -668,7 +697,7 @@ export function CanvasPanel() {
           setCurrentTimeMs(timeMs);
           await waitForNextPaint();
 
-          drawStageToExportCanvas(stage, ctx, width, height, canvasWidthRef.current, canvasHeightRef.current);
+          drawCanvasContentToExportCanvas(stage, ctx, width, height, canvasWidthRef.current, canvasHeightRef.current);
           setVideoExportStatus('running', formatExportProgress(frameIndex + 1, totalFrames));
 
           // 使用绝对目标时间控制录制时长，避免 setTimeout 误差逐帧累积。
