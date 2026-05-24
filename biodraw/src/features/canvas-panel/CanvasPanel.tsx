@@ -326,6 +326,7 @@ export function CanvasPanel() {
   const lastHandledVideoExportRequestRef = useRef(0);
   const exportCancelCountRef = useRef(exportCancelCount);
   const lastSingleFrameExportIdRef = useRef(0);
+  const commitTextChangeRef = useRef<() => void>(() => {});
   const [singleFrameExporting, setSingleFrameExporting] = useState(false);
   // ── Group drag state
   const groupDragIdRef = useRef<string | null>(null);
@@ -597,6 +598,7 @@ export function CanvasPanel() {
   const exportCurrentFrameAsPng = useCallback(async () => {
     setSingleFrameExporting(true);
     try {
+      commitTextChangeRef.current();
       await waitForNextPaint();
       await waitForNextPaint();
 
@@ -1224,6 +1226,7 @@ export function CanvasPanel() {
       setEditingRect(null);
     }
   };
+  commitTextChangeRef.current = commitTextChange;
 
   const editingObject = editingTextId ? objects.find(o => o.id === editingTextId) : null;
   const isVerticalTextEditing =
