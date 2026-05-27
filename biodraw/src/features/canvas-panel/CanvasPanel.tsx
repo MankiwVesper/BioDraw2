@@ -9,6 +9,7 @@ import { AnimationPathOverlay } from '../../render/animation/AnimationPathOverla
 import type { SceneObject } from '../../types';
 import type Konva from 'konva';
 import './CanvasPanel.css';
+import { useVideoExport } from './useVideoExport';
 
 type SnapLine = { axis: 'x' | 'y'; value: number };
 
@@ -308,8 +309,6 @@ export function CanvasPanel() {
   const sequenceExportRequestId = useEditorStore(state => state.sequenceExportRequestId);
   const sequenceExportOptions = useEditorStore(state => state.sequenceExportOptions);
   const setSequenceExportStatus = useEditorStore(state => state.setSequenceExportStatus);
-  const videoExportRequestId = useEditorStore(state => state.videoExportRequestId);
-  const videoExportOptions = useEditorStore(state => state.videoExportOptions);
   const setVideoExportStatus = useEditorStore(state => state.setVideoExportStatus);
   const exportCancelCount = useEditorStore(state => state.exportCancelCount);
   const cancelExport = useEditorStore(state => state.cancelExport);
@@ -323,7 +322,6 @@ export function CanvasPanel() {
   const stopPlayback         = useEditorStore(state => state.stop);
   const stepPlaybackFrame    = useEditorStore(state => state.stepPlaybackFrame);
   const lastHandledExportRequestRef = useRef(0);
-  const lastHandledVideoExportRequestRef = useRef(0);
   const exportCancelCountRef = useRef(exportCancelCount);
   const lastSingleFrameExportIdRef = useRef(0);
   const commitTextChangeRef = useRef<() => void>(() => {});
@@ -625,195 +623,23 @@ export function CanvasPanel() {
     void exportCurrentFrameAsPng();
   }, [singleFrameExportId, exportCurrentFrameAsPng]);
 
-  useEffect(() => {
-    if (videoExportRequestId <= 0) return;
-    if (lastHandledVideoExportRequestRef.current === videoExportRequestId) return;
-    lastHandledVideoExportRequestRef.current = videoExportRequestId;
+  useVideoExport({
+    stageRef,
+    fitCanvasRef,
+    canvasWidthRef,
+    canvasHeightRef,
+    objectsSnapRef,
+    commitTextChangeRef,
+    captureCanvasContent,
+    waitForMaterialImages,
+    stageScaleRef,
+    stagePosRef,
+    restoreStage: (scale, pos) => {
+      setStageScale(scale);
+      setStagePos(pos);
+    },
+  });
 
-    const cancelSnapshot = exportCancelCountRef.current;
-
-    const runVideoExport = async () => {
-      const stage = stageRef.current;
-      if (!stage) {
-        setVideoExportStatus('error', '画布未就绪');
-        return;
-      }
-      if (typeof MediaRecorder === 'undefined') {
-        setVideoExportStatus('error', '当前浏览器不支持视频导出');
-        return;
-      }
-
-      const originalScale = stageScale;
-      const originalPos = { ...stagePos };
-      const originalTimeMs = currentTimeMs;
-      const wasPlaying = playbackStatus === 'playing';
-
-      try {
-        if (editingTextId) {
-          commitTextChange();
-          await waitForNextPaint();
-        }
-        await waitForMaterialImages(objectsSnapRef.current);
-
-        const width = Math.max(16, Math.round(videoExportOptions.width));
-        const height = Math.max(16, Math.round(videoExportOptions.height));
-        const fps = Math.max(1, Math.min(60, Math.round(videoExportOptions.fps)));
-        const startMs = Math.max(0, Math.min(videoExportOptions.startMs, globalDurationMs));
-        const endMs = Math.max(startMs, Math.min(videoExportOptions.endMs, globalDurationMs));
-        const stepMs = 1000 / fps;
-        const totalFrames = Math.max(1, Math.floor((endMs - startMs) / stepMs) + 1);
-        const prefix = (videoExportOptions.prefix || 'biodraw-video').trim() || 'biodraw-video';
-        const requestedDurationMs = Math.max(0, endMs - startMs);
-
-        const preferredMimeTypes = videoExportOptions.format === 'mp4'
-          ? [
-            'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-            'video/mp4',
-            'video/webm;codecs=vp9',
-            'video/webm',
-          ]
-          : [
-            'video/webm;codecs=vp9',
-            'video/webm;codecs=vp8',
-            'video/webm',
-            'video/mp4',
-          ];
-        const mimeType = preferredMimeTypes.find((type) => MediaRecorder.isTypeSupported(type));
-        if (!mimeType) {
-          throw new Error('未找到可用的视频编码格式');
-        }
-        const extension = mimeType.includes('mp4') ? 'mp4' : 'webm';
-        const tailHoldMs = extension === 'mp4' ? 1000 : stepMs;
-
-        if (wasPlaying) {
-          pausePlayback();
-        }
-        setVideoExportStatus('running', formatExportProgress(0, totalFrames));
-        await waitForNextPaint();
-
-        const targetCanvas = document.createElement('canvas');
-        targetCanvas.width = width;
-        targetCanvas.height = height;
-        const ctx = targetCanvas.getContext('2d');
-        if (!ctx) {
-          throw new Error('Failed to create export canvas context.');
-        }
-
-        const stream = targetCanvas.captureStream(fps);
-        const chunks: BlobPart[] = [];
-        let recorderError: Error | null = null;
-
-        const recorder = new MediaRecorder(stream, {
-          mimeType,
-          videoBitsPerSecond: 8_000_000,
-        });
-        recorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            chunks.push(event.data);
-          }
-        };
-        recorder.onerror = (event) => {
-          const mediaError = (event as Event & { error?: Error }).error;
-          recorderError = mediaError || new Error('视频录制失败');
-        };
-        const stopPromise = new Promise<Blob>((resolve) => {
-          recorder.onstop = () => {
-            resolve(new Blob(chunks, { type: mimeType }));
-          };
-        });
-
-        recorder.start(Math.max(100, Math.round(stepMs)));
-        // 记录循环开始的实际时间，用于帧节奏控制
-        const loopStart = performance.now();
-
-        for (let frameIndex = 0; frameIndex < totalFrames; frameIndex += 1) {
-          if (exportCancelCountRef.current !== cancelSnapshot) {
-            if (recorder.state !== 'inactive') recorder.stop();
-            stream.getTracks().forEach((track) => track.stop());
-            setVideoExportStatus('idle');
-            return;
-          }
-
-          const timeMs = Math.min(endMs, Math.round(startMs + frameIndex * stepMs));
-          setCurrentTimeMs(timeMs);
-          await waitForNextPaint();
-
-          drawCanvasContentToExportCanvas(stage, ctx, width, height, canvasWidthRef.current, canvasHeightRef.current);
-          setVideoExportStatus('running', formatExportProgress(frameIndex + 1, totalFrames));
-
-          // 使用绝对目标时间控制录制时长，避免 setTimeout 误差逐帧累积。
-          const nextFrameTarget = loopStart + Math.min(requestedDurationMs, (frameIndex + 1) * stepMs);
-          const sleepMs = nextFrameTarget - performance.now();
-          if (sleepMs > 1) {
-            await new Promise<void>((resolve) => setTimeout(resolve, sleepMs));
-          }
-        }
-
-        // Chrome 的 MP4 MediaRecorder 容易在停止时丢掉结尾约 1 秒，保持最后一帧可抵消容器时长偏短。
-        const stopTarget = loopStart + requestedDurationMs + tailHoldMs;
-        const finalSleepMs = stopTarget - performance.now();
-        if (finalSleepMs > 1) {
-          await new Promise<void>((resolve) => setTimeout(resolve, finalSleepMs));
-        }
-
-        if (exportCancelCountRef.current !== cancelSnapshot) {
-          if (recorder.state !== 'inactive') recorder.stop();
-          stream.getTracks().forEach((track) => track.stop());
-          setVideoExportStatus('idle');
-          return;
-        }
-
-        if (recorder.state !== 'inactive') {
-          recorder.stop();
-        }
-        const videoBlob = await stopPromise;
-        stream.getTracks().forEach((track) => track.stop());
-
-        if (recorderError) {
-          throw recorderError;
-        }
-        if (exportCancelCountRef.current !== cancelSnapshot) return;
-
-        const url = URL.createObjectURL(videoBlob);
-        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${prefix}_${stamp}.${extension}`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
-
-        if (videoExportOptions.format === 'mp4' && extension === 'webm') {
-          setVideoExportStatus('done', '已导出 WebM（浏览器不支持 MP4）');
-        } else {
-          setVideoExportStatus('done', `${totalFrames} 帧`);
-        }
-      } catch (error) {
-        const message = error instanceof Error ? error.message : '视频导出失败';
-        setVideoExportStatus('error', message);
-      } finally {
-        setCurrentTimeMs(originalTimeMs);
-        setStageScale(originalScale);
-        setStagePos(originalPos);
-        if (wasPlaying) {
-          playPlayback();
-        }
-      }
-    };
-
-    runVideoExport();
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- stageScale/stagePos/currentTimeMs/playbackStatus/editingTextId/commitTextChange are snapshotted at export start; adding them would restart the export mid-run
-  }, [
-    globalDurationMs,
-    pausePlayback,
-    playPlayback,
-    setCurrentTimeMs,
-    setVideoExportStatus,
-    videoExportOptions,
-    videoExportRequestId,
-  ]);
   const handleWheel = (e: Konva.KonvaEventObject<WheelEvent>) => {
     e.evt.preventDefault();
     const stage = stageRef.current;
