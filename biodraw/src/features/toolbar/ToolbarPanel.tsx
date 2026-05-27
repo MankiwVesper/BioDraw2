@@ -261,7 +261,7 @@ export function ToolbarPanel({
   };
 
   const playbackRateOptions = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2];
-  const exportFpsOptions    = [12, 24, 30, 60];
+  const exportFpsOptions    = [24, 30, 60];
 
 
   return (
@@ -536,13 +536,16 @@ export function ToolbarPanel({
                 </div>
                 <span className="tb-canvas-size-label">FPS/格式</span>
                 <div className="tb-canvas-controls">
-                  <select className="tb-canvas-size-input" value={exportFps} onChange={(e) => setExportFps(parseInt(e.target.value, 10))}>
-                    {exportFpsOptions.map((f) => <option key={f} value={f}>{f}</option>)}
-                  </select>
-                  <select className="tb-canvas-size-input" value={videoFormat} onChange={(e) => setVideoFormat(e.target.value as 'mp4' | 'webm')}>
-                    <option value="mp4">MP4</option>
-                    <option value="webm">WebM</option>
-                  </select>
+                  <ExportDropdown
+                    options={exportFpsOptions.map((f) => ({ value: String(f), label: String(f) }))}
+                    value={String(exportFps)}
+                    onChange={(v) => setExportFps(parseInt(v, 10))}
+                  />
+                  <ExportDropdown
+                    options={[{ value: 'mp4', label: 'MP4' }, { value: 'webm', label: 'WebM' }]}
+                    value={videoFormat}
+                    onChange={(v) => setVideoFormat(v as 'mp4' | 'webm')}
+                  />
                   <button
                     className="tb-canvas-lock-btn"
                     onClick={() => { setExportFps(24); setVideoFormat('mp4'); }}
@@ -669,5 +672,60 @@ export function ToolbarPanel({
       </div>
 
     </header>
+  );
+}
+
+function ExportDropdown({
+  options,
+  value,
+  onChange,
+}: {
+  options: Array<{ value: string; label: string }>;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <div className="tb-dropdown-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`tb-dropdown-btn${open ? ' is-open' : ''}`}
+        onClick={() => setOpen((p) => !p)}
+      >
+        <span className="tb-dropdown-btn-label">{selected?.label ?? value}</span>
+        <ChevronDown
+          size={10}
+          strokeWidth={2.5}
+          className={`tb-dropdown-chevron${open ? ' is-open' : ''}`}
+        />
+      </button>
+      {open && (
+        <div className="tb-dropdown-menu">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`tb-dropdown-option${opt.value === value ? ' is-active' : ''}`}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
