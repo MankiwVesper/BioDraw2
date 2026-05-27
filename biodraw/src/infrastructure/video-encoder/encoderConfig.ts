@@ -5,7 +5,7 @@ export type VideoFormat = 'mp4' | 'webm';
 
 export interface CodecCandidate {
   format: VideoFormat;
-  /** WebCodecs codec string，如 'avc1.42E01E' / 'vp09.00.10.08' / 'vp8' */
+  /** WebCodecs codec string，如 'avc1.640032' / 'vp09.00.10.08' / 'vp8' */
   codec: string;
   /** mp4-muxer / webm-muxer 内部使用的 codec 标识 */
   muxerCodec: 'avc' | 'vp9' | 'vp8';
@@ -30,7 +30,7 @@ export const getDefaultBitrate = (width: number, height: number, fps: number): n
  */
 export const getCodecCandidates = (preferred: VideoFormat): CodecCandidate[] => {
   const mp4Candidates: CodecCandidate[] = [
-    { format: 'mp4', codec: 'avc1.42E01E', muxerCodec: 'avc', extension: 'mp4' },
+    { format: 'mp4', codec: 'avc1.640032', muxerCodec: 'avc', extension: 'mp4' },
   ];
   const webmCandidates: CodecCandidate[] = [
     { format: 'webm', codec: 'vp09.00.10.08', muxerCodec: 'vp9', extension: 'webm' },

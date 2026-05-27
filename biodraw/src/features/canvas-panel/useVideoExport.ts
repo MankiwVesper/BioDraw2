@@ -55,7 +55,7 @@ export const useVideoExport = ({
   const setCurrentTimeMs = useEditorStore((s) => s.setCurrentTimeMs);
   const pausePlayback = useEditorStore((s) => s.pause);
   const playPlayback = useEditorStore((s) => s.play);
-  const cancelExport = useEditorStore((s) => s.cancelExport);
+
 
   const lastHandledRef = useRef(0);
   const exportCancelCountRef = useRef(0);
@@ -198,7 +198,6 @@ export const useVideoExport = ({
 
     return () => {
       if (encoder) encoder.cancel();
-      cancelExport();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -209,6 +208,5 @@ export const useVideoExport = ({
     playPlayback,
     setCurrentTimeMs,
     setVideoExportStatus,
-    cancelExport,
   ]);
 };
