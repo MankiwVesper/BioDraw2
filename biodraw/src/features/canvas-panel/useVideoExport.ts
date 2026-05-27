@@ -97,7 +97,7 @@ export const useVideoExport = ({
       const startMs = Math.max(0, Math.min(opts.startMs, globalDurationMs));
       const endMs = Math.max(startMs, Math.min(opts.endMs, globalDurationMs));
       const stepMs = 1000 / fps;
-      const totalFrames = Math.max(1, Math.floor((endMs - startMs) / stepMs) + 1);
+      const totalFrames = Math.max(1, Math.round((endMs - startMs) * fps / 1000) + 1);
       const prefix = (opts.prefix || 'biodraw-video').trim() || 'biodraw-video';
 
       try {
@@ -166,10 +166,9 @@ export const useVideoExport = ({
         }
 
         const url = URL.createObjectURL(videoBlob);
-        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${prefix}_${stamp}.${resolution.extension}`;
+        link.download = `${prefix}.${resolution.extension}`;
         document.body.appendChild(link);
         link.click();
         link.remove();
