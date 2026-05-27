@@ -169,14 +169,13 @@ export function ToolbarPanel({
 
   // 导出面板状态
   const [showExportPanel, setShowExportPanel] = useState(false);
-  const [exportWidth,  setExportWidth]  = useState(1280);
-  const [exportHeight, setExportHeight] = useState(720);
+  const [exportWidth,  setExportWidth]  = useState(canvasWidth);
+  const [exportHeight, setExportHeight] = useState(canvasHeight);
   const [exportFps,    setExportFps]    = useState(24);
   const [videoFormat,  setVideoFormat]  = useState<'mp4' | 'webm'>('mp4');
   const exportPanelRef = useRef<HTMLDivElement>(null);
   const [exportDropdownWidth,   setExportDropdownWidth]   = useState(280);
   const [exportIsRatioLocked,  setExportIsRatioLocked]  = useState(false);
-  const [exportPrefix,         setExportPrefix]         = useState('biodraw');
 
   useLayoutEffect(() => {
     if (!showExportPanel) return;
@@ -234,9 +233,12 @@ export function ToolbarPanel({
     });
   }, [globalDurationMs]);
 
-  // 打开导出面板时，将终点同步为当前项目总时长
+  // 打开导出面板时，同步画布宽高和时间范围
   useEffect(() => {
-    if (showExportPanel) setExportEndSec((globalDurationMs / 1000).toFixed(2));
+    if (!showExportPanel) return;
+    setExportWidth(canvasWidth);
+    setExportHeight(canvasHeight);
+    setExportEndSec((globalDurationMs / 1000).toFixed(2));
   }, [showExportPanel]); // eslint-disable-line react-hooks/exhaustive-deps
   const exportStartMs = Math.max(0, Math.round((parseFloat(exportStartSec) || 0) * 1000));
   const exportEndMs   = Math.min(globalDurationMs, Math.round((parseFloat(exportEndSec) || globalDurationMs / 1000) * 1000));
@@ -251,12 +253,13 @@ export function ToolbarPanel({
   const isExporting = sequenceExportStatus === 'running' || videoExportStatus === 'running';
   const isPlaying   = playbackStatus === 'playing';
 
+  const fileBaseName = currentFileName.replace(/\.biodraw$/, '') || 'biodraw';
   const triggerSequenceExport = () => {
-    requestSequenceExport({ ...exportSize, ...exportRange, prefix: `${exportPrefix || 'biodraw'}-frame` });
+    requestSequenceExport({ ...exportSize, ...exportRange, prefix: `${fileBaseName}-frame` });
     setShowExportPanel(false);
   };
   const triggerVideoExport = () => {
-    requestVideoExport({ ...exportSize, ...exportRange, prefix: `${exportPrefix || 'biodraw'}-video`, format: videoFormat });
+    requestVideoExport({ ...exportSize, ...exportRange, prefix: fileBaseName, format: videoFormat });
     setShowExportPanel(false);
   };
 
@@ -555,17 +558,6 @@ export function ToolbarPanel({
                       <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
                     </svg>
                   </button>
-                </div>
-                <span className="tb-canvas-size-label">文件前缀</span>
-                <div className="tb-canvas-controls">
-                  <input
-                    className="tb-canvas-size-input"
-                    type="text"
-                    value={exportPrefix}
-                    style={{ flex: 1 }}
-                    placeholder="biodraw"
-                    onChange={(e) => setExportPrefix(e.target.value)}
-                  />
                 </div>
                 <span className="tb-canvas-size-label">导出范围</span>
                 <div className="tb-canvas-controls">
