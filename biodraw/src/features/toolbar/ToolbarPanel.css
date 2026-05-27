@@ -487,7 +487,7 @@
 
 /* ── 自定义下拉（FPS / 格式选择） */
 .tb-dropdown-wrap {
-  width: 56px;
+  min-width: 56px;
   flex-shrink: 0;
   position: relative;
 }

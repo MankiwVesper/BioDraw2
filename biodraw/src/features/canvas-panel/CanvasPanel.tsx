@@ -312,6 +312,7 @@ export function CanvasPanel() {
   const setVideoExportStatus = useEditorStore(state => state.setVideoExportStatus);
   const exportCancelCount = useEditorStore(state => state.exportCancelCount);
   const cancelExport = useEditorStore(state => state.cancelExport);
+  const currentFileName = useEditorStore(state => state.currentFileName) as string;
   const singleFrameExportId    = useEditorStore(state => state.singleFrameExportId);
   const singleFrameExportWidth = useEditorStore(state => state.singleFrameExportWidth);
   const fitVersion           = useEditorStore(state => state.fitVersion);
@@ -553,10 +554,9 @@ export function CanvasPanel() {
 
         const zipBlob = buildZipBlob(entries);
         const url = URL.createObjectURL(zipBlob);
-        const stamp = new Date().toISOString().replace(/[:.]/g, '-');
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${prefix}_${stamp}.zip`;
+        link.download = `${prefix}.zip`;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -609,7 +609,8 @@ export function CanvasPanel() {
       const dataUrl = frameCanvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `frame_${currentTimeMs}ms.png`;
+      const baseName = currentFileName.replace(/\.biodraw$/, '') || 'biodraw';
+      a.download = `${baseName}-frame_${currentTimeMs}ms.png`;
       a.click();
     } finally {
       setSingleFrameExporting(false);

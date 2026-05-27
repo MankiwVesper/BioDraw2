@@ -168,7 +168,7 @@ export const useVideoExport = ({
         const url = URL.createObjectURL(videoBlob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = `${prefix}.${resolution.extension}`;
+        link.download = `${prefix}-video.${resolution.extension}`;
         document.body.appendChild(link);
         link.click();
         link.remove();
