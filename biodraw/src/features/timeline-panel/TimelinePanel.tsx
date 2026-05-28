@@ -2489,7 +2489,7 @@ export function TimelinePanel() {
 
             {/* 中列：轨道（多段渲染） */}
             <div
-              className="tl-element-track"
+              className={`tl-element-track${segLabelEditId ? ' is-editing' : ''}`}
               ref={elementTrackRef}
               onMouseDown={(e) => {
                 if (e.target === e.currentTarget) setSelectedSegmentIds([]);
@@ -2512,7 +2512,7 @@ export function TimelinePanel() {
                   background: hexAlpha(color, 0.25),
                   borderLeft: `1px solid ${color}`,
                   borderRight: `1px solid ${color}`,
-                  zIndex: isSelected ? 2 : 1,
+                  zIndex: segLabelEditId === seg.id ? 20 : (isSelected ? 2 : 1),
                 } as CSSProperties;
                 const handleBg = hexAlpha(color, 0.7);
                 const handleLStyle: CSSProperties = { background: handleBg, left: -1 };
@@ -2550,7 +2550,7 @@ export function TimelinePanel() {
                     />
                     {segLabelEditId === seg.id ? (
                       <span ref={segLabelSpanRef} className="tl-element-window-label"
-                        style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: segLabelWidthRef.current ?? undefined, boxSizing: 'border-box' }}>
+                        style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: segLabelWidthRef.current ?? undefined, boxSizing: 'border-box', position: 'relative', zIndex: 10 }}>
                         <input
                           className="tl-label-time-input tl-input-nospin"
                           type="text"

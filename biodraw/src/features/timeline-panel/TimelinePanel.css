@@ -570,6 +570,8 @@
 
 .tl-element-window.is-dragging { cursor: grabbing; }
 
+.tl-element-track.is-editing { overflow: visible; }
+
 @keyframes tl-marching-ants {
   to { background-position: 10px 0, 100% 10px, -10px 100%, 0 -10px; }
 }
