@@ -552,6 +552,7 @@ export function TimelinePanel() {
   const batchStateDropRef = useRef<HTMLDivElement>(null);
   const clipDragHappenedRef = useRef(false);
   const windowDragMovedRef = useRef(false);
+  const labelSingleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Store 订阅
   const objects = useEditorStore((s) => s.objects);
@@ -1254,7 +1255,7 @@ export function TimelinePanel() {
           }
           const ns = Math.max(boundL, Math.min(boundR - 1000, startMs));
           const ne = Math.max(ns + 1000, Math.min(boundR, endMs));
-          if (ne <= boundR) updateAppearSegment(selectedObject.id, seg.id, { startMs: ns, endMs: ne });
+          if (ne <= boundR && (ns !== seg.startMs || ne !== seg.endMs)) updateAppearSegment(selectedObject.id, seg.id, { startMs: ns, endMs: ne });
         }
       }
     }
@@ -2544,9 +2545,22 @@ export function TimelinePanel() {
                       // detail===2：双击的第二次 click，跳过，避免重复切换
                       if (e.detail !== 1) return;
                       if (windowDragMovedRef.current) return;
-                      // 点击标签区域不切换选中，避免双击编辑标签时产生闪烁
-                      if ((e.target as HTMLElement).closest('.tl-element-window-label')) return;
                       const additive = e.shiftKey || e.ctrlKey || e.metaKey;
+                      if ((e.target as HTMLElement).closest('.tl-element-window-label')) {
+                        // 编辑模式下点击标签内部（如切换输入框）不影响选中状态
+                        if (segLabelEditId === seg.id) return;
+                        // 标签点击延迟执行，避免双击编辑时第一次 click 改变选中状态
+                        if (labelSingleClickTimerRef.current !== null) clearTimeout(labelSingleClickTimerRef.current);
+                        const capturedId = seg.id;
+                        labelSingleClickTimerRef.current = setTimeout(() => {
+                          labelSingleClickTimerRef.current = null;
+                          setSelectedSegmentIds((prev) => {
+                            if (additive) return prev.includes(capturedId) ? prev.filter((id) => id !== capturedId) : [...prev, capturedId];
+                            return prev.includes(capturedId) ? [] : [capturedId];
+                          });
+                        }, 250);
+                        return;
+                      }
                       setSelectedSegmentIds((prev) => {
                         if (additive) return prev.includes(seg.id) ? prev.filter((id) => id !== seg.id) : [...prev, seg.id];
                         return prev.includes(seg.id) ? [] : [seg.id];
@@ -2605,7 +2619,7 @@ export function TimelinePanel() {
                         className="tl-element-window-label"
                         style={{ pointerEvents: 'auto' }}
                         data-tooltip="双击时间标签进行编辑，片段时长不小于1s"
-                        onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); startSegLabelEdit(seg.id, segStart, segEnd, (e.currentTarget as HTMLElement).offsetWidth); }}
+                        onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); if (labelSingleClickTimerRef.current !== null) { clearTimeout(labelSingleClickTimerRef.current); labelSingleClickTimerRef.current = null; } startSegLabelEdit(seg.id, segStart, segEnd, (e.currentTarget as HTMLElement).offsetWidth); }}
                       >
                         {(segStart / 1000).toFixed(3)}s ~ {(segEnd / 1000).toFixed(3)}s
                       </span>
