@@ -1245,7 +1245,16 @@ export function TimelinePanel() {
             globalDurationMs,
             editedField,
           );
-          updateAppearSegment(selectedObject.id, seg.id, { startMs, endMs });
+          // 相邻段硬边界（与拖拽逻辑一致，防止输入值产生重叠）
+          const others = effectiveSegments.filter((s) => s.id !== seg.id);
+          let boundL = 0, boundR = globalDurationMs;
+          for (const o of others) {
+            if (o.endMs <= seg.startMs && o.endMs > boundL) boundL = o.endMs;
+            if (o.startMs >= seg.endMs && o.startMs < boundR) boundR = o.startMs;
+          }
+          const ns = Math.max(boundL, Math.min(boundR - 1000, startMs));
+          const ne = Math.max(ns + 1000, Math.min(boundR, endMs));
+          if (ne <= boundR) updateAppearSegment(selectedObject.id, seg.id, { startMs: ns, endMs: ne });
         }
       }
     }
