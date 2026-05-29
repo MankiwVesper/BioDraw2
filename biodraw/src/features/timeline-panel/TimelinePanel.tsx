@@ -2608,6 +2608,14 @@ export function TimelinePanel() {
                           value={segLabelStart}
                           onChange={(e) => updateSegLabelDraft('start', e.target.value)}
                           onMouseDown={(e) => e.stopPropagation()}
+                          onWheel={(e) => {
+                            e.preventDefault();
+                            const stepMs = e.shiftKey ? 100 : 1;
+                            const cur = parseLabelTimeMs(segLabelStartRef.current);
+                            if (cur === null) return;
+                            const next = Math.max(0, Math.min(globalDurationMs, cur + (e.deltaY < 0 ? stepMs : -stepMs)));
+                            updateSegLabelDraft('start', formatLabelTimeValue(next));
+                          }}
                           onBlur={(e) => {
                             if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
                             commitSegLabelEdit(e.target.value, segLabelEndRef.current, 'start');
@@ -2622,6 +2630,14 @@ export function TimelinePanel() {
                           value={segLabelEnd}
                           onChange={(e) => updateSegLabelDraft('end', e.target.value)}
                           onMouseDown={(e) => e.stopPropagation()}
+                          onWheel={(e) => {
+                            e.preventDefault();
+                            const stepMs = e.shiftKey ? 100 : 1;
+                            const cur = parseLabelTimeMs(segLabelEndRef.current);
+                            if (cur === null) return;
+                            const next = Math.max(0, Math.min(globalDurationMs, cur + (e.deltaY < 0 ? stepMs : -stepMs)));
+                            updateSegLabelDraft('end', formatLabelTimeValue(next));
+                          }}
                           onBlur={(e) => {
                             if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
                             commitSegLabelEdit(segLabelStartRef.current, e.target.value, 'end');
