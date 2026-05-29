@@ -553,6 +553,7 @@ export function TimelinePanel() {
   const clipDragHappenedRef = useRef(false);
   const windowDragMovedRef = useRef(false);
   const labelSingleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const justExitedEditModeRef = useRef(false);
 
   // ── Store 订阅
   const objects = useEditorStore((s) => s.objects);
@@ -639,6 +640,9 @@ export function TimelinePanel() {
     }];
   }, [selectedObject, globalDurationMs]);
 
+  // 片段 ID 有序拼接，只在片段增删时变化，内容变更（起止时间）不触发
+  const effectiveSegmentIdsKey = effectiveSegments.map((s) => s.id).join(',');
+
   // 兼容旧数据：对象从未初始化过段（字段为 undefined）时才落地；
   // 用户主动删完后 appearSegments === []，不应重新创建。
   useEffect(() => {
@@ -668,15 +672,17 @@ export function TimelinePanel() {
   }, [selectedObject, animations, patchAnimationClipSilent]);
 
   useEffect(() => {
+    // effectiveSegmentIdsKey 只在片段增删时变化，避免内容变更（拖拽/编辑起止时间）误触发自动选中
+    const ids = effectiveSegmentIdsKey ? effectiveSegmentIdsKey.split(',') : [];
     setSelectedSegmentIds((prev) => {
-      const valid = new Set(effectiveSegments.map((s) => s.id));
-      const filtered = prev.filter((id) => valid.has(id));
-      if (filtered.length === 0 && effectiveSegments.length > 0 && !windowDragMovedRef.current) {
-        return [effectiveSegments[0].id];
+      const validSet = new Set(ids);
+      const filtered = prev.filter((id) => validSet.has(id));
+      if (filtered.length === 0 && ids.length > 0 && !windowDragMovedRef.current) {
+        return [ids[0]];
       }
       return filtered.length === prev.length ? prev : filtered;
     });
-  }, [effectiveSegments]);
+  }, [effectiveSegmentIdsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (selectedSegmentIds.length !== 1) setShowBatchPanel(false);
@@ -2539,12 +2545,22 @@ export function TimelinePanel() {
                     key={seg.id}
                     className={`tl-element-window${isDragging ? ' is-dragging' : ''}${isSelected ? ' is-selected' : ''}`}
                     style={fillStyle}
-                    onMouseDown={(e) => { startWindowDrag('move', seg, e); }}
+                    onMouseDown={(e) => {
+                      // 编辑态下点击非标签区域：仅退出编辑，不启动拖拽
+                      if (segLabelEditId === seg.id && !(e.target as HTMLElement).closest('.tl-element-window-label')) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        justExitedEditModeRef.current = true;
+                        return;
+                      }
+                      startWindowDrag('move', seg, e);
+                    }}
                     onClick={(e) => {
                       // detail===1：精确匹配单击（或双击的第一次点击）
                       // detail===2：双击的第二次 click，跳过，避免重复切换
                       if (e.detail !== 1) return;
                       if (windowDragMovedRef.current) return;
+                      if (justExitedEditModeRef.current) { justExitedEditModeRef.current = false; return; }
                       const additive = e.shiftKey || e.ctrlKey || e.metaKey;
                       if ((e.target as HTMLElement).closest('.tl-element-window-label')) {
                         // 编辑模式下点击标签内部（如切换输入框）不影响选中状态
