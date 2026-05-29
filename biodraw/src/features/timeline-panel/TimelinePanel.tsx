@@ -670,7 +670,7 @@ export function TimelinePanel() {
     setSelectedSegmentIds((prev) => {
       const valid = new Set(effectiveSegments.map((s) => s.id));
       const filtered = prev.filter((id) => valid.has(id));
-      if (filtered.length === 0 && effectiveSegments.length > 0) {
+      if (filtered.length === 0 && effectiveSegments.length > 0 && !windowDragMovedRef.current) {
         return [effectiveSegments[0].id];
       }
       return filtered.length === prev.length ? prev : filtered;
@@ -1903,7 +1903,13 @@ export function TimelinePanel() {
       if (o.endMs <= startMs && o.endMs > boundLeftMs) boundLeftMs = o.endMs;
       if (o.startMs >= endMs && o.startMs < boundRightMs) boundRightMs = o.startMs;
     }
-    ensurePausedForEdit();
+    // 立即注册移动检测，避免 useEffect 时序延迟导致 mousemove 漏判
+    const markMoved = () => {
+      if (!windowDragMovedRef.current) ensurePausedForEdit();
+      windowDragMovedRef.current = true;
+    };
+    window.addEventListener('mousemove', markMoved, { once: true });
+    window.addEventListener('mouseup', () => window.removeEventListener('mousemove', markMoved), { once: true });
     setWindowDragState({
       mode,
       objectId: selectedObject.id,
@@ -2071,6 +2077,7 @@ export function TimelinePanel() {
   useEffect(() => {
     if (!windowDragState) return;
     const handleMove = (e: MouseEvent) => {
+      if (!windowDragMovedRef.current) ensurePausedForEdit();
       windowDragMovedRef.current = true;
       const trackEl = elementTrackRef.current;
       if (!trackEl) return;
@@ -2098,7 +2105,6 @@ export function TimelinePanel() {
     };
     const handleUp = () => {
       const next = windowDragState;
-      windowDragMovedRef.current = false;
       if (next) {
         const ns = Math.max(0, Math.min(globalDurationMs, next.previewStartMs));
         const ne = Math.max(ns + 1000, Math.min(globalDurationMs, next.previewEndMs));
@@ -2111,6 +2117,7 @@ export function TimelinePanel() {
         }
       }
       setWindowDragState(null);
+      setTimeout(() => { windowDragMovedRef.current = false; }, 0);
     };
     window.addEventListener('mousemove', handleMove);
     window.addEventListener('mouseup', handleUp);
@@ -2527,6 +2534,7 @@ export function TimelinePanel() {
                       // detail===1：精确匹配单击（或双击的第一次点击）
                       // detail===2：双击的第二次 click，跳过，避免重复切换
                       if (e.detail !== 1) return;
+                      if (windowDragMovedRef.current) return;
                       // 点击标签区域不切换选中，避免双击编辑标签时产生闪烁
                       if ((e.target as HTMLElement).closest('.tl-element-window-label')) return;
                       const additive = e.shiftKey || e.ctrlKey || e.metaKey;
@@ -2540,12 +2548,14 @@ export function TimelinePanel() {
                       className="tl-element-handle-l"
                       style={handleLStyle}
                       onMouseDown={(e) => { startWindowDrag('resize-start', seg, e); }}
+                      onClick={(e) => e.stopPropagation()}
                       data-tooltip="拖动以调整片段起点，片段时长不小于1s"
                     />
                     <div
                       className="tl-element-handle-r"
                       style={handleRStyle}
                       onMouseDown={(e) => { startWindowDrag('resize-end', seg, e); }}
+                      onClick={(e) => e.stopPropagation()}
                       data-tooltip="拖动以调整片段终点，片段时长不小于1s"
                     />
                     {segLabelEditId === seg.id ? (
