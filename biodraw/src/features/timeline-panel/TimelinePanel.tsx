@@ -2567,7 +2567,7 @@ export function TimelinePanel() {
                     key={seg.id}
                     className={`tl-element-window${isDragging ? ' is-dragging' : ''}${isSelected ? ' is-selected' : ''}`}
                     style={fillStyle}
-                    data-tooltip={`片段：${(segStart / 1000).toFixed(3)}s ~ ${(segEnd / 1000).toFixed(3)}s`}
+                    data-tooltip={`${(segStart / 1000).toFixed(3)}s ~ ${(segEnd / 1000).toFixed(3)}s`}
                     onMouseDown={(e) => { startWindowDrag('move', seg, e); }}
                     onClick={(e) => {
                       if (e.detail !== 1) return;
@@ -2820,13 +2820,12 @@ export function TimelinePanel() {
             <div className="tl-zoom-row-all-actions">
               {/* 选中片段的起止时间编辑器，仅单选时显示 */}
               {activeSegId && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto', gap: 4 }}>
-                  <span style={{ flexShrink: 0, whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>片段起止时间</span>
+                <div className="tl-seg-time-editor">
+                  <span className="tl-seg-time-editor-label">片段起止时间</span>
                   <input
-                    className="tl-label-time-input tl-input-nospin"
+                    className="tl-seg-time-input tl-input-nospin"
                     type="text"
                     inputMode="decimal"
-                    style={{ width: 42 }}
                     value={segLabelStart}
                     onChange={(e) => updateSegLabelDraft('start', e.target.value)}
                     onWheel={(e) => {
@@ -2844,11 +2843,13 @@ export function TimelinePanel() {
                       commitSegLabelEdit(e.target.value, segLabelEndRef.current, 'start');
                     }}
                     onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
-                  />s&nbsp;~&nbsp;<input
-                    className="tl-label-time-input tl-input-nospin"
+                  />
+                  <span className="tl-seg-time-sep">s</span>
+                  <span className="tl-seg-time-sep">~</span>
+                  <input
+                    className="tl-seg-time-input tl-input-nospin"
                     type="text"
                     inputMode="decimal"
-                    style={{ width: 42 }}
                     value={segLabelEnd}
                     onChange={(e) => updateSegLabelDraft('end', e.target.value)}
                     onWheel={(e) => {
@@ -2866,8 +2867,9 @@ export function TimelinePanel() {
                       commitSegLabelEdit(segLabelStartRef.current, e.target.value, 'end');
                     }}
                     onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
-                  />s
-                </span>
+                  />
+                  <span className="tl-seg-time-sep tl-seg-time-sep-r">s</span>
+                </div>
               )}
               {conflictMeta.ids.size > 0 && (
                 <button className="tl-conflict-btn" onClick={autoResolveConflicts} data-tooltip={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
