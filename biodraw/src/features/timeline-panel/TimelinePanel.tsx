@@ -526,7 +526,6 @@ export function TimelinePanel() {
     Record<string, Partial<Record<BezierControlIndex, string>>>
   >({});
   const clipLabelCancelledRef = useRef(false);
-  const [segLabelEditId, setSegLabelEditId] = useState<string | null>(null);
   const [segLabelStart, setSegLabelStart] = useState('');
   const [segLabelEnd, setSegLabelEnd] = useState('');
   const segLabelCancelledRef = useRef(false);
@@ -537,13 +536,9 @@ export function TimelinePanel() {
   const clipLabelCommitRef = useRef<(s: string, e: string, editedField?: LabelTimeField) => void>(() => {});
   const clipLabelLastEditedFieldRef = useRef<LabelTimeField>('end');
   const clipLabelWidthRef = useRef<number | null>(null);
-  const segLabelEditingRef = useRef(false);
   const segLabelStartRef = useRef('');
   const segLabelEndRef = useRef('');
-  const segLabelSpanRef = useRef<HTMLSpanElement>(null);
-  const segLabelCommitRef = useRef<(s: string, e: string, editedField?: LabelTimeField) => void>(() => {});
   const segLabelLastEditedFieldRef = useRef<LabelTimeField>('end');
-  const segLabelWidthRef = useRef<number | null>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const copyDialogRef = useRef<HTMLDivElement>(null);
   const batchPanelRef = useRef<HTMLDivElement>(null);
@@ -552,8 +547,6 @@ export function TimelinePanel() {
   const batchStateDropRef = useRef<HTMLDivElement>(null);
   const clipDragHappenedRef = useRef(false);
   const windowDragMovedRef = useRef(false);
-  const labelSingleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const justExitedEditModeRef = useRef(false);
 
   // ── Store 订阅
   const objects = useEditorStore((s) => s.objects);
@@ -682,7 +675,7 @@ export function TimelinePanel() {
       }
       return filtered.length === prev.length ? prev : filtered;
     });
-  }, [effectiveSegmentIdsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [effectiveSegmentIdsKey]);
 
   useEffect(() => {
     if (selectedSegmentIds.length !== 1) setShowBatchPanel(false);
@@ -693,6 +686,23 @@ export function TimelinePanel() {
     setShowDeleteSegmentConfirm(false);
   }, [selectedSegmentIds]);
 
+  const activeSegId = selectedSegmentIds.length === 1 ? selectedSegmentIds[0] : null;
+
+  // 选中片段或片段时间变化时同步草稿值（拖动调整时段边界后自动更新输入框）
+  useEffect(() => {
+    if (!activeSegId) return;
+    const seg = effectiveSegments.find((s) => s.id === activeSegId);
+    if (!seg) return;
+    const start = formatLabelTimeValue(seg.startMs);
+    const end = formatLabelTimeValue(seg.endMs);
+    if (segLabelStartRef.current === start && segLabelEndRef.current === end) return;
+    segLabelCancelledRef.current = false;
+    segLabelLastEditedFieldRef.current = 'end';
+    segLabelStartRef.current = start;
+    segLabelEndRef.current = end;
+    setSegLabelStart(start);
+    setSegLabelEnd(end);
+  }, [activeSegId, effectiveSegments]);
 
   // 计算"增加片段"的默认值：取最早空闲区间，长度 ≥ T/10 则用 T/10，否则用整段空闲。
   const defaultNewSegmentRange = useMemo(() => {
@@ -1224,48 +1234,47 @@ export function TimelinePanel() {
     setClipLabelEditId(null);
   };
 
-  const startSegLabelEdit = (segId: string, segStart: number, segEnd: number, displayWidth: number) => {
-    segLabelCancelledRef.current = false;
-    segLabelEditingRef.current = true;
-    segLabelLastEditedFieldRef.current = 'end';
-    segLabelWidthRef.current = displayWidth;
-    segLabelStartRef.current = formatLabelTimeValue(segStart);
-    segLabelEndRef.current = formatLabelTimeValue(segEnd);
-    setSegLabelStart(segLabelStartRef.current);
-    setSegLabelEnd(segLabelEndRef.current);
-    setSegLabelEditId(segId);
-  };
   const commitSegLabelEdit = (startVal: string, endVal: string, editedField = segLabelLastEditedFieldRef.current) => {
-    if (!segLabelEditingRef.current) return;
-    segLabelEditingRef.current = false;
-    if (!segLabelCancelledRef.current && selectedObject) {
-      const seg = effectiveSegments.find((s) => s.id === segLabelEditId);
-      if (seg) {
-        const rawStartMs = parseLabelTimeMs(startVal);
-        const rawEndMs = parseLabelTimeMs(endVal);
-        if (rawStartMs !== null && rawEndMs !== null) {
-          ensurePausedForEdit();
-          const { startMs, endMs } = normalizeLabelTimeRange(
-            rawStartMs,
-            rawEndMs,
-            0,
-            globalDurationMs,
-            editedField,
-          );
-          // 相邻段硬边界（与拖拽逻辑一致，防止输入值产生重叠）
-          const others = effectiveSegments.filter((s) => s.id !== seg.id);
-          let boundL = 0, boundR = globalDurationMs;
-          for (const o of others) {
-            if (o.endMs <= seg.startMs && o.endMs > boundL) boundL = o.endMs;
-            if (o.startMs >= seg.endMs && o.startMs < boundR) boundR = o.startMs;
-          }
-          const ns = Math.max(boundL, Math.min(boundR - 1000, startMs));
-          const ne = Math.max(ns + 1000, Math.min(boundR, endMs));
-          if (ne <= boundR && (ns !== seg.startMs || ne !== seg.endMs)) updateAppearSegment(selectedObject.id, seg.id, { startMs: ns, endMs: ne });
-        }
-      }
+    const cancelled = segLabelCancelledRef.current;
+    segLabelCancelledRef.current = false;
+    const activeSeg = selectedSegmentIds.length === 1
+      ? effectiveSegments.find((s) => s.id === selectedSegmentIds[0])
+      : null;
+    if (!activeSeg) return;
+    if (cancelled) {
+      const start = formatLabelTimeValue(activeSeg.startMs);
+      const end = formatLabelTimeValue(activeSeg.endMs);
+      segLabelStartRef.current = start;
+      segLabelEndRef.current = end;
+      setSegLabelStart(start);
+      setSegLabelEnd(end);
+      return;
     }
-    setSegLabelEditId(null);
+    if (!selectedObject) return;
+    const rawStartMs = parseLabelTimeMs(startVal);
+    const rawEndMs = parseLabelTimeMs(endVal);
+    if (rawStartMs !== null && rawEndMs !== null) {
+      ensurePausedForEdit();
+      const { startMs, endMs } = normalizeLabelTimeRange(rawStartMs, rawEndMs, 0, globalDurationMs, editedField);
+      // 相邻段硬边界（与拖拽逻辑一致，防止输入值产生重叠）
+      const others = effectiveSegments.filter((s) => s.id !== activeSeg.id);
+      let boundL = 0, boundR = globalDurationMs;
+      for (const o of others) {
+        if (o.endMs <= activeSeg.startMs && o.endMs > boundL) boundL = o.endMs;
+        if (o.startMs >= activeSeg.endMs && o.startMs < boundR) boundR = o.startMs;
+      }
+      const ns = Math.max(boundL, Math.min(boundR - 1000, startMs));
+      const ne = Math.max(ns + 1000, Math.min(boundR, endMs));
+      if (ne <= boundR && (ns !== activeSeg.startMs || ne !== activeSeg.endMs)) {
+        updateAppearSegment(selectedObject.id, activeSeg.id, { startMs: ns, endMs: ne });
+      }
+      const newStart = formatLabelTimeValue(ns);
+      const newEnd = formatLabelTimeValue(ne);
+      segLabelStartRef.current = newStart;
+      segLabelEndRef.current = newEnd;
+      setSegLabelStart(newStart);
+      setSegLabelEnd(newEnd);
+    }
   };
 
   // 解析"添加动画"应归属的段：优先用单选段；否则取第一段并将其设为选中。
@@ -2259,7 +2268,6 @@ export function TimelinePanel() {
   }, [batchEasingDropOpen, batchStateDropOpen]);
 
   clipLabelCommitRef.current = commitClipLabelEdit;
-  segLabelCommitRef.current = commitSegLabelEdit;
 
   useEffect(() => {
     if (!clipLabelEditId) return;
@@ -2271,17 +2279,6 @@ export function TimelinePanel() {
     document.addEventListener('mousedown', handleMouseDown, { capture: true });
     return () => document.removeEventListener('mousedown', handleMouseDown, { capture: true });
   }, [clipLabelEditId]);
-
-  useEffect(() => {
-    if (!segLabelEditId) return;
-    const handleMouseDown = (e: MouseEvent) => {
-      if (segLabelSpanRef.current && !segLabelSpanRef.current.contains(e.target as Node)) {
-        segLabelCommitRef.current(segLabelStartRef.current, segLabelEndRef.current, segLabelLastEditedFieldRef.current);
-      }
-    };
-    document.addEventListener('mousedown', handleMouseDown, { capture: true });
-    return () => document.removeEventListener('mousedown', handleMouseDown, { capture: true });
-  }, [segLabelEditId]);
 
   // 同步所有展开的移动类片段到 store，供画布路径叠加层使用
   useEffect(() => {
@@ -2512,7 +2509,7 @@ export function TimelinePanel() {
 
             {/* 中列：轨道（多段渲染） */}
             <div
-              className={`tl-element-track${segLabelEditId ? ' is-editing' : ''}`}
+              className="tl-element-track"
               ref={elementTrackRef}
               onMouseDown={(e) => {
                 if (e.target === e.currentTarget) setSelectedSegmentIds([]);
@@ -2535,7 +2532,7 @@ export function TimelinePanel() {
                   background: hexAlpha(color, 0.25),
                   borderLeft: `1px solid ${color}`,
                   borderRight: `1px solid ${color}`,
-                  zIndex: segLabelEditId === seg.id ? 20 : (isSelected ? 2 : 1),
+                  zIndex: isSelected ? 2 : 1,
                 } as CSSProperties;
                 const handleBg = hexAlpha(color, 0.7);
                 const handleLStyle: CSSProperties = { background: handleBg, left: -1 };
@@ -2545,38 +2542,11 @@ export function TimelinePanel() {
                     key={seg.id}
                     className={`tl-element-window${isDragging ? ' is-dragging' : ''}${isSelected ? ' is-selected' : ''}`}
                     style={fillStyle}
-                    onMouseDown={(e) => {
-                      // 编辑态下点击非标签区域：仅退出编辑，不启动拖拽
-                      if (segLabelEditId === seg.id && !(e.target as HTMLElement).closest('.tl-element-window-label')) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        justExitedEditModeRef.current = true;
-                        return;
-                      }
-                      startWindowDrag('move', seg, e);
-                    }}
+                    onMouseDown={(e) => { startWindowDrag('move', seg, e); }}
                     onClick={(e) => {
-                      // detail===1：精确匹配单击（或双击的第一次点击）
-                      // detail===2：双击的第二次 click，跳过，避免重复切换
                       if (e.detail !== 1) return;
                       if (windowDragMovedRef.current) return;
-                      if (justExitedEditModeRef.current) { justExitedEditModeRef.current = false; return; }
                       const additive = e.shiftKey || e.ctrlKey || e.metaKey;
-                      if ((e.target as HTMLElement).closest('.tl-element-window-label')) {
-                        // 编辑模式下点击标签内部（如切换输入框）不影响选中状态
-                        if (segLabelEditId === seg.id) return;
-                        // 标签点击延迟执行，避免双击编辑时第一次 click 改变选中状态
-                        if (labelSingleClickTimerRef.current !== null) clearTimeout(labelSingleClickTimerRef.current);
-                        const capturedId = seg.id;
-                        labelSingleClickTimerRef.current = setTimeout(() => {
-                          labelSingleClickTimerRef.current = null;
-                          setSelectedSegmentIds((prev) => {
-                            if (additive) return prev.includes(capturedId) ? prev.filter((id) => id !== capturedId) : [...prev, capturedId];
-                            return prev.includes(capturedId) ? [] : [capturedId];
-                          });
-                        }, 250);
-                        return;
-                      }
                       setSelectedSegmentIds((prev) => {
                         if (additive) return prev.includes(seg.id) ? prev.filter((id) => id !== seg.id) : [...prev, seg.id];
                         return prev.includes(seg.id) ? [] : [seg.id];
@@ -2597,65 +2567,12 @@ export function TimelinePanel() {
                       onClick={(e) => e.stopPropagation()}
                       data-tooltip="拖动以调整片段终点，片段时长不小于1s"
                     />
-                    {segLabelEditId === seg.id ? (
-                      <span ref={segLabelSpanRef} className="tl-element-window-label"
-                        style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: segLabelWidthRef.current ?? undefined, boxSizing: 'border-box', position: 'relative', zIndex: 10 }}>
-                        <input
-                          className="tl-label-time-input tl-input-nospin"
-                          type="text"
-                          inputMode="decimal"
-                          style={{ flex: 1, width: 'auto', minWidth: 0 }}
-                          value={segLabelStart}
-                          onChange={(e) => updateSegLabelDraft('start', e.target.value)}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onWheel={(e) => {
-                            e.preventDefault();
-                            const stepMs = e.shiftKey ? 100 : 1;
-                            const cur = parseLabelTimeMs(segLabelStartRef.current);
-                            if (cur === null) return;
-                            const next = Math.max(0, Math.min(globalDurationMs, cur + (e.deltaY < 0 ? stepMs : -stepMs)));
-                            updateSegLabelDraft('start', formatLabelTimeValue(next));
-                          }}
-                          onBlur={(e) => {
-                            if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
-                            commitSegLabelEdit(e.target.value, segLabelEndRef.current, 'start');
-                          }}
-                          onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
-                          autoFocus onFocus={(e) => e.target.select()}
-                        />s ~ <input
-                          className="tl-label-time-input tl-input-nospin"
-                          type="text"
-                          inputMode="decimal"
-                          style={{ flex: 1, width: 'auto', minWidth: 0 }}
-                          value={segLabelEnd}
-                          onChange={(e) => updateSegLabelDraft('end', e.target.value)}
-                          onMouseDown={(e) => e.stopPropagation()}
-                          onWheel={(e) => {
-                            e.preventDefault();
-                            const stepMs = e.shiftKey ? 100 : 1;
-                            const cur = parseLabelTimeMs(segLabelEndRef.current);
-                            if (cur === null) return;
-                            const next = Math.max(0, Math.min(globalDurationMs, cur + (e.deltaY < 0 ? stepMs : -stepMs)));
-                            updateSegLabelDraft('end', formatLabelTimeValue(next));
-                          }}
-                          onBlur={(e) => {
-                            if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
-                            commitSegLabelEdit(segLabelStartRef.current, e.target.value, 'end');
-                          }}
-                          onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
-                          onFocus={(e) => e.target.select()}
-                        />s
-                      </span>
-                    ) : (
-                      <span
-                        className="tl-element-window-label"
-                        style={{ pointerEvents: 'auto' }}
-                        data-tooltip="双击时间标签进行编辑，片段时长不小于1s"
-                        onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); if (labelSingleClickTimerRef.current !== null) { clearTimeout(labelSingleClickTimerRef.current); labelSingleClickTimerRef.current = null; } startSegLabelEdit(seg.id, segStart, segEnd, (e.currentTarget as HTMLElement).offsetWidth); }}
-                      >
-                        {(segStart / 1000).toFixed(3)}s ~ {(segEnd / 1000).toFixed(3)}s
-                      </span>
-                    )}
+                    <span
+                      className="tl-element-window-label"
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      {(segStart / 1000).toFixed(3)}s ~ {(segEnd / 1000).toFixed(3)}s
+                    </span>
                   </div>
                 );
               })}
@@ -2881,6 +2798,52 @@ export function TimelinePanel() {
 
             {/* 中+右列合并：冲突修复 / 动画排序 / 批量修改 / 复制动画 同一 flex 行，保证垂直对齐 */}
             <div className="tl-zoom-row-all-actions">
+              {/* 选中片段的起止时间编辑器，仅单选时显示 */}
+              {activeSegId && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto', gap: 0 }}>
+                  <input
+                    className="tl-label-time-input tl-input-nospin"
+                    type="text"
+                    inputMode="decimal"
+                    value={segLabelStart}
+                    onChange={(e) => updateSegLabelDraft('start', e.target.value)}
+                    onWheel={(e) => {
+                      e.preventDefault();
+                      const stepMs = e.shiftKey ? 100 : 1;
+                      const cur = parseLabelTimeMs(segLabelStartRef.current);
+                      if (cur === null) return;
+                      const next = Math.max(0, Math.min(globalDurationMs, cur + (e.deltaY < 0 ? stepMs : -stepMs)));
+                      updateSegLabelDraft('start', formatLabelTimeValue(next));
+                    }}
+                    onBlur={(e) => {
+                      if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
+                      commitSegLabelEdit(e.target.value, segLabelEndRef.current, 'start');
+                    }}
+                    onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
+                    onFocus={(e) => e.target.select()}
+                  />s&nbsp;~&nbsp;<input
+                    className="tl-label-time-input tl-input-nospin"
+                    type="text"
+                    inputMode="decimal"
+                    value={segLabelEnd}
+                    onChange={(e) => updateSegLabelDraft('end', e.target.value)}
+                    onWheel={(e) => {
+                      e.preventDefault();
+                      const stepMs = e.shiftKey ? 100 : 1;
+                      const cur = parseLabelTimeMs(segLabelEndRef.current);
+                      if (cur === null) return;
+                      const next = Math.max(0, Math.min(globalDurationMs, cur + (e.deltaY < 0 ? stepMs : -stepMs)));
+                      updateSegLabelDraft('end', formatLabelTimeValue(next));
+                    }}
+                    onBlur={(e) => {
+                      if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
+                      commitSegLabelEdit(segLabelStartRef.current, e.target.value, 'end');
+                    }}
+                    onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
+                    onFocus={(e) => e.target.select()}
+                  />s
+                </span>
+              )}
               {conflictMeta.ids.size > 0 && (
                 <button className="tl-conflict-btn" onClick={autoResolveConflicts} data-tooltip={`冲突域：${conflictMeta.domainLabels.join(' / ')}`}>
                   ⚠ {conflictMeta.ids.size} 个冲突 · 修复
