@@ -1297,12 +1297,11 @@
 }
 
 .tl-seg-time-input {
-  min-width: 3ch;
-  width: 5ch;
+  width: 35px;
   background: transparent;
   border: none;
   outline: none;
-  text-align: center;
+  text-align: right;
   color: var(--text-main);
   font-size: 11px;
   font-family: inherit;

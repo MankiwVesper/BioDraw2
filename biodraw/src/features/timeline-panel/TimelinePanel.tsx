@@ -2828,7 +2828,6 @@ export function TimelinePanel() {
                     className="tl-seg-time-input tl-input-nospin"
                     type="text"
                     inputMode="decimal"
-                    style={{ width: `${Math.max(3, segLabelStart.length)}ch` }}
                     value={segLabelStart}
                     onChange={(e) => updateSegLabelDraft('start', e.target.value)}
                     onWheel={(e) => {
@@ -2853,7 +2852,6 @@ export function TimelinePanel() {
                     className="tl-seg-time-input tl-input-nospin"
                     type="text"
                     inputMode="decimal"
-                    style={{ width: `${Math.max(3, segLabelEnd.length)}ch` }}
                     value={segLabelEnd}
                     onChange={(e) => updateSegLabelDraft('end', e.target.value)}
                     onWheel={(e) => {
