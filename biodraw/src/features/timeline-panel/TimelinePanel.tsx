@@ -690,14 +690,16 @@ export function TimelinePanel() {
 
   const activeSegId = selectedSegmentIds.length === 1 ? selectedSegmentIds[0] : null;
 
-  // 选中片段或片段时间变化时同步草稿值（拖动调整时段边界后自动更新输入框；输入框聚焦时跳过，避免打断输入）
+  // 选中片段或片段时间变化时同步草稿值（拖动过程中用预览值实时更新；输入框聚焦时跳过，避免打断输入）
   useEffect(() => {
     if (!activeSegId) return;
     if (segLabelFocusedRef.current) return;
-    const seg = effectiveSegments.find((s) => s.id === activeSegId);
-    if (!seg) return;
-    const start = formatLabelTimeValue(seg.startMs);
-    const end = formatLabelTimeValue(seg.endMs);
+    const dragging = windowDragState?.segmentId === activeSegId ? windowDragState : null;
+    const startMs = dragging ? dragging.previewStartMs : effectiveSegments.find((s) => s.id === activeSegId)?.startMs;
+    const endMs   = dragging ? dragging.previewEndMs   : effectiveSegments.find((s) => s.id === activeSegId)?.endMs;
+    if (startMs === undefined || endMs === undefined) return;
+    const start = formatLabelTimeValue(startMs);
+    const end = formatLabelTimeValue(endMs);
     if (segLabelStartRef.current === start && segLabelEndRef.current === end) return;
     segLabelCancelledRef.current = false;
     segLabelLastEditedFieldRef.current = 'end';
@@ -705,7 +707,7 @@ export function TimelinePanel() {
     segLabelEndRef.current = end;
     setSegLabelStart(start);
     setSegLabelEnd(end);
-  }, [activeSegId, effectiveSegments]);
+  }, [activeSegId, effectiveSegments, windowDragState]);
 
   // 计算"增加片段"的默认值：取最早空闲区间，长度 ≥ T/10 则用 T/10，否则用整段空闲。
   const defaultNewSegmentRange = useMemo(() => {
@@ -2845,7 +2847,7 @@ export function TimelinePanel() {
                     onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
                   />
                   <span className="tl-seg-time-sep">s</span>
-                  <span className="tl-seg-time-sep">~</span>
+                  <span className="tl-seg-time-sep tl-seg-time-tilde">~</span>
                   <input
                     className="tl-seg-time-input tl-input-nospin"
                     type="text"

@@ -13,21 +13,24 @@ export function TooltipPortal() {
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentTargetRef = useRef<Element | null>(null);
+  const currentTextRef = useRef<string | null>(null);
 
   useEffect(() => {
     const show = (el: Element, text: string) => {
+      currentTextRef.current = text;
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         const rect = el.getBoundingClientRect();
         // 预估 tooltip 高度约 30px + 8px 间距，接近视口底部时翻转到元素上方
         const above = rect.bottom + 46 > window.innerHeight;
-        setState({ text, x: rect.left + rect.width / 2, y: above ? rect.top : rect.bottom, above });
+        setState({ text: currentTextRef.current ?? text, x: rect.left + rect.width / 2, y: above ? rect.top : rect.bottom, above });
         // 下一帧再设 visible，确保 transition 能播放
         requestAnimationFrame(() => setVisible(true));
       }, 180);
     };
 
     const hide = () => {
+      currentTextRef.current = null;
       if (timerRef.current) clearTimeout(timerRef.current);
       setVisible(false);
       // transition 结束后清除文字，避免闪现
@@ -57,11 +60,22 @@ export function TooltipPortal() {
       }
     };
 
+    // 拖动时 data-tooltip 的文字会变化但不触发 mouseover，通过 mousemove 实时同步
+    const onMove = () => {
+      if (!currentTargetRef.current) return;
+      const text = currentTargetRef.current.getAttribute('data-tooltip');
+      if (!text || text === currentTextRef.current) return;
+      currentTextRef.current = text;
+      setState((prev) => prev ? { ...prev, text } : prev);
+    };
+
     document.addEventListener('mouseover', onOver);
     document.addEventListener('mouseout', onOut);
+    document.addEventListener('mousemove', onMove);
     return () => {
       document.removeEventListener('mouseover', onOver);
       document.removeEventListener('mouseout', onOut);
+      document.removeEventListener('mousemove', onMove);
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);

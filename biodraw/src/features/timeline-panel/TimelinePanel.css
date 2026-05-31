@@ -1290,7 +1290,7 @@
   align-items: center;
   padding: 0 7px;
   border-right: 1px solid var(--border-color);
-  color: var(--text-muted);
+  color: var(--text-main);
   white-space: nowrap;
   flex-shrink: 0;
   background: var(--panel-bg);
@@ -1316,13 +1316,18 @@
 .tl-seg-time-sep {
   display: flex;
   align-items: center;
-  padding: 0 3px;
+  padding: 0 1px;
   color: var(--text-muted);
   flex-shrink: 0;
 }
 
+.tl-seg-time-tilde {
+  padding: 0 5px;
+}
+
 .tl-seg-time-sep-r {
-  padding-right: 7px;
+  padding-left: 1px;
+  padding-right: 6px;
 }
 
 /* 拖拽手柄 */
