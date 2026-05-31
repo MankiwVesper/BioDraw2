@@ -1297,7 +1297,8 @@
 }
 
 .tl-seg-time-input {
-  width: 40px;
+  min-width: 3ch;
+  width: 5ch;
   background: transparent;
   border: none;
   outline: none;
