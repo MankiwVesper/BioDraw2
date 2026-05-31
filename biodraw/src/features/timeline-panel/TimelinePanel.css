@@ -1236,41 +1236,6 @@
 .tl-type-fill-shake         { background: rgba(239, 68,  68,  0.65); }
 .tl-type-fill-stateChange   { background: rgba(107, 114, 128, 0.65); }
 
-/* 片段色块内的时间范围标签 */
-.tl-track-fill-label {
-  pointer-events: none;
-  font-size: 9px;
-  font-variant-numeric: tabular-nums;
-  color: rgba(15, 23, 42, 0.85);
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.78);
-  padding: 0 3px;
-  border-radius: 3px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: calc(100% - 16px);
-}
-
-/* 标签内联编辑输入框（时间片段 / 动画 clip 双击编辑） */
-.tl-label-time-input {
-  width: 30px;
-  font-size: inherit;
-  font-family: inherit;
-  font-variant-numeric: tabular-nums;
-  color: inherit;
-  background: transparent;
-  border: none;
-  padding: 0;
-  outline: none;
-  text-align: center;
-  vertical-align: middle;
-}
-
-.tl-label-time-input:focus {
-  background: rgba(255, 255, 255, 0.36);
-  box-shadow: inset 0 -1px 0 rgba(37, 99, 235, 0.9);
-}
-
 /* 片段起止时间编辑器（zoom row 左侧） */
 .tl-seg-time-editor {
   display: inline-flex;

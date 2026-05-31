@@ -105,7 +105,7 @@ const buildBezierEasingValue = (x1: number, y1: number, x2: number, y2: number) 
 
 type BezierControlIndex = 0 | 1 | 2 | 3;
 type LabelTimeField = 'start' | 'end';
-type ClipTimeField = 'startTimeMs' | 'durationMs';
+type ClipTimeField = 'startTimeMs' | 'endTimeMs' | 'durationMs';
 
 const getEasingPreviewPath = (x1: number, y1: number, x2: number, y2: number) => {
   const w = 88, h = 52, sx = 4, sy = h - 4, ex = w - 4, ey = 4;
@@ -514,9 +514,6 @@ export function TimelinePanel() {
   const [isTimeEditing, setIsTimeEditing] = useState(false);
   const [timeEditValue, setTimeEditValue] = useState('');
   const timeEditCancelledRef = useRef(false);
-  const [clipLabelEditId, setClipLabelEditId] = useState<string | null>(null);
-  const [clipLabelStart, setClipLabelStart] = useState('');
-  const [clipLabelEnd, setClipLabelEnd] = useState('');
   const [clipTimeDrafts, setClipTimeDrafts] = useState<
     Record<string, Partial<Record<ClipTimeField, string>>>
   >({});
@@ -525,17 +522,9 @@ export function TimelinePanel() {
   const [bezierControlDrafts, setBezierControlDrafts] = useState<
     Record<string, Partial<Record<BezierControlIndex, string>>>
   >({});
-  const clipLabelCancelledRef = useRef(false);
   const [segLabelStart, setSegLabelStart] = useState('');
   const [segLabelEnd, setSegLabelEnd] = useState('');
   const segLabelCancelledRef = useRef(false);
-  const clipLabelEditingRef = useRef(false);
-  const clipLabelStartRef = useRef('');
-  const clipLabelEndRef = useRef('');
-  const clipLabelSpanRef = useRef<HTMLSpanElement>(null);
-  const clipLabelCommitRef = useRef<(s: string, e: string, editedField?: LabelTimeField) => void>(() => {});
-  const clipLabelLastEditedFieldRef = useRef<LabelTimeField>('end');
-  const clipLabelWidthRef = useRef<number | null>(null);
   const segLabelStartRef = useRef('');
   const segLabelEndRef = useRef('');
   const segLabelLastEditedFieldRef = useRef<LabelTimeField>('end');
@@ -1161,18 +1150,6 @@ export function TimelinePanel() {
     return { startMs, endMs };
   };
 
-  const updateClipLabelDraft = (field: LabelTimeField, rawValue: string) => {
-    const nextValue = sanitizeSecondsInput(rawValue);
-    clipLabelLastEditedFieldRef.current = field;
-    if (field === 'start') {
-      clipLabelStartRef.current = nextValue;
-      setClipLabelStart(nextValue);
-    } else {
-      clipLabelEndRef.current = nextValue;
-      setClipLabelEnd(nextValue);
-    }
-  };
-
   const updateSegLabelDraft = (field: LabelTimeField, rawValue: string) => {
     const nextValue = sanitizeSecondsInput(rawValue);
     segLabelLastEditedFieldRef.current = field;
@@ -1220,45 +1197,6 @@ export function TimelinePanel() {
       onCancel();
       e.currentTarget.blur();
     }
-  };
-
-  const startClipLabelEdit = (clipId: string, effStart: number, effDuration: number, displayWidth: number) => {
-    clipLabelCancelledRef.current = false;
-    clipLabelEditingRef.current = true;
-    clipLabelLastEditedFieldRef.current = 'end';
-    clipLabelWidthRef.current = displayWidth;
-    clipLabelStartRef.current = formatLabelTimeValue(effStart);
-    clipLabelEndRef.current = formatLabelTimeValue(effStart + effDuration);
-    setClipLabelStart(clipLabelStartRef.current);
-    setClipLabelEnd(clipLabelEndRef.current);
-    setClipLabelEditId(clipId);
-  };
-  const commitClipLabelEdit = (startVal: string, endVal: string, editedField = clipLabelLastEditedFieldRef.current) => {
-    if (!clipLabelEditingRef.current) return;
-    clipLabelEditingRef.current = false;
-    if (!clipLabelCancelledRef.current) {
-      const clip = animations.find((c) => c.id === clipLabelEditId);
-      if (clip) {
-        const rawStartMs = parseLabelTimeMs(startVal);
-        const rawEndMs = parseLabelTimeMs(endVal);
-        if (rawStartMs !== null && rawEndMs !== null) {
-          ensurePausedForEdit();
-          const seg = effectiveSegments.find((s) => s.id === clip.segmentId);
-          const bounds = seg
-            ? { minMs: seg.startMs, maxMs: seg.endMs }
-            : { minMs: 0, maxMs: globalDurationMs };
-          const { startMs, endMs } = normalizeLabelTimeRange(
-            rawStartMs,
-            rawEndMs,
-            bounds.minMs,
-            bounds.maxMs,
-            editedField,
-          );
-          updateAnimationClip(clip.id, { startTimeMs: startMs, durationMs: Math.max(1000, endMs - startMs) });
-        }
-      }
-    }
-    setClipLabelEditId(null);
   };
 
   const commitSegLabelEdit = (startVal: string, endVal: string, editedField = segLabelLastEditedFieldRef.current) => {
@@ -1547,17 +1485,24 @@ export function TimelinePanel() {
   };
 
   // ── 字段更新（按所属段范围 clamp，超出时设置警告）
-  const updateClipNumberField = (clip: AnimationClip, field: 'startTimeMs' | 'durationMs', rawValue: string) => {
+  const updateClipNumberField = (clip: AnimationClip, field: ClipTimeField, rawValue: string) => {
     ensurePausedForEdit();
     const parsed = parseInt(rawValue, 10);
     if (Number.isNaN(parsed)) return;
     const seg = effectiveSegments.find((s) => s.id === clip.segmentId);
     if (!seg) {
       // 兜底（孤儿 clip 还没绑定段）：保留旧行为
-      const next = field === 'durationMs' ? clampPositive(parsed, 1000) : Math.max(0, parsed);
-      updateAnimationClip(clip.id, { [field]: next } as Partial<AnimationClip>);
-      const end = (field === 'startTimeMs' ? next : clip.startTimeMs) + (field === 'durationMs' ? next : clip.durationMs);
-      if (end > globalDurationMs) setGlobalDurationMs(end + 1000);
+      if (field === 'endTimeMs') {
+        const clampedEnd = Math.max(clip.startTimeMs + 1000, parsed);
+        const newDur = clampedEnd - clip.startTimeMs;
+        updateAnimationClip(clip.id, { durationMs: newDur });
+        if (clampedEnd > globalDurationMs) setGlobalDurationMs(clampedEnd + 1000);
+      } else {
+        const next = field === 'durationMs' ? clampPositive(parsed, 1000) : Math.max(0, parsed);
+        updateAnimationClip(clip.id, { [field]: next } as Partial<AnimationClip>);
+        const end = (field === 'startTimeMs' ? next : clip.startTimeMs) + (field === 'durationMs' ? next : clip.durationMs);
+        if (end > globalDurationMs) setGlobalDurationMs(end + 1000);
+      }
       return;
     }
     if (field === 'startTimeMs') {
@@ -1568,6 +1513,13 @@ export function TimelinePanel() {
       const updates: Partial<AnimationClip> = { startTimeMs: clampedStart };
       if (clampedDur !== clip.durationMs) updates.durationMs = clampedDur;
       updateAnimationClip(clip.id, updates);
+    } else if (field === 'endTimeMs') {
+      const desired = Math.max(0, parsed);
+      const clampedEnd = Math.max(clip.startTimeMs + 1, Math.min(seg.endMs, desired));
+      const newDur = clampedEnd - clip.startTimeMs;
+      const clampedDur = Math.max(1000, newDur);
+      if (newDur < 1000) setClipDurationWarnId(clip.id); else setClipDurationWarnId(null);
+      updateAnimationClip(clip.id, { durationMs: clampedDur });
     } else {
       const desired = Math.max(1, parsed);
       const maxDur = Math.max(1, seg.endMs - clip.startTimeMs);
@@ -2067,6 +2019,7 @@ export function TimelinePanel() {
     return () => { window.removeEventListener('mouseup', stop); window.removeEventListener('touchend', stop); };
   }, [isCursorDragging]);
 
+
   useEffect(() => {
     if (!dragState) return;
     const handleMove = (e: MouseEvent) => {
@@ -2293,19 +2246,6 @@ export function TimelinePanel() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [batchEasingDropOpen, batchStateDropOpen]);
-
-  clipLabelCommitRef.current = commitClipLabelEdit;
-
-  useEffect(() => {
-    if (!clipLabelEditId) return;
-    const handleMouseDown = (e: MouseEvent) => {
-      if (clipLabelSpanRef.current && !clipLabelSpanRef.current.contains(e.target as Node)) {
-        clipLabelCommitRef.current(clipLabelStartRef.current, clipLabelEndRef.current, clipLabelLastEditedFieldRef.current);
-      }
-    };
-    document.addEventListener('mousedown', handleMouseDown, { capture: true });
-    return () => document.removeEventListener('mousedown', handleMouseDown, { capture: true });
-  }, [clipLabelEditId]);
 
   // 同步所有展开的移动类片段到 store，供画布路径叠加层使用
   useEffect(() => {
@@ -2569,8 +2509,25 @@ export function TimelinePanel() {
                     key={seg.id}
                     className={`tl-element-window${isDragging ? ' is-dragging' : ''}${isSelected ? ' is-selected' : ''}`}
                     style={fillStyle}
-                    data-tooltip={`${(segStart / 1000).toFixed(3)}s ~ ${(segEnd / 1000).toFixed(3)}s`}
                     onMouseDown={(e) => { startWindowDrag('move', seg, e); }}
+                    onMouseEnter={(e) => {
+                      const trackEl = e.currentTarget.closest('.tl-element-track') as HTMLElement | null;
+                      if (!trackEl) return;
+                      const rect = trackEl.getBoundingClientRect();
+                      if (rect.width <= 0) return;
+                      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                      const cursorMs = ratio * safeT;
+                      e.currentTarget.setAttribute('data-tooltip', `${(segStart / 1000).toFixed(3)}s ~ ${(segEnd / 1000).toFixed(3)}s / ${(cursorMs / 1000).toFixed(3)}s`);
+                    }}
+                    onMouseMove={(e) => {
+                      const trackEl = e.currentTarget.closest('.tl-element-track') as HTMLElement | null;
+                      if (!trackEl) return;
+                      const rect = trackEl.getBoundingClientRect();
+                      if (rect.width <= 0) return;
+                      const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                      const cursorMs = ratio * safeT;
+                      e.currentTarget.setAttribute('data-tooltip', `${(segStart / 1000).toFixed(3)}s ~ ${(segEnd / 1000).toFixed(3)}s / ${(cursorMs / 1000).toFixed(3)}s`);
+                    }}
                     onClick={(e) => {
                       if (e.detail !== 1) return;
                       if (windowDragMovedRef.current) return;
@@ -3445,55 +3402,28 @@ export function TimelinePanel() {
                           <div
                             className={`tl-track-fill tl-type-fill-${clip.type}${isDragging ? ' is-dragging' : ''}${isSnapping ? ' is-snapped' : ''}`}
                             style={{ left: clipLeftPct, width: clipWidthPct }}
-                            onMouseDown={clipLabelEditId === clip.id ? undefined : (e) => startClipDrag(clip, e)}
+                            onMouseDown={(e) => startClipDrag(clip, e)}
+                            onMouseEnter={(e) => {
+                              const trackEl = e.currentTarget.closest('.tl-track') as HTMLElement | null;
+                              if (!trackEl) return;
+                              const rect = trackEl.getBoundingClientRect();
+                              if (rect.width <= 0) return;
+                              const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                              const cursorMs = segLo + ratio * segRange;
+                              e.currentTarget.setAttribute('data-tooltip', `${(effStart / 1000).toFixed(3)}s ~ ${((effStart + effDuration) / 1000).toFixed(3)}s / ${(cursorMs / 1000).toFixed(3)}s`);
+                            }}
+                            onMouseMove={(e) => {
+                              const trackEl = e.currentTarget.closest('.tl-track') as HTMLElement | null;
+                              if (!trackEl) return;
+                              const rect = trackEl.getBoundingClientRect();
+                              if (rect.width <= 0) return;
+                              const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                              const cursorMs = segLo + ratio * segRange;
+                              e.currentTarget.setAttribute('data-tooltip', `${(effStart / 1000).toFixed(3)}s ~ ${((effStart + effDuration) / 1000).toFixed(3)}s / ${(cursorMs / 1000).toFixed(3)}s`);
+                            }}
                           >
                             <div className="tl-track-handle-l" onMouseDown={(e) => startClipResizeStart(clip, e)} onClick={(e) => e.stopPropagation()} data-tooltip="拖动以调整动画起点，时长不小于1s" />
                             <div className="tl-track-handle-r" onMouseDown={(e) => startClipResizeEnd(clip, e)} onClick={(e) => e.stopPropagation()} data-tooltip="拖动以调整动画终点，时长不小于1s" />
-                            {clipLabelEditId === clip.id ? (
-                              <span ref={clipLabelSpanRef} className="tl-track-fill-label"
-                                style={{ pointerEvents: 'auto', display: 'inline-flex', alignItems: 'center', width: clipLabelWidthRef.current ?? undefined, boxSizing: 'border-box' }}
-                                onClick={(e) => e.stopPropagation()}>
-                                <input
-                                  className="tl-label-time-input tl-input-nospin"
-                                  type="text"
-                                  inputMode="decimal"
-                                  style={{ flex: 1, width: 'auto', minWidth: 0 }}
-                                  value={clipLabelStart}
-                                  onChange={(e) => updateClipLabelDraft('start', e.target.value)}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onBlur={(e) => {
-                                    if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
-                                    commitClipLabelEdit(e.target.value, clipLabelEndRef.current, 'start');
-                                  }}
-                                  onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { clipLabelCancelledRef.current = true; })}
-                                  autoFocus onFocus={(e) => e.target.select()}
-                                />s~<input
-                                  className="tl-label-time-input tl-input-nospin"
-                                  type="text"
-                                  inputMode="decimal"
-                                  style={{ flex: 1, width: 'auto', minWidth: 0 }}
-                                  value={clipLabelEnd}
-                                  onChange={(e) => updateClipLabelDraft('end', e.target.value)}
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onBlur={(e) => {
-                                    if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
-                                    commitClipLabelEdit(clipLabelStartRef.current, e.target.value, 'end');
-                                  }}
-                                  onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { clipLabelCancelledRef.current = true; })}
-                                  onFocus={(e) => e.target.select()}
-                                />s
-                              </span>
-                            ) : (
-                              <span
-                                className="tl-track-fill-label"
-                                style={{ pointerEvents: 'auto' }}
-                                data-tooltip="双击时间标签进行编辑，动画时长不小于1s"
-                                onClick={(e) => e.stopPropagation()}
-                                onDoubleClick={(e) => { e.stopPropagation(); e.preventDefault(); startClipLabelEdit(clip.id, effStart, effDuration, (e.currentTarget as HTMLElement).offsetWidth); }}
-                              >
-                                {(effStart / 1000).toFixed(3)}s~{((effStart + effDuration) / 1000).toFixed(3)}s
-                              </span>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -3547,6 +3477,7 @@ export function TimelinePanel() {
                             <span className="tl-col-header-centered">时间设置</span>
                             <div className="tl-time-subcol-body">
                               <label className="tl-detail-label">开始(ms)<input className="tl-input-sm tl-input-nospin" type="number" inputMode="numeric" min={0} max={99999} step={1} value={clipTimeDrafts[clip.id]?.startTimeMs ?? String(effStart)} onChange={(e) => updateClipTimeDraft(clip, 'startTimeMs', e.target.value)} onBlur={() => commitClipTimeDraft(clip, 'startTimeMs')} onKeyDown={(e) => handleClipTimeKeyDown(clip.id, 'startTimeMs', e)} onFocus={(e) => e.target.select()} /></label>
+                              <label className="tl-detail-label">结束(ms)<input className="tl-input-sm tl-input-nospin" type="number" inputMode="numeric" min={0} max={99999} step={1} value={clipTimeDrafts[clip.id]?.endTimeMs ?? String(effStart + effDuration)} onChange={(e) => updateClipTimeDraft(clip, 'endTimeMs', e.target.value)} onBlur={() => commitClipTimeDraft(clip, 'endTimeMs')} onKeyDown={(e) => handleClipTimeKeyDown(clip.id, 'endTimeMs', e)} onFocus={(e) => e.target.select()} /></label>
                               <div style={{ position: 'relative' }}>
                                 <label className="tl-detail-label">时长(ms)<input className="tl-input-sm tl-input-nospin" type="number" inputMode="numeric" min={1000} max={99999} step={1} value={clipTimeDrafts[clip.id]?.durationMs ?? String(effDuration)} onChange={(e) => updateClipTimeDraft(clip, 'durationMs', e.target.value)} onBlur={() => commitClipTimeDraft(clip, 'durationMs')} onKeyDown={(e) => handleClipTimeKeyDown(clip.id, 'durationMs', e)} onFocus={(e) => e.target.select()} /></label>
                                 {clipDurationWarnId === clip.id && (
