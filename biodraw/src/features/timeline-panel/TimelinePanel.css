@@ -570,8 +570,6 @@
 
 .tl-element-window.is-dragging { cursor: grabbing; }
 
-.tl-element-track.is-editing { overflow: visible; }
-
 @keyframes tl-marching-ants {
   to { background-position: 10px 0, 100% 10px, -10px 100%, 0 -10px; }
 }
@@ -592,14 +590,6 @@
   background-position: 0 0, 100% 0, 0 100%, 0 0;
   background-repeat: repeat-x, repeat-y, repeat-x, repeat-y;
   animation: tl-marching-ants 0.6s linear infinite;
-}
-
-.tl-element-window-label {
-  pointer-events: none;
-  white-space: nowrap;
-  background: rgba(255, 255, 255, 0.78);
-  padding: 0 4px;
-  border-radius: 3px;
 }
 
 .tl-element-handle-l,

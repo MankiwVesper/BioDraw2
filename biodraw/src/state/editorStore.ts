@@ -133,6 +133,7 @@ interface EditorState {
   addAppearSegment: (objectId: string, segment: AppearSegment) => void;
   removeAppearSegments: (objectId: string, segmentIds: string[]) => void;
   updateAppearSegment: (objectId: string, segmentId: string, updates: { startMs?: number; endMs?: number }, translateClipsBy?: number) => void;
+  updateAppearSegmentSilent: (objectId: string, segmentId: string, updates: { startMs?: number; endMs?: number }) => void;
   setGlobalDurationMs: (durationMs: number) => void;
   setCurrentTimeMs: (timeMs: number) => void;
   play: () => void;
@@ -1169,6 +1170,29 @@ export const useEditorStore = create<EditorState>()(
             if (newStart !== c.startTimeMs || newDur !== c.durationMs) {
               state.animations[i] = { ...c, startTimeMs: newStart, durationMs: newDur };
             }
+          }
+        }
+      }),
+
+    updateAppearSegmentSilent: (objectId, segmentId, updates) =>
+      set((state) => {
+        const obj = state.objects.find((o) => o.id === objectId);
+        if (!obj || !obj.appearSegments) return;
+        const idx = obj.appearSegments.findIndex((s) => s.id === segmentId);
+        if (idx === -1) return;
+        const next = { ...obj.appearSegments[idx] };
+        if (updates.startMs !== undefined) next.startMs = updates.startMs;
+        if (updates.endMs !== undefined) next.endMs = updates.endMs;
+        obj.appearSegments[idx] = next;
+        obj.appearSegments.sort((a, b) => a.startMs - b.startMs);
+        for (let i = 0; i < state.animations.length; i += 1) {
+          const c = state.animations[i];
+          if (c.objectId !== objectId || c.segmentId !== segmentId) continue;
+          const newStart = Math.max(next.startMs, Math.min(next.endMs - 1000, c.startTimeMs));
+          const newEnd = Math.min(next.endMs, Math.max(newStart + 1000, c.startTimeMs + c.durationMs));
+          const newDur = Math.max(1000, newEnd - newStart);
+          if (newStart !== c.startTimeMs || newDur !== c.durationMs) {
+            state.animations[i] = { ...c, startTimeMs: newStart, durationMs: newDur };
           }
         }
       }),

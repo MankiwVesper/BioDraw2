@@ -539,6 +539,7 @@ export function TimelinePanel() {
   const segLabelStartRef = useRef('');
   const segLabelEndRef = useRef('');
   const segLabelLastEditedFieldRef = useRef<LabelTimeField>('end');
+  const segLabelFocusedRef = useRef(false);
   const addMenuRef = useRef<HTMLDivElement>(null);
   const copyDialogRef = useRef<HTMLDivElement>(null);
   const batchPanelRef = useRef<HTMLDivElement>(null);
@@ -576,6 +577,7 @@ export function TimelinePanel() {
   const addAppearSegment = useEditorStore((s) => s.addAppearSegment);
   const removeAppearSegments = useEditorStore((s) => s.removeAppearSegments);
   const updateAppearSegment = useEditorStore((s) => s.updateAppearSegment);
+  const updateAppearSegmentSilent = useEditorStore((s) => s.updateAppearSegmentSilent);
   const materializeAppearSegmentsSilent = useEditorStore((s) => s.materializeAppearSegmentsSilent);
   const patchAnimationClipSilent = useEditorStore((s) => s.patchAnimationClipSilent);
   const reorderAnimationClips = useEditorStore((s) => s.reorderAnimationClips);
@@ -688,9 +690,10 @@ export function TimelinePanel() {
 
   const activeSegId = selectedSegmentIds.length === 1 ? selectedSegmentIds[0] : null;
 
-  // 选中片段或片段时间变化时同步草稿值（拖动调整时段边界后自动更新输入框）
+  // 选中片段或片段时间变化时同步草稿值（拖动调整时段边界后自动更新输入框；输入框聚焦时跳过，避免打断输入）
   useEffect(() => {
     if (!activeSegId) return;
+    if (segLabelFocusedRef.current) return;
     const seg = effectiveSegments.find((s) => s.id === activeSegId);
     if (!seg) return;
     const start = formatLabelTimeValue(seg.startMs);
@@ -1177,6 +1180,28 @@ export function TimelinePanel() {
     } else {
       segLabelEndRef.current = nextValue;
       setSegLabelEnd(nextValue);
+    }
+    // 实时预览：仅当两端都能解析时静默更新片段
+    const startVal = field === 'start' ? nextValue : segLabelStartRef.current;
+    const endVal   = field === 'end'   ? nextValue : segLabelEndRef.current;
+    const rawStartMs = parseLabelTimeMs(startVal);
+    const rawEndMs   = parseLabelTimeMs(endVal);
+    if (rawStartMs === null || rawEndMs === null) return;
+    const activeSeg = selectedSegmentIds.length === 1
+      ? effectiveSegments.find((s) => s.id === selectedSegmentIds[0])
+      : null;
+    if (!activeSeg || !selectedObject) return;
+    const { startMs, endMs } = normalizeLabelTimeRange(rawStartMs, rawEndMs, 0, globalDurationMs, field);
+    const others = effectiveSegments.filter((s) => s.id !== activeSeg.id);
+    let boundL = 0, boundR = globalDurationMs;
+    for (const o of others) {
+      if (o.endMs <= activeSeg.startMs && o.endMs > boundL) boundL = o.endMs;
+      if (o.startMs >= activeSeg.endMs && o.startMs < boundR) boundR = o.startMs;
+    }
+    const ns = Math.max(boundL, Math.min(boundR - 1000, startMs));
+    const ne = Math.max(ns + 1000, Math.min(boundR, endMs));
+    if (ne <= boundR && (ns !== activeSeg.startMs || ne !== activeSeg.endMs)) {
+      updateAppearSegmentSilent(selectedObject.id, activeSeg.id, { startMs: ns, endMs: ne });
     }
   };
 
@@ -2542,6 +2567,7 @@ export function TimelinePanel() {
                     key={seg.id}
                     className={`tl-element-window${isDragging ? ' is-dragging' : ''}${isSelected ? ' is-selected' : ''}`}
                     style={fillStyle}
+                    data-tooltip={`片段：${(segStart / 1000).toFixed(3)}s ~ ${(segEnd / 1000).toFixed(3)}s`}
                     onMouseDown={(e) => { startWindowDrag('move', seg, e); }}
                     onClick={(e) => {
                       if (e.detail !== 1) return;
@@ -2567,12 +2593,6 @@ export function TimelinePanel() {
                       onClick={(e) => e.stopPropagation()}
                       data-tooltip="拖动以调整片段终点，片段时长不小于1s"
                     />
-                    <span
-                      className="tl-element-window-label"
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      {(segStart / 1000).toFixed(3)}s ~ {(segEnd / 1000).toFixed(3)}s
-                    </span>
                   </div>
                 );
               })}
@@ -2800,11 +2820,13 @@ export function TimelinePanel() {
             <div className="tl-zoom-row-all-actions">
               {/* 选中片段的起止时间编辑器，仅单选时显示 */}
               {activeSegId && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto', gap: 0 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11, color: 'var(--text-muted)', marginRight: 'auto', gap: 4 }}>
+                  <span style={{ flexShrink: 0, whiteSpace: 'nowrap', color: 'var(--text-muted)' }}>片段起止时间</span>
                   <input
                     className="tl-label-time-input tl-input-nospin"
                     type="text"
                     inputMode="decimal"
+                    style={{ width: 42 }}
                     value={segLabelStart}
                     onChange={(e) => updateSegLabelDraft('start', e.target.value)}
                     onWheel={(e) => {
@@ -2815,16 +2837,18 @@ export function TimelinePanel() {
                       const next = Math.max(0, Math.min(globalDurationMs, cur + (e.deltaY < 0 ? stepMs : -stepMs)));
                       updateSegLabelDraft('start', formatLabelTimeValue(next));
                     }}
+                    onFocus={(e) => { segLabelFocusedRef.current = true; e.target.select(); }}
                     onBlur={(e) => {
                       if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
+                      segLabelFocusedRef.current = false;
                       commitSegLabelEdit(e.target.value, segLabelEndRef.current, 'start');
                     }}
                     onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
-                    onFocus={(e) => e.target.select()}
                   />s&nbsp;~&nbsp;<input
                     className="tl-label-time-input tl-input-nospin"
                     type="text"
                     inputMode="decimal"
+                    style={{ width: 42 }}
                     value={segLabelEnd}
                     onChange={(e) => updateSegLabelDraft('end', e.target.value)}
                     onWheel={(e) => {
@@ -2835,12 +2859,13 @@ export function TimelinePanel() {
                       const next = Math.max(0, Math.min(globalDurationMs, cur + (e.deltaY < 0 ? stepMs : -stepMs)));
                       updateSegLabelDraft('end', formatLabelTimeValue(next));
                     }}
+                    onFocus={(e) => { segLabelFocusedRef.current = true; e.target.select(); }}
                     onBlur={(e) => {
                       if (e.currentTarget.parentElement?.contains(e.relatedTarget as Node)) return;
+                      segLabelFocusedRef.current = false;
                       commitSegLabelEdit(segLabelStartRef.current, e.target.value, 'end');
                     }}
                     onKeyDown={(e) => handleLabelTimeKeyDown(e, () => { segLabelCancelledRef.current = true; })}
-                    onFocus={(e) => e.target.select()}
                   />s
                 </span>
               )}
