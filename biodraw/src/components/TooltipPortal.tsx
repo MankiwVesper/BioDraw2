@@ -60,13 +60,22 @@ export function TooltipPortal() {
       }
     };
 
-    // 拖动时 data-tooltip 的文字会变化但不触发 mouseover，通过 mousemove 实时同步
+    // 拖动时同步更新 tooltip 文字和位置（跟随元素移动）
     const onMove = () => {
       if (!currentTargetRef.current) return;
-      const text = currentTargetRef.current.getAttribute('data-tooltip');
-      if (!text || text === currentTextRef.current) return;
-      currentTextRef.current = text;
-      setState((prev) => prev ? { ...prev, text } : prev);
+      const el = currentTargetRef.current;
+      const text = el.getAttribute('data-tooltip') ?? '';
+      const rect = el.getBoundingClientRect();
+      const above = rect.bottom + 46 > window.innerHeight;
+      const x = rect.left + rect.width / 2;
+      const y = above ? rect.top : rect.bottom;
+      if (text) currentTextRef.current = text;
+      setState((prev) => {
+        if (!prev) return prev;
+        const nextText = text || prev.text;
+        if (nextText === prev.text && x === prev.x && y === prev.y && above === prev.above) return prev;
+        return { text: nextText, x, y, above };
+      });
     };
 
     document.addEventListener('mouseover', onOver);
