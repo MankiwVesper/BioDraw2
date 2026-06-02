@@ -11,7 +11,7 @@ import type Konva from 'konva';
 import './CanvasPanel.css';
 import { useVideoExport } from './useVideoExport';
 
-type SnapLine = { axis: 'x' | 'y'; value: number };
+type SnapLine = { axis: 'x' | 'y'; value: number; source: 'canvas' | 'object' };
 
 const TEXT_LINE_HEIGHT = 1.2;
 
@@ -798,50 +798,52 @@ export function CanvasPanel() {
     const cvW = canvasWidthRef.current;
     const cvH = canvasHeightRef.current;
 
-    // Guide positions (canvas coords)
-    const guideXs: number[] = [0, cvW / 2, cvW];
-    const guideYs: number[] = [0, cvH / 2, cvH];
+    // Guide positions (canvas coords) — canvas guides and object guides tracked separately
+    const canvasGuideXs: number[] = [0, cvW / 2, cvW];
+    const canvasGuideYs: number[] = [0, cvH / 2, cvH];
+    const objectGuideXs: number[] = [];
+    const objectGuideYs: number[] = [];
     for (const obj of allObjs) {
       if (selIds.includes(obj.id)) continue;
       const ox = obj.x, ow = obj.width * (obj.scaleX ?? 1);
       const oy = obj.y, oh = obj.height * (obj.scaleY ?? 1);
-      guideXs.push(ox, ox + ow / 2, ox + ow);
-      guideYs.push(oy, oy + oh / 2, oy + oh);
+      objectGuideXs.push(ox, ox + ow / 2, ox + ow);
+      objectGuideYs.push(oy, oy + oh / 2, oy + oh);
     }
 
     // Snap points on the dragged object
     const checkXs = [cx, cx + w / 2, cx + w];
     const checkYs = [cy, cy + h / 2, cy + h];
 
-    let bestXDiff = THRESHOLD + 1, bestXGuide = 0, bestXSnap = cx;
+    let bestXDiff = THRESHOLD + 1, bestXGuide = 0, bestXSnap = cx, bestXSource: 'canvas' | 'object' = 'canvas';
     for (let i = 0; i < checkXs.length; i++) {
-      for (const gx of guideXs) {
+      for (const gx of canvasGuideXs) {
         const d = Math.abs(checkXs[i] - gx);
-        if (d < bestXDiff) {
-          bestXDiff = d;
-          bestXGuide = gx;
-          bestXSnap = cx + (gx - checkXs[i]);
-        }
+        if (d < bestXDiff) { bestXDiff = d; bestXGuide = gx; bestXSnap = cx + (gx - checkXs[i]); bestXSource = 'canvas'; }
+      }
+      for (const gx of objectGuideXs) {
+        const d = Math.abs(checkXs[i] - gx);
+        if (d < bestXDiff) { bestXDiff = d; bestXGuide = gx; bestXSnap = cx + (gx - checkXs[i]); bestXSource = 'object'; }
       }
     }
 
-    let bestYDiff = THRESHOLD + 1, bestYGuide = 0, bestYSnap = cy;
+    let bestYDiff = THRESHOLD + 1, bestYGuide = 0, bestYSnap = cy, bestYSource: 'canvas' | 'object' = 'canvas';
     for (let i = 0; i < checkYs.length; i++) {
-      for (const gy of guideYs) {
+      for (const gy of canvasGuideYs) {
         const d = Math.abs(checkYs[i] - gy);
-        if (d < bestYDiff) {
-          bestYDiff = d;
-          bestYGuide = gy;
-          bestYSnap = cy + (gy - checkYs[i]);
-        }
+        if (d < bestYDiff) { bestYDiff = d; bestYGuide = gy; bestYSnap = cy + (gy - checkYs[i]); bestYSource = 'canvas'; }
+      }
+      for (const gy of objectGuideYs) {
+        const d = Math.abs(checkYs[i] - gy);
+        if (d < bestYDiff) { bestYDiff = d; bestYGuide = gy; bestYSnap = cy + (gy - checkYs[i]); bestYSource = 'object'; }
       }
     }
 
     const newSnapLines: SnapLine[] = [];
     const snappedX = bestXDiff <= THRESHOLD ? bestXSnap : cx;
     const snappedY = bestYDiff <= THRESHOLD ? bestYSnap : cy;
-    if (bestXDiff <= THRESHOLD) newSnapLines.push({ axis: 'x', value: bestXGuide });
-    if (bestYDiff <= THRESHOLD) newSnapLines.push({ axis: 'y', value: bestYGuide });
+    if (bestXDiff <= THRESHOLD) newSnapLines.push({ axis: 'x', value: bestXGuide, source: bestXSource });
+    if (bestYDiff <= THRESHOLD) newSnapLines.push({ axis: 'y', value: bestYGuide, source: bestYSource });
     setSnapLines(newSnapLines);
 
     // Update group follower offsets
@@ -1245,12 +1247,13 @@ export function CanvasPanel() {
             {/* 参考线层 */}
             {snapLines.length > 0 && (
               <Layer listening={false}>
-                {snapLines.map((line, i) =>
-                  line.axis === 'x' ? (
+                {snapLines.map((line, i) => {
+                  const stroke = line.source === 'canvas' ? '#3b82f6' : '#ef4444';
+                  return line.axis === 'x' ? (
                     <Line
                       key={i}
                       points={[line.value, -5000 / stageScale, line.value, 5000 / stageScale]}
-                      stroke="#ef4444"
+                      stroke={stroke}
                       strokeWidth={1 / stageScale}
                       dash={[4 / stageScale, 4 / stageScale]}
                       listening={false}
@@ -1259,13 +1262,13 @@ export function CanvasPanel() {
                     <Line
                       key={i}
                       points={[-5000 / stageScale, line.value, 5000 / stageScale, line.value]}
-                      stroke="#ef4444"
+                      stroke={stroke}
                       strokeWidth={1 / stageScale}
                       dash={[4 / stageScale, 4 / stageScale]}
                       listening={false}
                     />
-                  ),
-                )}
+                  );
+                })}
               </Layer>
             )}
             {/* 动画路径叠加层：仅在非导出状态下显示 */}
