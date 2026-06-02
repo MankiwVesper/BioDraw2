@@ -18,7 +18,7 @@ interface Props {
   /** Called when drag starts on this object */
   onDragStart?: (id: string) => void;
   /** Called on each dragmove; return the snapped {x,y} in canvas coords */
-  onDragMove?: (id: string, x: number, y: number, w: number, h: number) => { x: number; y: number } | null;
+  onDragMove?: (id: string, x: number, y: number, w: number, h: number, shiftKey: boolean) => { x: number; y: number } | null;
   /** Clears snap lines when drag ends */
   onDragStop?: () => void;
   /** When true, automatically focus the name label for editing (used on first drop) */
@@ -129,7 +129,8 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
     if (e.target !== e.currentTarget) return;
     if (!onDragMove) return;
     const node = e.target;
-    const result = onDragMove(sceneObject.id, node.x(), node.y(), sceneObject.width * (sceneObject.scaleX ?? 1), sceneObject.height * (sceneObject.scaleY ?? 1));
+    const shiftKey = (e.evt as MouseEvent).shiftKey ?? false;
+    const result = onDragMove(sceneObject.id, node.x(), node.y(), sceneObject.width * (sceneObject.scaleX ?? 1), sceneObject.height * (sceneObject.scaleY ?? 1), shiftKey);
     if (result) {
       node.x(result.x);
       node.y(result.y);

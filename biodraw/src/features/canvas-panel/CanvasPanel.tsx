@@ -789,10 +789,11 @@ export function CanvasPanel() {
   }, []);
 
   const handleObjectDragMove = useCallback((
-    id: string, cx: number, cy: number, w: number, h: number,
+    id: string, cx: number, cy: number, w: number, h: number, shiftKey: boolean,
   ): { x: number; y: number } | null => {
     const scale = stageScaleRef.current;
     const THRESHOLD = 8 / scale;
+    if (shiftKey) { setSnapLines([]); return null; }
     const allObjs = objectsSnapRef.current;
     const selIds = selectedIdsSnapRef.current;
     const cvW = canvasWidthRef.current;
