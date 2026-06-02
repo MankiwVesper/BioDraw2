@@ -1145,7 +1145,7 @@
   height: 18px;
   cursor: grab;
   font-size: 13px;
-  color: var(--text-muted);
+  color: var(--text-main);
   flex-shrink: 0;
   user-select: none;
 }
@@ -1311,7 +1311,7 @@
 /* 时长标签 */
 .tl-clip-dur {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-main);
   white-space: nowrap;
   min-width: 44px;
   text-align: right;
@@ -1342,7 +1342,7 @@
   height: 18px;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-main);
   border-radius: 6px;
   cursor: pointer;
   font-size: 10px;
@@ -1367,7 +1367,7 @@
   width: 18px;
   height: 18px;
   font-size: 9px;
-  color: var(--text-muted);
+  color: var(--text-main);
   flex-shrink: 0;
 }
 
@@ -1778,7 +1778,7 @@
   height: 22px;
   border: 1px solid var(--border-color);
   background: var(--panel-bg);
-  color: var(--text-muted);
+  color: var(--text-main);
   border-radius: 6px;
   padding: 0 4px;
   cursor: pointer;
@@ -2179,7 +2179,7 @@
   height: 22px;
   border: 1px solid var(--border-color);
   background: var(--panel-bg);
-  color: var(--text-muted);
+  color: var(--text-main);
   border-radius: 6px;
   padding: 0 6px;
   cursor: pointer;
