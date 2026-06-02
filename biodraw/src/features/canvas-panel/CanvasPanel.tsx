@@ -1252,7 +1252,7 @@ export function CanvasPanel() {
                   return line.axis === 'x' ? (
                     <Line
                       key={i}
-                      points={[line.value, -5000 / stageScale, line.value, 5000 / stageScale]}
+                      points={[line.value, 0, line.value, canvasHeight]}
                       stroke={stroke}
                       strokeWidth={1 / stageScale}
                       dash={[4 / stageScale, 4 / stageScale]}
@@ -1261,7 +1261,7 @@ export function CanvasPanel() {
                   ) : (
                     <Line
                       key={i}
-                      points={[-5000 / stageScale, line.value, 5000 / stageScale, line.value]}
+                      points={[0, line.value, canvasWidth, line.value]}
                       stroke={stroke}
                       strokeWidth={1 / stageScale}
                       dash={[4 / stageScale, 4 / stageScale]}
