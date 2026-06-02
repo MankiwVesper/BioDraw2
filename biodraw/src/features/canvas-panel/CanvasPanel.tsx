@@ -3,7 +3,7 @@ import { Stage, Layer, Line } from 'react-konva';
 import { SkipBack, SkipForward, Play, Pause, Square } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
-import { Rect } from 'react-konva';
+import { Rect, Text as KonvaText } from 'react-konva';
 import { SceneObjectRenderer } from '../../render/objects/SceneObjectRenderer';
 import { AnimationPathOverlay } from '../../render/animation/AnimationPathOverlay';
 import type { SceneObject } from '../../types';
@@ -1250,24 +1250,29 @@ export function CanvasPanel() {
               <Layer listening={false}>
                 {snapLines.map((line, i) => {
                   const stroke = line.source === 'canvas' ? '#3b82f6' : '#ef4444';
-                  return line.axis === 'x' ? (
-                    <Line
-                      key={i}
-                      points={[line.value, 0, line.value, canvasHeight]}
-                      stroke={stroke}
-                      strokeWidth={1 / stageScale}
-                      dash={[4 / stageScale, 4 / stageScale]}
-                      listening={false}
-                    />
-                  ) : (
-                    <Line
-                      key={i}
-                      points={[0, line.value, canvasWidth, line.value]}
-                      stroke={stroke}
-                      strokeWidth={1 / stageScale}
-                      dash={[4 / stageScale, 4 / stageScale]}
-                      listening={false}
-                    />
+                  const label = String(Math.round(line.value));
+                  const lw = 44 / stageScale;
+                  const lh = 15 / stageScale;
+                  const lpad = 5 / stageScale;
+                  const lfont = 10 / stageScale;
+                  const lr = 2 / stageScale;
+                  if (line.axis === 'x') {
+                    const bx = Math.min(canvasWidth - lw - lpad, Math.max(lpad, line.value - lw / 2));
+                    return (
+                      <React.Fragment key={i}>
+                        <Line points={[line.value, 0, line.value, canvasHeight]} stroke={stroke} strokeWidth={1 / stageScale} dash={[4 / stageScale, 4 / stageScale]} listening={false} />
+                        <Rect x={bx} y={lpad} width={lw} height={lh} fill={stroke} cornerRadius={lr} listening={false} />
+                        <KonvaText x={bx} y={lpad} width={lw} height={lh} text={label} fontSize={lfont} fill="#fff" align="center" verticalAlign="middle" listening={false} />
+                      </React.Fragment>
+                    );
+                  }
+                  const by = Math.min(canvasHeight - lh - lpad, Math.max(lpad, line.value - lh / 2));
+                  return (
+                    <React.Fragment key={i}>
+                      <Line points={[0, line.value, canvasWidth, line.value]} stroke={stroke} strokeWidth={1 / stageScale} dash={[4 / stageScale, 4 / stageScale]} listening={false} />
+                      <Rect x={lpad} y={by} width={lw} height={lh} fill={stroke} cornerRadius={lr} listening={false} />
+                      <KonvaText x={lpad} y={by} width={lw} height={lh} text={label} fontSize={lfont} fill="#fff" align="center" verticalAlign="middle" listening={false} />
+                    </React.Fragment>
                   );
                 })}
               </Layer>
