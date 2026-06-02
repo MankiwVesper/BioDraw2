@@ -2,7 +2,7 @@
 .tl-panel {
   border-top: 1px solid var(--border-color);
   background: var(--panel-bg);
-  height: 320px;
+  height: 340px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
@@ -1378,6 +1378,27 @@
   grid-template-columns: 380px auto auto 128px minmax(420px, 1fr) auto;
   background: var(--bg-color);
   align-items: stretch;
+  min-width: max-content;
+}
+
+.tl-clip-detail-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-color) transparent;
+}
+
+.tl-clip-detail-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tl-clip-detail-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tl-clip-detail-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
 }
 
 /* 各列通用 */

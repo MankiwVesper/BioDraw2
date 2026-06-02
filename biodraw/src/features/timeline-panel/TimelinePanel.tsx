@@ -3467,6 +3467,7 @@ export function TimelinePanel() {
 
                     {/* ── 展开详情：6列布局 */}
                     {isExpanded && (
+                      <div className="tl-clip-detail-scroll">
                       <div className="tl-clip-detail">
 
                         {/* ── 基础参数：时间设置子列 + 基础参数子列 */}
@@ -3700,6 +3701,7 @@ export function TimelinePanel() {
                           </button>
                         </div>
 
+                      </div>
                       </div>
                     )}
                   </div>
