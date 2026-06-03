@@ -11,7 +11,7 @@ export default function LoginPage() {
   const error = useAuthStore((s) => s.error);
   const navigate = useNavigate();
   const location = useLocation();
-  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/editor';
+  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/projects';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
