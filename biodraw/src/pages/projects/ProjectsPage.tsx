@@ -6,6 +6,7 @@ import {
   type ProjectRecord,
 } from '../../infrastructure/projectService';
 import { serializeDocument } from '../../infrastructure/documentSerializer';
+import { ProjectExportModal } from './ProjectExportModal';
 import './ProjectsPage.css';
 
 function emptySnapshot() {
@@ -117,6 +118,7 @@ export default function ProjectsPage() {
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [loading, setLoading]   = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+  const [exportTarget, setExportTarget] = useState<{ id: string; title: string } | null>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -216,7 +218,7 @@ export default function ProjectsPage() {
                 onOpen={() => navigate(`/editor/${p.id}`)}
                 onRename={() => handleRename(p.id, p.title)}
                 onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
-                onExport={() => navigate(`/editor/${p.id}?autoExport=1`)}
+                onExport={() => setExportTarget({ id: p.id, title: p.title })}
                 onDownload={() => handleDownload(p.id, p.title)}
                 onDelete={() => handleDelete(p.id, p.title)}
               />
@@ -224,6 +226,14 @@ export default function ProjectsPage() {
           </div>
         )}
       </main>
+
+      {exportTarget && (
+        <ProjectExportModal
+          projectId={exportTarget.id}
+          title={exportTarget.title}
+          onClose={() => setExportTarget(null)}
+        />
+      )}
     </div>
   );
 }
