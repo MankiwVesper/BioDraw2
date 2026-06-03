@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
-  listProjects, createProject, deleteProject, renameProject,
+  listProjects, createProject, getProject, deleteProject, renameProject,
   type ProjectRecord,
 } from '../../infrastructure/projectService';
 import { serializeDocument } from '../../infrastructure/documentSerializer';
@@ -35,11 +35,17 @@ function ProjectCard({
   project,
   onOpen,
   onRename,
+  onPreview,
+  onExport,
+  onDownload,
   onDelete,
 }: {
   project: ProjectRecord;
   onOpen: () => void;
   onRename: () => void;
+  onPreview: () => void;
+  onExport: () => void;
+  onDownload: () => void;
   onDelete: () => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -80,6 +86,15 @@ function ProjectCard({
             <div className="project-card-menu">
               <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onRename(); }}>
                 重命名
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onPreview(); }}>
+                预览
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onExport(); }}>
+                导出
+              </button>
+              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onDownload(); }}>
+                下载
               </button>
               <button
                 className="is-danger"
@@ -135,6 +150,22 @@ export default function ProjectsPage() {
     }
   }
 
+  async function handleDownload(id: string, title: string) {
+    try {
+      const { data } = await getProject(id);
+      const json = JSON.stringify(data, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${title}.biodraw`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert('下载失败，请重试');
+    }
+  }
+
   async function handleDelete(id: string, title: string) {
     if (!window.confirm(`确认删除「${title}」？此操作不可恢复。`)) return;
     try {
@@ -184,6 +215,9 @@ export default function ProjectsPage() {
                 project={p}
                 onOpen={() => navigate(`/editor/${p.id}`)}
                 onRename={() => handleRename(p.id, p.title)}
+                onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
+                onExport={() => navigate(`/editor/${p.id}?autoExport=1`)}
+                onDownload={() => handleDownload(p.id, p.title)}
                 onDelete={() => handleDelete(p.id, p.title)}
               />
             ))}

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock, PanelLeft, PanelRight, PanelBottom, LayoutDashboard, Maximize2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { useAuthStore } from '../../state/authStore';
 import { downloadDocument, parseDocumentFile, serializeDocument } from '../../infrastructure/documentSerializer';
@@ -64,6 +64,7 @@ export function ToolbarPanel({
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -205,7 +206,7 @@ export function ToolbarPanel({
   const rateMenuRef = useRef<HTMLDivElement>(null);
 
   // 导出面板状态
-  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [showExportPanel, setShowExportPanel] = useState(() => searchParams.get('autoExport') === '1');
   const [exportWidth,  setExportWidth]  = useState(canvasWidth);
   const [exportHeight, setExportHeight] = useState(canvasHeight);
   const [exportFps,    setExportFps]    = useState(24);
