@@ -68,11 +68,6 @@ export function ToolbarPanel({
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const currentProjectId = useProjectStore((s) => s.currentProjectId);
-  const saveStatus       = useProjectStore((s) => s.saveStatus);
-  const saveStatusText = saveStatus === 'saving' ? '保存中...'
-    : saveStatus === 'error' ? '保存失败'
-    : saveStatus === 'saved' ? '已保存'
-    : '';
 
   const handleLogout = async () => {
     setShowUserMenu(false);
@@ -345,15 +340,10 @@ export function ToolbarPanel({
               data-tooltip="点击重命名"
               onClick={startEditingName}
             >
-              {currentFileName.replace(/\.biodraw$/, '')}
+              {currentFileName.replace(/\.biodraw$/, '')}{hasUnsavedChanges ? ' *' : ''}
             </span>
           )}
         </div>
-        {saveStatusText && (
-          <span className={`tb-save-status${saveStatus === 'error' ? ' is-error' : ''}`}>
-            · {saveStatusText}
-          </span>
-        )}
         <input
           ref={fileInputRef}
           type="file"

@@ -26,6 +26,7 @@ function App() {
           path="/projects"
           element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>}
         />
+        <Route path="/editor" element={<Navigate to="/projects" replace />} />
         <Route
           path="/editor/:projectId"
           element={
