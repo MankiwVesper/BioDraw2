@@ -1,6 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock, PanelLeft, PanelRight, PanelBottom, LayoutDashboard, Maximize2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useEditorStore } from '../../state/editorStore';
+import { useAuthStore } from '../../state/authStore';
 import { downloadDocument, parseDocumentFile, clearAutoSave } from '../../infrastructure/documentSerializer';
 import './ToolbarPanel.css';
 
@@ -57,6 +59,15 @@ export function ToolbarPanel({
   const setPreviewMode   = useEditorStore((s) => s.setPreviewMode);
   const isRatioLocked    = useEditorStore((s) => s.isRatioLocked);
   const setIsRatioLocked = useEditorStore((s) => s.setIsRatioLocked);
+
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -626,6 +637,13 @@ export function ToolbarPanel({
       {/* 导出状态与进度（浮于中区，不影响布局） */}
       {/* ── 面板收起/展开切换（右侧固定区域） */}
       <div className="tb-panel-toggles">
+        {user && (
+          <>
+            <span className="tb-user-email" data-tooltip={user.email}>{user.email}</span>
+            <button className="tb-user-logout" onClick={handleLogout} data-tooltip="退出登录">退出</button>
+            <span className="tb-panel-toggles-sep" />
+          </>
+        )}
         <button
           className={`tb-panel-toggle-icon${showMaterials ? ' is-on' : ''}`}
           onClick={onToggleMaterials}
