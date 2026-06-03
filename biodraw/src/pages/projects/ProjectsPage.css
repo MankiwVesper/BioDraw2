@@ -1,0 +1,238 @@
+.projects-page {
+  min-height: 100vh;
+  background: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 页面头部 */
+.projects-header {
+  height: 52px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+
+.projects-logo {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary-color);
+  letter-spacing: -0.02em;
+}
+
+.projects-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.projects-user-email {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.projects-logout-btn {
+  font-size: 12px;
+  color: var(--text-muted);
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.projects-logout-btn:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* ── 主内容区 */
+.projects-main {
+  flex: 1;
+  padding: 32px 40px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.projects-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.projects-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.projects-create-btn {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.projects-create-btn:hover {
+  background: var(--primary-hover);
+}
+
+.projects-loading,
+.projects-error {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.projects-error { color: #ef4444; }
+
+.projects-empty {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--text-muted);
+}
+
+.projects-empty p {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+/* ── 项目卡片网格 */
+.projects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+/* ── 项目卡片 */
+.project-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: visible;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.project-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.project-card-preview {
+  height: 110px;
+  background: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 8px 8px 0 0;
+}
+
+.project-card-footer {
+  padding: 10px 10px 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.project-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.project-card-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-card-time {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ── 卡片菜单 */
+.project-card-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.project-card-menu-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+  letter-spacing: 1px;
+}
+
+.project-card:hover .project-card-menu-btn {
+  opacity: 1;
+}
+
+.project-card-menu-btn:hover {
+  background: var(--bg-color);
+  color: var(--text-main);
+}
+
+.project-card-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  overflow: hidden;
+  min-width: 100px;
+}
+
+.project-card-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-main);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.project-card-menu button:hover {
+  background: var(--bg-color);
+}
+
+.project-card-menu button.is-danger:hover {
+  color: #ef4444;
+}

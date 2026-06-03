@@ -93,13 +93,32 @@
 
 
 /* ── Logo ──────────────────────────────────────────── */
-.tb-logo {
+.tb-logo-btn {
   font-size: 15px;
   font-weight: 700;
   color: var(--primary-color);
   margin-right: 4px;
   letter-spacing: -0.02em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
 }
+
+.tb-logo-btn:hover { opacity: 0.75; }
+
+/* ── 云端保存状态 */
+.tb-save-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-right: 2px;
+}
+
+.tb-save-status.is-error { color: #ef4444; }
 
 /* ── 分隔线 ─────────────────────────────────────────── */
 .tb-divider {

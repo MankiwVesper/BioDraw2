@@ -3,7 +3,9 @@ import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock, 
 import { useNavigate } from 'react-router-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { useAuthStore } from '../../state/authStore';
-import { downloadDocument, parseDocumentFile, clearAutoSave } from '../../infrastructure/documentSerializer';
+import { downloadDocument, parseDocumentFile, serializeDocument } from '../../infrastructure/documentSerializer';
+import { createProject, renameProject as renameProjectCloud } from '../../infrastructure/projectService';
+import { useProjectStore } from '../../state/projectStore';
 import './ToolbarPanel.css';
 
 interface ToolbarPanelProps {
@@ -52,7 +54,6 @@ export function ToolbarPanel({
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
   const currentFileName   = useEditorStore((s) => s.currentFileName) as string;
   const markSaved         = useEditorStore((s) => s.markSaved);
-  const resetScene        = useEditorStore((s) => s.resetScene);
   const loadSnapshot      = useEditorStore((s) => s.loadSnapshot);
   const setCurrentFileName = useEditorStore((s) => s.setCurrentFileName);
   const isPreviewMode    = useEditorStore((s) => s.isPreviewMode);
@@ -65,6 +66,13 @@ export function ToolbarPanel({
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
+  const saveStatus       = useProjectStore((s) => s.saveStatus);
+  const saveStatusText = saveStatus === 'saving' ? '保存中...'
+    : saveStatus === 'error' ? '保存失败'
+    : saveStatus === 'saved' ? '已保存'
+    : '';
 
   const handleLogout = async () => {
     setShowUserMenu(false);
@@ -97,14 +105,24 @@ export function ToolbarPanel({
     const trimmed = editNameValue.trim();
     if (trimmed) {
       setCurrentFileName(trimmed + '.biodraw');
+      if (currentProjectId) {
+        renameProjectCloud(currentProjectId, trimmed).catch(() => {/* 静默 */});
+      }
     }
     setIsEditingName(false);
   };
 
-  const handleNew = () => {
-    if (window.confirm('将清空当前场景，确认新建？')) {
-      resetScene();
-      clearAutoSave();
+  const handleNew = async () => {
+    if (hasUnsavedChanges && !window.confirm('当前有修改正在等待自动保存，是否立即新建空白项目？')) return;
+    try {
+      const snapshot = serializeDocument({
+        objects: [], animations: [], globalDurationMs: 10000,
+        canvasWidth: 1280, canvasHeight: 720, canvasBgColor: '#ffffff',
+      });
+      const id = await createProject('未命名项目', snapshot);
+      navigate(`/editor/${id}`);
+    } catch {
+      alert('创建项目失败，请重试');
     }
   };
 
@@ -298,7 +316,13 @@ export function ToolbarPanel({
       <div className="tb-left">
         {/* 品牌 + 文件名：固定宽度，对齐 konvajs-content 左边缘 */}
         <div className="tb-brand">
-          <span className="tb-logo">BioDraw</span>
+          <button
+            className="tb-logo-btn"
+            onClick={() => navigate('/projects')}
+            data-tooltip="返回项目列表"
+          >
+            BioDraw
+          </button>
           <div className="tb-divider" />
           {isEditingName ? (
             <div className="tb-filename-wrap">
@@ -321,10 +345,15 @@ export function ToolbarPanel({
               data-tooltip="点击重命名"
               onClick={startEditingName}
             >
-              {currentFileName.replace(/\.biodraw$/, '')}{hasUnsavedChanges ? ' *' : ''}
+              {currentFileName.replace(/\.biodraw$/, '')}
             </span>
           )}
         </div>
+        {saveStatusText && (
+          <span className={`tb-save-status${saveStatus === 'error' ? ' is-error' : ''}`}>
+            · {saveStatusText}
+          </span>
+        )}
         <input
           ref={fileInputRef}
           type="file"
@@ -698,6 +727,12 @@ export function ToolbarPanel({
             {showUserMenu && (
               <div className="tb-user-dropdown">
                 <div className="tb-user-dropdown-email">{user.email}</div>
+                <button
+                  className="tb-user-dropdown-logout"
+                  onClick={() => { setShowUserMenu(false); navigate('/projects'); }}
+                >
+                  我的项目
+                </button>
                 <button className="tb-user-dropdown-logout" onClick={handleLogout}>
                   退出登录
                 </button>
