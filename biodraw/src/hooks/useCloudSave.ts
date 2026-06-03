@@ -3,6 +3,7 @@ import { useEditorStore } from '../state/editorStore';
 import { useProjectStore } from '../state/projectStore';
 import { serializeDocument } from '../infrastructure/documentSerializer';
 import { updateProjectData } from '../infrastructure/projectService';
+import { thumbnailCapture } from '../infrastructure/thumbnailCapture';
 
 const DEBOUNCE_MS = 5000;
 
@@ -32,7 +33,8 @@ export function useCloudSave(projectId: string) {
         canvasHeight: s.canvasHeight,
         canvasBgColor: s.canvasBgColor,
       });
-      await updateProjectData(projectId, snapshot);
+      const thumbnail = thumbnailCapture.current?.() ?? null;
+      await updateProjectData(projectId, snapshot, thumbnail);
       setSaveStatus('saved');
       setLastSavedAt(new Date());
       markSaved();

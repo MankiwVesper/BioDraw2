@@ -6,12 +6,13 @@ export type ProjectRecord = {
   title: string;
   created_at: string;
   updated_at: string;
+  thumbnail?: string | null;
 };
 
 export async function listProjects(): Promise<ProjectRecord[]> {
   const { data, error } = await supabase
     .from('projects')
-    .select('id, title, created_at, updated_at')
+    .select('id, title, created_at, updated_at, thumbnail')
     .order('updated_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as ProjectRecord[];
@@ -28,20 +29,21 @@ export async function getProject(id: string): Promise<{ title: string; data: Doc
 }
 
 export async function createProject(title: string, snapshot: DocumentSnapshot): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('未登录');
   const { data, error } = await supabase
     .from('projects')
-    .insert({ title, data: snapshot })
+    .insert({ title, data: snapshot, user_id: user.id })
     .select('id')
     .single();
   if (error) throw error;
   return (data as { id: string }).id;
 }
 
-export async function updateProjectData(id: string, snapshot: DocumentSnapshot): Promise<void> {
-  const { error } = await supabase
-    .from('projects')
-    .update({ data: snapshot, updated_at: new Date().toISOString() })
-    .eq('id', id);
+export async function updateProjectData(id: string, snapshot: DocumentSnapshot, thumbnail?: string | null): Promise<void> {
+  const payload: Record<string, unknown> = { data: snapshot, updated_at: new Date().toISOString() };
+  if (thumbnail !== undefined) payload.thumbnail = thumbnail;
+  const { error } = await supabase.from('projects').update(payload).eq('id', id);
   if (error) throw error;
 }
 

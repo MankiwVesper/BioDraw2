@@ -58,7 +58,12 @@ function ProjectCard({
 
   return (
     <div className="project-card" onClick={onOpen}>
-      <div className="project-card-preview" />
+      <div className="project-card-preview">
+        {project.thumbnail
+          ? <img src={project.thumbnail} alt="" draggable={false} />
+          : <span className="project-card-preview-placeholder">空白项目</span>
+        }
+      </div>
       <div className="project-card-footer">
         <div className="project-card-info">
           <span className="project-card-title">{project.title}</span>
