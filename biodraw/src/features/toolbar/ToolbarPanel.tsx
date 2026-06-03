@@ -63,11 +63,24 @@ export function ToolbarPanel({
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
+    setShowUserMenu(false);
     await logout();
     navigate('/login', { replace: true });
   };
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -636,14 +649,7 @@ export function ToolbarPanel({
 
       {/* 导出状态与进度（浮于中区，不影响布局） */}
       {/* ── 面板收起/展开切换（右侧固定区域） */}
-      <div className="tb-panel-toggles">
-        {user && (
-          <>
-            <span className="tb-user-email" data-tooltip={user.email}>{user.email}</span>
-            <button className="tb-user-logout" onClick={handleLogout} data-tooltip="退出登录">退出</button>
-            <span className="tb-panel-toggles-sep" />
-          </>
-        )}
+      <div className="tb-panel-toggles" ref={userMenuRef}>
         <button
           className={`tb-panel-toggle-icon${showMaterials ? ' is-on' : ''}`}
           onClick={onToggleMaterials}
@@ -679,6 +685,26 @@ export function ToolbarPanel({
         >
           <Maximize2 size={16} />
         </button>
+        {user && (
+          <>
+            <span className="tb-panel-toggles-sep" />
+            <button
+              className={`tb-user-avatar${showUserMenu ? ' is-on' : ''}`}
+              onClick={() => setShowUserMenu((p) => !p)}
+              data-tooltip={user.email}
+            >
+              {(user.email?.[0] ?? '?').toUpperCase()}
+            </button>
+            {showUserMenu && (
+              <div className="tb-user-dropdown">
+                <div className="tb-user-dropdown-email">{user.email}</div>
+                <button className="tb-user-dropdown-logout" onClick={handleLogout}>
+                  退出登录
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
     </header>
