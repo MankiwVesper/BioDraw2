@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
+import { Upload } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
-  listProjects, createProject, getProject, deleteProject, renameProject,
+  listProjects, createProject, getProject, deleteProject, renameProject, updateProjectData,
   type ProjectRecord,
 } from '../../infrastructure/projectService';
-import { serializeDocument } from '../../infrastructure/documentSerializer';
+import { serializeDocument, parseDocumentFile, type DocumentSnapshot } from '../../infrastructure/documentSerializer';
+import { thumbnailCapture } from '../../infrastructure/thumbnailCapture';
+import { useEditorStore } from '../../state/editorStore';
+import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
 import { ProjectExportModal } from './ProjectExportModal';
 import './ProjectsPage.css';
 
@@ -30,6 +34,39 @@ function formatRelativeTime(isoString: string): string {
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days} 天前`;
   return new Date(isoString).toLocaleDateString('zh-CN');
+}
+
+function ThumbnailCapture({
+  projectId,
+  snapshot,
+  onDone,
+}: {
+  projectId: string;
+  snapshot: DocumentSnapshot;
+  onDone: () => void;
+}) {
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      const thumb = thumbnailCapture.current?.() ?? null;
+      try {
+        await updateProjectData(projectId, snapshot, thumb);
+      } catch {
+        // best-effort: thumbnail failure doesn't block import
+      }
+      onDoneRef.current();
+    }, 1500);
+    return () => clearTimeout(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div style={{ position: 'fixed', left: -9999, top: 0, width: 1920, height: 1080, overflow: 'hidden', pointerEvents: 'none', zIndex: -1 }}>
+      <CanvasPanel />
+    </div>
+  );
 }
 
 function ProjectCard({
@@ -115,10 +152,15 @@ export default function ProjectsPage() {
   const user   = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const navigate = useNavigate();
+  const loadSnapshot = useEditorStore((s) => s.loadSnapshot);
+
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
   const [loading, setLoading]   = useState(true);
   const [listError, setListError] = useState<string | null>(null);
   const [exportTarget, setExportTarget] = useState<{ id: string; title: string } | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [thumbGenTarget, setThumbGenTarget] = useState<{ id: string; snapshot: DocumentSnapshot } | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -138,6 +180,24 @@ export default function ProjectsPage() {
       navigate(`/editor/${id}`);
     } catch {
       alert('创建项目失败，请重试');
+    }
+  }
+
+  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setImporting(true);
+    try {
+      const snapshot = await parseDocumentFile(file);
+      const title = file.name.replace(/\.biodraw$/i, '') || '导入项目';
+      const id = await createProject(title, snapshot);
+      loadSnapshot(snapshot);
+      setThumbGenTarget({ id, snapshot });
+      // importing + list refresh handled by ThumbnailCapture.onDone
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '导入失败，请重试');
+      setImporting(false);
     }
   }
 
@@ -196,7 +256,20 @@ export default function ProjectsPage() {
       <main className="projects-main">
         <div className="projects-title-row">
           <h1 className="projects-title">我的项目</h1>
-          <button className="projects-create-btn" onClick={handleCreate}>+ 新建项目</button>
+          <div className="projects-title-actions">
+            <button className="projects-create-btn" onClick={handleCreate}>+ 新建项目</button>
+            <button className="projects-import-btn" onClick={() => importInputRef.current?.click()} disabled={importing}>
+              <Upload size={13} strokeWidth={2.5} />
+              {importing ? '导入中...' : '导入项目'}
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".biodraw"
+              style={{ display: 'none' }}
+              onChange={handleImport}
+            />
+          </div>
         </div>
 
         {loading && <div className="projects-loading">加载中...</div>}
@@ -232,6 +305,18 @@ export default function ProjectsPage() {
           projectId={exportTarget.id}
           title={exportTarget.title}
           onClose={() => setExportTarget(null)}
+        />
+      )}
+
+      {thumbGenTarget && (
+        <ThumbnailCapture
+          projectId={thumbGenTarget.id}
+          snapshot={thumbGenTarget.snapshot}
+          onDone={() => {
+            setThumbGenTarget(null);
+            setImporting(false);
+            load();
+          }}
         />
       )}
     </div>

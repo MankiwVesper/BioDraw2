@@ -92,6 +92,38 @@
   background: var(--primary-hover);
 }
 
+.projects-title-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.projects-import-btn {
+  height: 32px;
+  padding: 0 14px;
+  background: none;
+  color: var(--text-main);
+  border: 1px solid #9ca3af;
+  border-radius: var(--radius);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.projects-import-btn:hover:not(:disabled) {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.projects-import-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .projects-loading,
 .projects-error {
   text-align: center;
