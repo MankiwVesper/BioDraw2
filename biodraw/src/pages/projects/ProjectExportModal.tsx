@@ -1,9 +1,67 @@
-import { useEffect, useState } from 'react';
-import { Lock, Unlock } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { ChevronDown, Lock, Unlock } from 'lucide-react';
 import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
 import { useEditorStore } from '../../state/editorStore';
 import { getProject } from '../../infrastructure/projectService';
+import '../../features/toolbar/ToolbarPanel.css';
 import './ProjectExportModal.css';
+
+function ExportDropdown({
+  options,
+  value,
+  onChange,
+}: {
+  options: Array<{ value: string; label: string }>;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const selected = options.find((o) => o.value === value);
+
+  return (
+    <div className="tb-dropdown-wrap" ref={ref}>
+      <button
+        type="button"
+        className={`tb-dropdown-btn${open ? ' is-open' : ''}`}
+        onClick={() => setOpen((p) => !p)}
+      >
+        <span className="tb-dropdown-btn-label">{selected?.label ?? value}</span>
+        <ChevronDown size={10} strokeWidth={2.5} className={`tb-dropdown-chevron${open ? ' is-open' : ''}`} />
+      </button>
+      {open && (
+        <div className="tb-dropdown-menu">
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              className={`tb-dropdown-option${opt.value === value ? ' is-active' : ''}`}
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ResetSvg = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+  </svg>
+);
 
 interface Props {
   projectId: string;
@@ -12,31 +70,29 @@ interface Props {
 }
 
 export function ProjectExportModal({ projectId, title, onClose }: Props) {
-  const loadSnapshot         = useEditorStore((s) => s.loadSnapshot);
-  const canvasWidth          = useEditorStore((s) => s.canvasWidth);
-  const canvasHeight         = useEditorStore((s) => s.canvasHeight);
-  const globalDurationMs     = useEditorStore((s) => s.globalDurationMs);
-  const videoExportStatus    = useEditorStore((s) => s.videoExportStatus);
-  const videoExportMessage   = useEditorStore((s) => s.videoExportMessage);
-  const sequenceExportStatus = useEditorStore((s) => s.sequenceExportStatus);
-  const sequenceExportMessage = useEditorStore((s) => s.sequenceExportMessage);
+  const loadSnapshot             = useEditorStore((s) => s.loadSnapshot);
+  const canvasWidth              = useEditorStore((s) => s.canvasWidth);
+  const canvasHeight             = useEditorStore((s) => s.canvasHeight);
+  const globalDurationMs         = useEditorStore((s) => s.globalDurationMs);
+  const videoExportStatus        = useEditorStore((s) => s.videoExportStatus);
+  const videoExportMessage       = useEditorStore((s) => s.videoExportMessage);
+  const sequenceExportStatus     = useEditorStore((s) => s.sequenceExportStatus);
+  const sequenceExportMessage    = useEditorStore((s) => s.sequenceExportMessage);
   const requestVideoExport       = useEditorStore((s) => s.requestVideoExport);
   const requestSequenceExport    = useEditorStore((s) => s.requestSequenceExport);
-  const requestSingleFrameExport = useEditorStore((s) => s.requestSingleFrameExport);
-  const cancelExport         = useEditorStore((s) => s.cancelExport);
-  const currentTimeMs        = useEditorStore((s) => s.currentTimeMs);
+  const cancelExport             = useEditorStore((s) => s.cancelExport);
 
-  const [loading, setLoading]       = useState(true);
-  const [loadError, setLoadError]   = useState('');
-  const [projectTitle, setProjectTitle] = useState(title);
+  const [loading,       setLoading]       = useState(true);
+  const [loadError,     setLoadError]     = useState('');
+  const [projectTitle,  setProjectTitle]  = useState(title);
 
-  const [exportWidth,  setExportWidth]  = useState(1280);
-  const [exportHeight, setExportHeight] = useState(720);
-  const [exportFps,    setExportFps]    = useState(24);
-  const [videoFormat,  setVideoFormat]  = useState<'mp4' | 'webm'>('mp4');
+  const [exportWidth,    setExportWidth]    = useState(1280);
+  const [exportHeight,   setExportHeight]   = useState(720);
+  const [exportFps,      setExportFps]      = useState(24);
+  const [videoFormat,    setVideoFormat]    = useState<'mp4' | 'webm'>('mp4');
   const [exportStartSec, setExportStartSec] = useState('0.00');
   const [exportEndSec,   setExportEndSec]   = useState('10.00');
-  const [ratioLocked, setRatioLocked] = useState(false);
+  const [ratioLocked,    setRatioLocked]    = useState(false);
 
   const isExporting = videoExportStatus === 'running' || sequenceExportStatus === 'running';
 
@@ -69,27 +125,19 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
     fps:    Math.max(1, Math.min(60, Math.round(exportFps))),
   };
 
-  const handleExportVideo = () => {
-    requestVideoExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: projectTitle, format: videoFormat });
-  };
-  const handleExportSequence = () => {
-    requestSequenceExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: `${projectTitle}-frame` });
-  };
-  const handleExportFrame = () => {
-    requestSingleFrameExport(exportSize.width);
-  };
+  const handleExportVideo    = () => requestVideoExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: projectTitle, format: videoFormat });
+  const handleExportSequence = () => requestSequenceExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: `${projectTitle}-frame` });
 
-  const videoIsDone  = videoExportStatus    === 'done'  || videoExportStatus    === 'error';
-  const seqIsDone    = sequenceExportStatus === 'done'  || sequenceExportStatus === 'error';
-  const statusMsg    = videoIsDone
-    ? { ok: videoExportStatus === 'done', text: videoExportMessage }
+  const videoIsDone = videoExportStatus    === 'done' || videoExportStatus    === 'error';
+  const seqIsDone   = sequenceExportStatus === 'done' || sequenceExportStatus === 'error';
+  const statusMsg   = videoIsDone
+    ? { ok: videoExportStatus    === 'done', text: videoExportMessage }
     : seqIsDone
       ? { ok: sequenceExportStatus === 'done', text: sequenceExportMessage }
       : null;
 
   return (
     <>
-      {/* 隐藏画布：用于驱动实际导出管线，定位到屏幕外不可见 */}
       {!loading && !loadError && (
         <div className="pem-hidden-canvas">
           <CanvasPanel />
@@ -98,6 +146,7 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
 
       <div className="pem-overlay" onClick={handleClose}>
         <div className="pem-modal" onClick={(e) => e.stopPropagation()}>
+
           <div className="pem-header">
             <span className="pem-title">导出 — {projectTitle}</span>
             <button className="pem-close" onClick={handleClose}>✕</button>
@@ -108,75 +157,105 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
 
           {!loading && !loadError && (
             <div className="pem-body">
-              <span className="pem-label">分辨率</span>
-              <div className="pem-controls">
-                <input className="pem-input" type="number" min={16} value={exportWidth}
-                  onChange={(e) => {
-                    const w = parseInt(e.target.value || '1280', 10);
-                    setExportWidth(w);
-                    if (ratioLocked) setExportHeight(Math.round(w * canvasHeight / canvasWidth));
-                  }} />
-                <input className="pem-input" type="number" min={16} value={exportHeight}
-                  onChange={(e) => {
-                    const h = parseInt(e.target.value || '720', 10);
-                    setExportHeight(h);
-                    if (ratioLocked) setExportWidth(Math.round(h * canvasWidth / canvasHeight));
-                  }} />
-                <button className={`pem-lock${ratioLocked ? ' is-locked' : ''}`}
-                  onClick={() => setRatioLocked((p) => !p)}>
-                  {ratioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
-                </button>
-              </div>
+              <div className="tb-canvas-content">
 
-              <span className="pem-label">FPS / 格式</span>
-              <div className="pem-controls">
-                <select className="pem-select" value={exportFps} onChange={(e) => setExportFps(parseInt(e.target.value, 10))}>
-                  {[24, 30, 60].map((f) => <option key={f} value={f}>{f}</option>)}
-                </select>
-                <select className="pem-select" value={videoFormat} onChange={(e) => setVideoFormat(e.target.value as 'mp4' | 'webm')}>
-                  <option value="mp4">MP4</option>
-                  <option value="webm">WebM</option>
-                </select>
-              </div>
-
-              <span className="pem-label">导出范围（秒）</span>
-              <div className="pem-controls">
-                <input className="pem-input" type="number" min={0} step={0.01} value={exportStartSec}
-                  onChange={(e) => setExportStartSec(e.target.value)}
-                  onBlur={() => setExportStartSec(Math.max(0, parseFloat(exportStartSec) || 0).toFixed(2))} />
-                <input className="pem-input" type="number" min={0} step={0.01} value={exportEndSec}
-                  onChange={(e) => setExportEndSec(e.target.value)}
-                  onBlur={() => {
-                    const v = parseFloat(exportEndSec);
-                    const max = globalDurationMs / 1000;
-                    setExportEndSec((isNaN(v) ? max : Math.min(max, Math.max(0, v))).toFixed(2));
-                  }} />
-              </div>
-
-              {isExporting ? (
-                <div className="pem-progress">
-                  <span>{videoExportStatus === 'running' ? videoExportMessage : sequenceExportMessage}</span>
-                  <button className="pem-cancel" onClick={cancelExport}>取消</button>
+                <span className="tb-canvas-size-label">分辨率</span>
+                <div className="tb-canvas-controls">
+                  <input
+                    className="tb-canvas-size-input" type="number" min={16} value={exportWidth}
+                    onChange={(e) => {
+                      const w = parseInt(e.target.value || '1280', 10);
+                      setExportWidth(w);
+                      if (ratioLocked) setExportHeight(Math.round(w * canvasHeight / canvasWidth));
+                    }}
+                  />
+                  <input
+                    className="tb-canvas-size-input" type="number" min={16} value={exportHeight}
+                    onChange={(e) => {
+                      const h = parseInt(e.target.value || '720', 10);
+                      setExportHeight(h);
+                      if (ratioLocked) setExportWidth(Math.round(h * canvasWidth / canvasHeight));
+                    }}
+                  />
+                  <button
+                    className={`tb-canvas-lock-btn${ratioLocked ? ' is-locked' : ''}`}
+                    onClick={() => setRatioLocked((p) => !p)}
+                    title={ratioLocked ? '解锁宽高比' : '锁定宽高比'}
+                  >
+                    {ratioLocked ? <Lock size={12} strokeWidth={2} /> : <Unlock size={12} strokeWidth={2} />}
+                  </button>
                 </div>
-              ) : (
-                <div className="pem-actions">
-                  <div className="pem-action-row">
-                    <button className="pem-btn" onClick={handleExportFrame}>
-                      导出当前帧 ({(currentTimeMs / 1000).toFixed(2)}s)
-                    </button>
-                    <button className="pem-btn" onClick={handleExportSequence}>导出序列帧</button>
+
+                <span className="tb-canvas-size-label">FPS/格式</span>
+                <div className="tb-canvas-controls">
+                  <ExportDropdown
+                    options={[24, 30, 60].map((f) => ({ value: String(f), label: String(f) }))}
+                    value={String(exportFps)}
+                    onChange={(v) => setExportFps(parseInt(v, 10))}
+                  />
+                  <ExportDropdown
+                    options={[{ value: 'mp4', label: 'MP4' }, { value: 'webm', label: 'WebM' }]}
+                    value={videoFormat}
+                    onChange={(v) => setVideoFormat(v as 'mp4' | 'webm')}
+                  />
+                  <button
+                    className="tb-canvas-lock-btn"
+                    onClick={() => { setExportFps(24); setVideoFormat('mp4'); }}
+                    title="恢复默认值"
+                  >
+                    <ResetSvg />
+                  </button>
+                </div>
+
+                <span className="tb-canvas-size-label">导出范围</span>
+                <div className="tb-canvas-controls">
+                  <input
+                    className="tb-canvas-size-input" type="number" min={0} step={0.01}
+                    value={exportStartSec}
+                    onChange={(e) => setExportStartSec(e.target.value)}
+                    onBlur={() => setExportStartSec(Math.max(0, parseFloat(exportStartSec) || 0).toFixed(2))}
+                  />
+                  <input
+                    className="tb-canvas-size-input" type="number" min={0} step={0.01}
+                    value={exportEndSec}
+                    onChange={(e) => setExportEndSec(e.target.value)}
+                    onBlur={() => {
+                      const v = parseFloat(exportEndSec);
+                      const max = globalDurationMs / 1000;
+                      setExportEndSec((isNaN(v) ? max : Math.min(max, Math.max(0, v))).toFixed(2));
+                    }}
+                  />
+                  <button
+                    className="tb-canvas-lock-btn"
+                    onClick={() => { setExportStartSec('0.00'); setExportEndSec((globalDurationMs / 1000).toFixed(2)); }}
+                    title="恢复默认范围"
+                  >
+                    <ResetSvg />
+                  </button>
+                </div>
+
+                {isExporting ? (
+                  <div className="tb-canvas-content-full pem-progress">
+                    <span>{videoExportStatus === 'running' ? videoExportMessage : sequenceExportMessage}</span>
+                    <button className="pem-cancel" onClick={cancelExport}>取消</button>
                   </div>
-                  <button className="pem-btn pem-btn-primary" onClick={handleExportVideo}>导出视频</button>
-                </div>
-              )}
+                ) : (
+                  <div className="tb-canvas-content-full tb-export-action-row">
+                    <button className="tb-export-action-btn" onClick={handleExportSequence}>导出序列帧</button>
+                    <button className="tb-export-action-btn tb-export-action-primary" onClick={handleExportVideo}>导出视频</button>
+                  </div>
+                )}
 
-              {statusMsg && (
-                <div className={`pem-status ${statusMsg.ok ? 'is-ok' : 'is-error'}`}>
-                  {statusMsg.ok ? `✓ ${statusMsg.text}` : `✗ ${statusMsg.text}`}
-                </div>
-              )}
+                {statusMsg && (
+                  <div className={`tb-canvas-content-full pem-status ${statusMsg.ok ? 'is-ok' : 'is-error'}`}>
+                    {statusMsg.ok ? `✓ ${statusMsg.text}` : `✗ ${statusMsg.text}`}
+                  </div>
+                )}
+
+              </div>
             </div>
           )}
+
         </div>
       </div>
     </>

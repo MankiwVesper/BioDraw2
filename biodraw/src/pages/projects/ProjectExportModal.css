@@ -1,4 +1,4 @@
-/* 隐藏画布容器：定位到屏幕外，用于驱动导出管线 */
+/* 隐藏画布：定位到屏幕外，驱动导出管线 */
 .pem-hidden-canvas {
   position: fixed;
   left: -9999px;
@@ -27,7 +27,7 @@
   border: 1px solid var(--border-color);
   border-radius: 10px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
-  width: 380px;
+  width: 260px;
   overflow: hidden;
 }
 
@@ -36,7 +36,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 12px;
+  padding: 12px 14px 10px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -47,7 +47,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  max-width: 300px;
+  max-width: 280px;
 }
 
 .pem-close {
@@ -68,7 +68,7 @@
 /* 加载 / 错误 */
 .pem-loading,
 .pem-error {
-  padding: 32px 16px;
+  padding: 28px 16px;
   text-align: center;
   font-size: 13px;
   color: var(--text-muted);
@@ -79,118 +79,8 @@
 /* 内容区 */
 .pem-body {
   padding: 14px 16px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
-.pem-label {
-  font-size: 11px;
-  color: var(--text-muted);
-  margin-top: 6px;
-}
-
-/* 控件行 */
-.pem-controls {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pem-input {
-  flex: 1;
-  min-width: 0;
-  height: 26px;
-  padding: 0 6px;
-  font-size: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  background: var(--bg-color);
-  color: var(--text-main);
-  text-align: center;
-}
-
-.pem-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-}
-
-.pem-select {
-  flex: 1;
-  height: 26px;
-  padding: 0 4px;
-  font-size: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  background: var(--bg-color);
-  color: var(--text-main);
-  cursor: pointer;
-}
-
-.pem-lock {
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  background: var(--bg-color);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: border-color 0.12s, color 0.12s;
-}
-
-.pem-lock:hover,
-.pem-lock.is-locked {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-/* 导出按钮区 */
-.pem-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.pem-action-row {
-  display: flex;
-  gap: 8px;
-}
-
-.pem-btn {
-  flex: 1;
-  height: 28px;
-  font-size: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  background: var(--bg-color);
-  color: var(--text-main);
-  cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
-  white-space: nowrap;
-}
-
-.pem-btn:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-.pem-btn-primary {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
-  color: #fff;
-  font-weight: 500;
-}
-
-.pem-btn-primary:hover {
-  background: var(--primary-hover);
-  border-color: var(--primary-hover);
-  color: #fff;
-}
 
 /* 导出进度 */
 .pem-progress {
@@ -198,7 +88,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-top: 10px;
+  margin-top: 4px;
   padding: 8px 10px;
   background: var(--bg-color);
   border: 1px solid var(--border-color);
@@ -223,7 +113,7 @@
 
 /* 完成 / 错误状态 */
 .pem-status {
-  margin-top: 8px;
+  margin-top: 4px;
   padding: 7px 10px;
   border-radius: var(--radius);
   font-size: 12px;
