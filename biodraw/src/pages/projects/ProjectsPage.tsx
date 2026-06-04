@@ -13,6 +13,7 @@ import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
 import { ProjectExportModal } from './ProjectExportModal';
 import './ProjectsPage.css';
 
+
 function emptySnapshot() {
   return serializeDocument({
     objects: [],
@@ -165,10 +166,23 @@ export default function ProjectsPage() {
   const [exportTarget, setExportTarget] = useState<{ id: string; title: string } | null>(null);
   const [importing, setImporting] = useState(false);
   const [thumbGenTarget, setThumbGenTarget] = useState<{ id: string; snapshot: DocumentSnapshot } | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const importingProjectIdRef = useRef<string | null>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (!showUserMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showUserMenu]);
 
   async function load() {
     try {
@@ -197,6 +211,11 @@ export default function ProjectsPage() {
     try {
       const snapshot = await parseDocumentFile(file);
       const title = file.name.replace(/\.biodraw$/i, '') || '导入项目';
+      if (projects.some((p) => p.title === title)) {
+        alert(`已存在名为「${title}」的项目，请使用其他名称`);
+        setImporting(false);
+        return;
+      }
       const id = await Promise.race([
         createProject(title, snapshot),
         new Promise<never>((_, reject) =>
@@ -226,9 +245,14 @@ export default function ProjectsPage() {
   async function handleRename(id: string, currentTitle: string) {
     const newTitle = window.prompt('请输入新名称', currentTitle);
     if (!newTitle || newTitle.trim() === currentTitle) return;
+    const trimmed = newTitle.trim();
+    if (projects.some((p) => p.id !== id && p.title === trimmed)) {
+      alert(`已存在名为「${trimmed}」的项目，请使用其他名称`);
+      return;
+    }
     try {
-      await renameProject(id, newTitle.trim());
-      setProjects((prev) => prev.map((p) => p.id === id ? { ...p, title: newTitle.trim() } : p));
+      await renameProject(id, trimmed);
+      setProjects((prev) => prev.map((p) => p.id === id ? { ...p, title: trimmed } : p));
     } catch {
       alert('重命名失败，请重试');
     }
@@ -269,9 +293,20 @@ export default function ProjectsPage() {
     <div className="projects-page">
       <header className="projects-header">
         <span className="projects-logo">BioDraw</span>
-        <div className="projects-header-right">
-          <span className="projects-user-email">{user?.email}</span>
-          <button className="projects-logout-btn" onClick={handleLogout}>退出登录</button>
+        <div className="projects-user-wrap" ref={userMenuRef}>
+          <button
+            className={`projects-user-avatar${showUserMenu ? ' is-on' : ''}`}
+            onClick={() => setShowUserMenu((p) => !p)}
+            data-tooltip={user?.email}
+          >
+            {(user?.email?.[0] ?? '?').toUpperCase()}
+          </button>
+          {showUserMenu && (
+            <div className="projects-user-dropdown">
+              <div className="projects-user-dropdown-email">{user?.email}</div>
+              <button className="projects-user-dropdown-item" onClick={handleLogout}>退出登录</button>
+            </div>
+          )}
         </div>
       </header>
 

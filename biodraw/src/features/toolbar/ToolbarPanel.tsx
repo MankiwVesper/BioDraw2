@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { useAuthStore } from '../../state/authStore';
 import { downloadDocument, parseDocumentFile, serializeDocument } from '../../infrastructure/documentSerializer';
-import { createProject, renameProject as renameProjectCloud } from '../../infrastructure/projectService';
+import { createProject, listProjects, renameProject as renameProjectCloud } from '../../infrastructure/projectService';
 import { useProjectStore } from '../../state/projectStore';
 import './ToolbarPanel.css';
 
@@ -91,19 +91,31 @@ export function ToolbarPanel({
   // 文件名内联编辑状态
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
+  const [renameError, setRenameError] = useState('');
 
   const startEditingName = () => {
     setEditNameValue(currentFileName.replace(/\.biodraw$/, ''));
+    setRenameError('');
     setIsEditingName(true);
   };
 
-  const confirmNameEdit = () => {
+  const confirmNameEdit = async () => {
     const trimmed = editNameValue.trim();
-    if (trimmed) {
-      setCurrentFileName(trimmed + '.biodraw');
-      if (currentProjectId) {
-        renameProjectCloud(currentProjectId, trimmed).catch(() => {/* 静默 */});
-      }
+    if (!trimmed) { setIsEditingName(false); return; }
+    const originalName = currentFileName.replace(/\.biodraw$/, '');
+    if (trimmed !== originalName && currentProjectId) {
+      try {
+        const all = await listProjects();
+        if (all.some((p) => p.id !== currentProjectId && p.title === trimmed)) {
+          setRenameError(`已存在名为「${trimmed}」的项目，请使用其他名称`);
+          return;
+        }
+      } catch { /* 查询失败则放行，不阻断重命名 */ }
+    }
+    setRenameError('');
+    setCurrentFileName(trimmed + '.biodraw');
+    if (currentProjectId) {
+      renameProjectCloud(currentProjectId, trimmed).catch(() => {/* 静默 */});
     }
     setIsEditingName(false);
   };
@@ -327,13 +339,16 @@ export function ToolbarPanel({
                 value={editNameValue}
                 maxLength={24}
                 autoFocus
-                onChange={(e) => setEditNameValue(e.target.value)}
+                onChange={(e) => { setEditNameValue(e.target.value); setRenameError(''); }}
                 onBlur={confirmNameEdit}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { e.currentTarget.blur(); }
-                  if (e.key === 'Escape') { setIsEditingName(false); }
+                  if (e.key === 'Escape') { setRenameError(''); setIsEditingName(false); }
                 }}
               />
+              {renameError && (
+                <div className="tb-rename-error">{renameError}</div>
+              )}
             </div>
           ) : (
             <span

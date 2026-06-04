@@ -1,5 +1,6 @@
 .projects-page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
   background: var(--bg-color);
   display: flex;
   flex-direction: column;
@@ -25,31 +26,73 @@
   letter-spacing: -0.02em;
 }
 
-.projects-header-right {
+.projects-user-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.projects-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  text-transform: uppercase;
+  transition: opacity 0.15s;
 }
 
-.projects-user-email {
-  font-size: 13px;
-  color: var(--text-muted);
+.projects-user-avatar:hover { opacity: 0.85; }
+
+.projects-user-avatar.is-on {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary-color);
 }
 
-.projects-logout-btn {
-  font-size: 12px;
-  color: var(--text-muted);
-  background: none;
+.projects-user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  padding: 4px 10px;
-  cursor: pointer;
-  transition: color 0.12s, border-color 0.12s;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 200;
+  overflow: hidden;
+  min-width: 160px;
 }
 
-.projects-logout-btn:hover {
+.projects-user-dropdown-email {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projects-user-dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--text-main);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.projects-user-dropdown-item:hover {
+  background: var(--bg-color);
   color: #ef4444;
-  border-color: #ef4444;
 }
 
 /* ── 主内容区 */
