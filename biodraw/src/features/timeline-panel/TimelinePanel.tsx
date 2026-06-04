@@ -813,8 +813,6 @@ export function TimelinePanel() {
   // ── 元素分布轴状态
   const [distPopup, setDistPopup] = useState<{ timeMs: number; x: number; y: number } | null>(null);
   const distHideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const countTextRef = useRef<HTMLSpanElement>(null);
-  const [isCountTruncated, setIsCountTruncated] = useState(false);
   const pendingDistJumpRef = useRef<{ objectId: string; timeMs: number; clipId?: string } | null>(null);
 
   const scheduleHideDistPopup = useCallback(() => {
@@ -859,9 +857,11 @@ export function TimelinePanel() {
       });
   }, [animations, objects, globalDurationMs]);
 
-  useEffect(() => {
-    const el = countTextRef.current;
-    if (el) setIsCountTruncated(el.scrollWidth > el.clientWidth);
+  const countText = useMemo(() => {
+    if (distMarkers.length === 0) return '';
+    const totalElements = new Set(distMarkers.flatMap((m) => m.elements.map((e) => e.id))).size;
+    const totalClips = distMarkers.reduce((sum, m) => sum + m.clipCount, 0);
+    return `${totalElements} 个元素 · ${totalClips} 个动画`;
   }, [distMarkers]);
 
   // 分布轴弹窗点击跳转：selectObject 后等 selectedObject 更新再定位段和展开 clip
@@ -2357,7 +2357,7 @@ export function TimelinePanel() {
       {/* ── 行 2：元素分布轴 ── */}
       <div className="tl-overall-thumbs-row">
         <span className="tl-overall-label">元素分布轴</span>
-        <div className="tl-overall-thumbs">
+        <div className="tl-overall-thumbs" data-tooltip={countText || undefined}>
           {distMarkers.map((m) => {
             const isApplyFlash = m.elements.some((el) => appliedFlashTargetIds.includes(el.id));
             return (
@@ -2385,24 +2385,16 @@ export function TimelinePanel() {
         <span className="tl-dist-count">
           <button
             type="button"
+            className={`tl-btn tl-btn-sm${!focusMode ? ' is-active' : ''}`}
+            data-tooltip="全览模式：非活跃元素半透明显示"
+            onClick={() => setFocusMode(false)}
+          >全览模式</button>
+          <button
+            type="button"
             className={`tl-btn tl-btn-sm${focusMode ? ' is-active' : ''}`}
-            data-tooltip={focusMode ? '专注模式：仅显示当前时刻有动画的元素' : '全览模式：非活跃元素半透明显示'}
-            onClick={() => setFocusMode(!focusMode)}
-          >{focusMode ? '专注模式' : '全览模式'}</button>
-          {(() => {
-            const countText = distMarkers.length > 0 ? (() => {
-              const totalElements = new Set(distMarkers.flatMap((m) => m.elements.map((e) => e.id))).size;
-              const totalClips = distMarkers.reduce((sum, m) => sum + m.clipCount, 0);
-              return `${totalElements} 个元素 ${totalClips} 个动画`;
-            })() : '';
-            return (
-              <span
-                className="tl-dist-count-text"
-                ref={countTextRef}
-                data-tooltip={isCountTruncated ? countText : undefined}
-              >{countText}</span>
-            );
-          })()}
+            data-tooltip="专注模式：仅显示当前时刻有动画的元素"
+            onClick={() => setFocusMode(true)}
+          >专注模式</button>
         </span>
       </div>
 

@@ -404,13 +404,13 @@
   gap: 4px;
 }
 
-.tl-dist-count-text {
-  width: 110px;
-  font-size: 11px;
-  color: var(--text-main);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.tl-dist-count .tl-btn {
+  flex: 1;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ── 第二大行：元素时间轴行 ──────────────────────── */
