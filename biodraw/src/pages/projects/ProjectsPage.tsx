@@ -161,6 +161,7 @@ export default function ProjectsPage() {
   const [importing, setImporting] = useState(false);
   const [thumbGenTarget, setThumbGenTarget] = useState<{ id: string; snapshot: DocumentSnapshot } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const importingProjectIdRef = useRef<string | null>(null);
 
   useEffect(() => { load(); }, []);
 
@@ -192,12 +193,23 @@ export default function ProjectsPage() {
       const snapshot = await parseDocumentFile(file);
       const title = file.name.replace(/\.biodraw$/i, '') || '导入项目';
       const id = await createProject(title, snapshot);
+      importingProjectIdRef.current = id;
       loadSnapshot(snapshot);
       setThumbGenTarget({ id, snapshot });
       // importing + list refresh handled by ThumbnailCapture.onDone
     } catch (err) {
       alert(err instanceof Error ? err.message : '导入失败，请重试');
       setImporting(false);
+    }
+  }
+
+  async function handleCancelImport() {
+    const id = importingProjectIdRef.current;
+    importingProjectIdRef.current = null;
+    setThumbGenTarget(null);
+    setImporting(false);
+    if (id) {
+      try { await deleteProject(id); } catch { /* best-effort */ }
     }
   }
 
@@ -257,8 +269,12 @@ export default function ProjectsPage() {
         <div className="projects-title-row">
           <h1 className="projects-title">我的项目</h1>
           <div className="projects-title-actions">
-            <button className="projects-create-btn" onClick={handleCreate}>+ 新建项目</button>
-            <button className="projects-import-btn" onClick={() => importInputRef.current?.click()} disabled={importing}>
+            <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
+            <button
+              className={`projects-import-btn${importing ? ' is-importing' : ''}`}
+              onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
+              data-tooltip={importing ? '点击可取消导入操作' : undefined}
+            >
               <Upload size={13} strokeWidth={2.5} />
               {importing ? '导入中...' : '导入项目'}
             </button>
@@ -278,24 +294,29 @@ export default function ProjectsPage() {
         {!loading && !listError && projects.length === 0 && (
           <div className="projects-empty">
             <p>还没有项目，立即开始创作</p>
-            <button className="projects-create-btn" onClick={handleCreate}>创建第一个项目</button>
+            <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>创建第一个项目</button>
           </div>
         )}
 
         {!loading && projects.length > 0 && (
-          <div className="projects-grid">
-            {projects.map((p) => (
-              <ProjectCard
-                key={p.id}
-                project={p}
-                onOpen={() => navigate(`/editor/${p.id}`)}
-                onRename={() => handleRename(p.id, p.title)}
-                onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
-                onExport={() => setExportTarget({ id: p.id, title: p.title })}
-                onDownload={() => handleDownload(p.id, p.title)}
-                onDelete={() => handleDelete(p.id, p.title)}
-              />
-            ))}
+          <div style={{ position: 'relative' }}>
+            <div className="projects-grid">
+              {projects.map((p) => (
+                <ProjectCard
+                  key={p.id}
+                  project={p}
+                  onOpen={() => navigate(`/editor/${p.id}`)}
+                  onRename={() => handleRename(p.id, p.title)}
+                  onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
+                  onExport={() => setExportTarget({ id: p.id, title: p.title })}
+                  onDownload={() => handleDownload(p.id, p.title)}
+                  onDelete={() => handleDelete(p.id, p.title)}
+                />
+              ))}
+            </div>
+            {importing && (
+              <div style={{ position: 'absolute', inset: 0, cursor: 'not-allowed', zIndex: 1 }} />
+            )}
           </div>
         )}
       </main>

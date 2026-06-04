@@ -92,6 +92,11 @@
   background: var(--primary-hover);
 }
 
+.projects-create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .projects-title-actions {
   display: flex;
   align-items: center;
@@ -114,14 +119,19 @@
   gap: 5px;
 }
 
-.projects-import-btn:hover:not(:disabled) {
+.projects-import-btn:hover {
   border-color: var(--primary-color);
   color: var(--primary-color);
 }
 
-.projects-import-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.projects-import-btn.is-importing {
+  opacity: 0.75;
+}
+
+.projects-import-btn.is-importing:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  opacity: 1;
 }
 
 .projects-loading,

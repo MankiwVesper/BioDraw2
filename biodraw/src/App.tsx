@@ -18,6 +18,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <TooltipPortal />
       <Routes>
         <Route path="/" element={<Navigate to="/projects" replace />} />
         <Route path="/login" element={<LoginPage />} />
@@ -32,7 +33,6 @@ function App() {
           element={
             <ProtectedRoute>
               <EditorPage />
-              <TooltipPortal />
             </ProtectedRoute>
           }
         />
