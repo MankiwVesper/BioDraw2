@@ -52,7 +52,12 @@ function ThumbnailCapture({
     const timer = setTimeout(async () => {
       const thumb = thumbnailCapture.current?.() ?? null;
       try {
-        await updateProjectData(projectId, snapshot, thumb);
+        await Promise.race([
+          updateProjectData(projectId, snapshot, thumb),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 8000)
+          ),
+        ]);
       } catch {
         // best-effort: thumbnail failure doesn't block import
       }
@@ -192,7 +197,12 @@ export default function ProjectsPage() {
     try {
       const snapshot = await parseDocumentFile(file);
       const title = file.name.replace(/\.biodraw$/i, '') || '导入项目';
-      const id = await createProject(title, snapshot);
+      const id = await Promise.race([
+        createProject(title, snapshot),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('网络超时，请检查连接后重试')), 15000)
+        ),
+      ]);
       importingProjectIdRef.current = id;
       loadSnapshot(snapshot);
       setThumbGenTarget({ id, snapshot });

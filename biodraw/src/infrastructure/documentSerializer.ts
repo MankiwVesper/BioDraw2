@@ -57,8 +57,14 @@ export function parseDocumentFile(file: File): Promise<DocumentSnapshot> {
       try {
         const text = e.target?.result as string;
         const data = JSON.parse(text) as DocumentSnapshot;
-        if (!Array.isArray(data.objects) || !Array.isArray(data.animations)) {
-          reject(new Error('文件格式不正确'));
+        if (
+          !Array.isArray(data.objects) ||
+          !Array.isArray(data.animations) ||
+          typeof data.canvasWidth !== 'number' ||
+          typeof data.canvasHeight !== 'number' ||
+          typeof data.globalDurationMs !== 'number'
+        ) {
+          reject(new Error('文件格式不正确，请确认是有效的 .biodraw 文件'));
           return;
         }
         resolve(data);
