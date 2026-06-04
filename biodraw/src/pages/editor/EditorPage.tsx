@@ -39,7 +39,7 @@ export default function EditorPage() {
 
   useEditorKeyboard();
   useBeforeUnload(hasUnsavedChanges);
-  useCloudSave(projectId ?? '');
+  const { saveNow } = useCloudSave(projectId ?? '');
 
   // 加载项目数据
   useEffect(() => {
@@ -132,6 +132,7 @@ export default function EditorPage() {
           showTimeline={showTimeline}   onToggleTimeline={() => setShowTimeline((p) => !p)}
           onRestoreDefault={() => { setShowMaterials(true); setShowInspector(true); setShowTimeline(true); }}
           onFullscreen={() => { setShowMaterials(false); setShowInspector(false); setShowTimeline(false); }}
+          onSave={saveNow}
         />
       )}
       <div className="editor-main">

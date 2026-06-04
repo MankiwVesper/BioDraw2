@@ -3,7 +3,7 @@ import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock, 
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { useAuthStore } from '../../state/authStore';
-import { downloadDocument, parseDocumentFile, serializeDocument } from '../../infrastructure/documentSerializer';
+import { parseDocumentFile, serializeDocument } from '../../infrastructure/documentSerializer';
 import { createProject, listProjects, renameProject as renameProjectCloud } from '../../infrastructure/projectService';
 import { useProjectStore } from '../../state/projectStore';
 import './ToolbarPanel.css';
@@ -17,6 +17,7 @@ interface ToolbarPanelProps {
   onToggleTimeline: () => void;
   onRestoreDefault: () => void;
   onFullscreen: () => void;
+  onSave: () => void;
 }
 
 export function ToolbarPanel({
@@ -24,6 +25,7 @@ export function ToolbarPanel({
   showInspector, onToggleInspector,
   showTimeline,  onToggleTimeline,
   onRestoreDefault, onFullscreen,
+  onSave,
 }: ToolbarPanelProps) {
   const playbackStatus  = useEditorStore((s) => s.playbackStatus);
   const currentTimeMs   = useEditorStore((s) => s.currentTimeMs);
@@ -134,18 +136,7 @@ export function ToolbarPanel({
     }
   };
 
-  const handleSave = () => {
-    const state = useEditorStore.getState();
-    downloadDocument({
-      objects: state.objects,
-      animations: state.animations,
-      globalDurationMs: state.globalDurationMs,
-      canvasWidth: state.canvasWidth,
-      canvasHeight: state.canvasHeight,
-      canvasBgColor: state.canvasBgColor,
-    }, currentFileName);
-    markSaved();
-  };
+  const handleSave = () => { onSave(); };
 
   const handleOpenClick = async () => {
     if ('showOpenFilePicker' in window) {

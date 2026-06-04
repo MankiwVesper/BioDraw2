@@ -15,10 +15,29 @@ export function TooltipPortal() {
   const currentTargetRef = useRef<Element | null>(null);
   const currentTextRef = useRef<string | null>(null);
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<MutationObserver | null>(null);
 
   useEffect(() => {
+    const syncText = (el: Element) => {
+      const text = el.getAttribute('data-tooltip') ?? '';
+      if (!text || text === currentTextRef.current) return;
+      currentTextRef.current = text;
+      setState((prev) => prev ? { ...prev, text } : prev);
+    };
+
+    const startObserving = (el: Element) => {
+      if (observerRef.current) observerRef.current.disconnect();
+      observerRef.current = new MutationObserver(() => syncText(el));
+      observerRef.current.observe(el, { attributes: true, attributeFilter: ['data-tooltip'] });
+    };
+
+    const stopObserving = () => {
+      if (observerRef.current) { observerRef.current.disconnect(); observerRef.current = null; }
+    };
+
     const show = (el: Element, text: string) => {
       currentTextRef.current = text;
+      startObserving(el);
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         const rect = el.getBoundingClientRect();
@@ -32,6 +51,7 @@ export function TooltipPortal() {
 
     const hide = () => {
       currentTextRef.current = null;
+      stopObserving();
       if (timerRef.current) clearTimeout(timerRef.current);
       setVisible(false);
       // transition 结束后清除文字，避免闪现
@@ -87,6 +107,7 @@ export function TooltipPortal() {
       document.removeEventListener('mouseout', onOut);
       document.removeEventListener('mousemove', onMove);
       if (timerRef.current) clearTimeout(timerRef.current);
+      stopObserving();
     };
   }, []);
 

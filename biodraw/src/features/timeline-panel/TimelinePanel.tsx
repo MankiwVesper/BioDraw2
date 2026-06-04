@@ -684,9 +684,11 @@ export function TimelinePanel() {
     if (!activeSegId) return;
     if (segLabelFocusedRef.current) return;
     const dragging = windowDragState?.segmentId === activeSegId ? windowDragState : null;
-    const startMs = dragging ? dragging.previewStartMs : effectiveSegments.find((s) => s.id === activeSegId)?.startMs;
-    const endMs   = dragging ? dragging.previewEndMs   : effectiveSegments.find((s) => s.id === activeSegId)?.endMs;
-    if (startMs === undefined || endMs === undefined) return;
+    const rawStart = dragging ? dragging.previewStartMs : effectiveSegments.find((s) => s.id === activeSegId)?.startMs;
+    const rawEnd   = dragging ? dragging.previewEndMs   : effectiveSegments.find((s) => s.id === activeSegId)?.endMs;
+    if (rawStart === undefined || rawEnd === undefined) return;
+    const startMs = Math.min(rawStart, globalDurationMs);
+    const endMs   = Math.min(rawEnd,   globalDurationMs);
     const start = formatLabelTimeValue(startMs);
     const end = formatLabelTimeValue(endMs);
     if (segLabelStartRef.current === start && segLabelEndRef.current === end) return;
@@ -696,7 +698,7 @@ export function TimelinePanel() {
     segLabelEndRef.current = end;
     setSegLabelStart(start);
     setSegLabelEnd(end);
-  }, [activeSegId, effectiveSegments, windowDragState]);
+  }, [activeSegId, effectiveSegments, windowDragState, globalDurationMs]);
 
   // 计算"增加片段"的默认值：取最早空闲区间，长度 ≥ T/10 则用 T/10，否则用整段空闲。
   const defaultNewSegmentRange = useMemo(() => {
@@ -3305,7 +3307,7 @@ export function TimelinePanel() {
 
       {/* ── 主体 ── */}
       {(!selectedObject || selectedIds.length > 1) ? (
-        <div className="tl-placeholder">选中画布上的对象，即可在此处管理动画片段<br/><span style={{fontSize:11,opacity:0.6}}>也可在右侧检查器「动画片段」区域快速添加</span></div>
+        <div className="tl-placeholder">选中画布上的对象，即可在此处管理动画片段</div>
       ) : selectedSegmentIds.length > 1 ? (
         <div className="tl-placeholder">已选中 {selectedSegmentIds.length} 个时间片段，无法显示动画详情<br/><span style={{fontSize:11,opacity:0.6}}>仅选中一个片段以编辑其动画</span></div>
       ) : selectedSegmentIds.length === 0 ? (
