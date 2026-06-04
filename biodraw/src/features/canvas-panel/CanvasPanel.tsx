@@ -10,6 +10,7 @@ import type { SceneObject } from '../../types';
 import type Konva from 'konva';
 import './CanvasPanel.css';
 import { useVideoExport } from './useVideoExport';
+import { thumbnailCapture } from '../../infrastructure/thumbnailCapture';
 
 type SnapLine = { axis: 'x' | 'y'; value: number; source: 'canvas' | 'object' };
 
@@ -356,6 +357,21 @@ export function CanvasPanel() {
   useEffect(() => { canvasWidthRef.current = canvasWidth; }, [canvasWidth]);
   useEffect(() => { canvasHeightRef.current = canvasHeight; }, [canvasHeight]);
   useEffect(() => { stagePosRef.current = stagePos; }, [stagePos]);
+
+  useEffect(() => {
+    thumbnailCapture.current = () => {
+      const stage = stageRef.current;
+      if (!stage) return null;
+      const { canvasWidth: w, canvasHeight: h } = useEditorStore.getState();
+      try {
+        const canvas = captureCanvasContent(stage, w, h, 480);
+        return canvas.toDataURL('image/jpeg', 0.7);
+      } catch {
+        return null;
+      }
+    };
+    return () => { thumbnailCapture.current = null; };
+  }, []);
 
   // 若选中切换到其他对象，取消待触发的名称编辑（防止拖拽后立即选中别的对象仍弹出编辑）
   useEffect(() => {

@@ -1,7 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { SkipBack, SkipForward, Play, Pause, Square, ChevronDown, Lock, Unlock, PanelLeft, PanelRight, PanelBottom, LayoutDashboard, Maximize2 } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useEditorStore } from '../../state/editorStore';
-import { downloadDocument, parseDocumentFile, clearAutoSave } from '../../infrastructure/documentSerializer';
+import { useAuthStore } from '../../state/authStore';
+import { downloadDocument, parseDocumentFile, serializeDocument } from '../../infrastructure/documentSerializer';
+import { createProject, listProjects, renameProject as renameProjectCloud } from '../../infrastructure/projectService';
+import { useProjectStore } from '../../state/projectStore';
 import './ToolbarPanel.css';
 
 interface ToolbarPanelProps {
@@ -50,7 +54,6 @@ export function ToolbarPanel({
   const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
   const currentFileName   = useEditorStore((s) => s.currentFileName) as string;
   const markSaved         = useEditorStore((s) => s.markSaved);
-  const resetScene        = useEditorStore((s) => s.resetScene);
   const loadSnapshot      = useEditorStore((s) => s.loadSnapshot);
   const setCurrentFileName = useEditorStore((s) => s.setCurrentFileName);
   const isPreviewMode    = useEditorStore((s) => s.isPreviewMode);
@@ -58,29 +61,76 @@ export function ToolbarPanel({
   const isRatioLocked    = useEditorStore((s) => s.isRatioLocked);
   const setIsRatioLocked = useEditorStore((s) => s.setIsRatioLocked);
 
+  const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  const currentProjectId = useProjectStore((s) => s.currentProjectId);
+
+  const handleLogout = async () => {
+    setShowUserMenu(false);
+    await logout();
+    navigate('/login', { replace: true });
+  };
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', onClickOutside);
+    return () => document.removeEventListener('mousedown', onClickOutside);
+  }, []);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 文件名内联编辑状态
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState('');
+  const [renameError, setRenameError] = useState('');
 
   const startEditingName = () => {
     setEditNameValue(currentFileName.replace(/\.biodraw$/, ''));
+    setRenameError('');
     setIsEditingName(true);
   };
 
-  const confirmNameEdit = () => {
+  const confirmNameEdit = async () => {
     const trimmed = editNameValue.trim();
-    if (trimmed) {
-      setCurrentFileName(trimmed + '.biodraw');
+    if (!trimmed) { setIsEditingName(false); return; }
+    const originalName = currentFileName.replace(/\.biodraw$/, '');
+    if (trimmed !== originalName && currentProjectId) {
+      try {
+        const all = await listProjects();
+        if (all.some((p) => p.id !== currentProjectId && p.title === trimmed)) {
+          setRenameError(`已存在名为「${trimmed}」的项目，请使用其他名称`);
+          return;
+        }
+      } catch { /* 查询失败则放行，不阻断重命名 */ }
+    }
+    setRenameError('');
+    setCurrentFileName(trimmed + '.biodraw');
+    if (currentProjectId) {
+      renameProjectCloud(currentProjectId, trimmed).catch(() => {/* 静默 */});
     }
     setIsEditingName(false);
   };
 
-  const handleNew = () => {
-    if (window.confirm('将清空当前场景，确认新建？')) {
-      resetScene();
-      clearAutoSave();
+  const handleNew = async () => {
+    if (hasUnsavedChanges && !window.confirm('当前有修改正在等待自动保存，是否立即新建空白项目？')) return;
+    try {
+      const snapshot = serializeDocument({
+        objects: [], animations: [], globalDurationMs: 10000,
+        canvasWidth: 1280, canvasHeight: 720, canvasBgColor: '#ffffff',
+      });
+      const id = await createProject('未命名项目', snapshot);
+      navigate(`/editor/${id}`);
+    } catch {
+      alert('创建项目失败，请重试');
     }
   };
 
@@ -168,7 +218,7 @@ export function ToolbarPanel({
   const rateMenuRef = useRef<HTMLDivElement>(null);
 
   // 导出面板状态
-  const [showExportPanel, setShowExportPanel] = useState(false);
+  const [showExportPanel, setShowExportPanel] = useState(() => searchParams.get('autoExport') === '1');
   const [exportWidth,  setExportWidth]  = useState(canvasWidth);
   const [exportHeight, setExportHeight] = useState(canvasHeight);
   const [exportFps,    setExportFps]    = useState(24);
@@ -274,7 +324,13 @@ export function ToolbarPanel({
       <div className="tb-left">
         {/* 品牌 + 文件名：固定宽度，对齐 konvajs-content 左边缘 */}
         <div className="tb-brand">
-          <span className="tb-logo">BioDraw</span>
+          <button
+            className="tb-logo-btn"
+            onClick={() => navigate('/projects')}
+            data-tooltip="返回项目列表"
+          >
+            BioDraw
+          </button>
           <div className="tb-divider" />
           {isEditingName ? (
             <div className="tb-filename-wrap">
@@ -283,13 +339,16 @@ export function ToolbarPanel({
                 value={editNameValue}
                 maxLength={24}
                 autoFocus
-                onChange={(e) => setEditNameValue(e.target.value)}
+                onChange={(e) => { setEditNameValue(e.target.value); setRenameError(''); }}
                 onBlur={confirmNameEdit}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') { e.currentTarget.blur(); }
-                  if (e.key === 'Escape') { setIsEditingName(false); }
+                  if (e.key === 'Escape') { setRenameError(''); setIsEditingName(false); }
                 }}
               />
+              {renameError && (
+                <div className="tb-rename-error">{renameError}</div>
+              )}
             </div>
           ) : (
             <span
@@ -625,7 +684,7 @@ export function ToolbarPanel({
 
       {/* 导出状态与进度（浮于中区，不影响布局） */}
       {/* ── 面板收起/展开切换（右侧固定区域） */}
-      <div className="tb-panel-toggles">
+      <div className="tb-panel-toggles" ref={userMenuRef}>
         <button
           className={`tb-panel-toggle-icon${showMaterials ? ' is-on' : ''}`}
           onClick={onToggleMaterials}
@@ -661,6 +720,32 @@ export function ToolbarPanel({
         >
           <Maximize2 size={16} />
         </button>
+        {user && (
+          <>
+            <span className="tb-panel-toggles-sep" />
+            <button
+              className={`tb-user-avatar${showUserMenu ? ' is-on' : ''}`}
+              onClick={() => setShowUserMenu((p) => !p)}
+              data-tooltip={user.email}
+            >
+              {(user.email?.[0] ?? '?').toUpperCase()}
+            </button>
+            {showUserMenu && (
+              <div className="tb-user-dropdown">
+                <div className="tb-user-dropdown-email">{user.email}</div>
+                <button
+                  className="tb-user-dropdown-logout"
+                  onClick={() => { setShowUserMenu(false); navigate('/projects'); }}
+                >
+                  我的项目
+                </button>
+                <button className="tb-user-dropdown-logout" onClick={handleLogout}>
+                  退出登录
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
     </header>

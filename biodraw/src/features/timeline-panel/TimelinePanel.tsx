@@ -3693,7 +3693,7 @@ export function TimelinePanel() {
                         <div className="tl-ops-col">
                           <span className="tl-col-header">基础操作</span>
                           <button className="tl-btn tl-btn-sm" data-tooltip="跳到动画开始的时刻" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(clip.startTimeMs); }}>跳到</button>
-                          <button className="tl-btn tl-btn-sm" disabled={!canDuplicate} data-tooltip={canDuplicate ? '复制一份动画片段' : '所属时间片段剩余空间不足 1s，无法复制'} onClick={() => duplicateClip(clip)}>复制</button>
+                          <button className="tl-btn tl-btn-sm" disabled={!canDuplicate} data-tooltip={canDuplicate ? '复制一份动画片段' : '所属时间片段剩余空间不足 1s'} onClick={() => duplicateClip(clip)}>复制</button>
                           <button
                             className="tl-btn tl-btn-sm"
                             data-tooltip="只播放此动画片段"

@@ -1,30 +1,77 @@
 import './EditorPage.css';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ToolbarPanel } from '../../features/toolbar/ToolbarPanel';
 import { MaterialsPanel } from '../../features/materials-panel/MaterialsPanel';
 import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
 import { InspectorPanel } from '../../features/inspector-panel/InspectorPanel';
 import { TimelinePanel } from '../../features/timeline-panel/TimelinePanel';
 import { useEditorKeyboard } from '../../hooks/useEditorKeyboard';
-import { useAutoSave } from '../../hooks/useAutoSave';
 import { useBeforeUnload } from '../../hooks/useBeforeUnload';
+import { useCloudSave } from '../../hooks/useCloudSave';
 import { useEditorStore } from '../../state/editorStore';
+import { useProjectStore } from '../../state/projectStore';
+import { getProject } from '../../infrastructure/projectService';
 
 export default function EditorPage() {
+  const { projectId } = useParams<{ projectId: string }>();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const wasAutoPreview = searchParams.get('autoPreview') === '1';
+  const [loading, setLoading]     = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const [showMaterials, setShowMaterials] = useState(true);
   const [showInspector, setShowInspector] = useState(true);
   const [showTimeline,  setShowTimeline]  = useState(true);
 
-  useEditorKeyboard();
-  useAutoSave();
-  const hasUnsavedChanges = useEditorStore((s) => s.hasUnsavedChanges);
-  const isPreviewMode     = useEditorStore((s) => s.isPreviewMode);
-  const requestFit        = useEditorStore((s) => s.requestFit);
-  const playbackStatus    = useEditorStore((s) => s.playbackStatus);
-  const advancePlayback   = useEditorStore((s) => s.advancePlayback);
-  useBeforeUnload(hasUnsavedChanges);
+  const loadSnapshot        = useEditorStore((s) => s.loadSnapshot);
+  const setCurrentFileName  = useEditorStore((s) => s.setCurrentFileName);
+  const hasUnsavedChanges   = useEditorStore((s) => s.hasUnsavedChanges);
+  const isPreviewMode       = useEditorStore((s) => s.isPreviewMode);
+  const setPreviewMode      = useEditorStore((s) => s.setPreviewMode);
+  const requestFit          = useEditorStore((s) => s.requestFit);
+  const playbackStatus      = useEditorStore((s) => s.playbackStatus);
+  const advancePlayback     = useEditorStore((s) => s.advancePlayback);
 
-  // RAF 驱动播放（始终挂载，预览/非预览模式均有效）
+  const setCurrentProjectId = useProjectStore((s) => s.setCurrentProjectId);
+  const setSaveStatus       = useProjectStore((s) => s.setSaveStatus);
+
+  useEditorKeyboard();
+  useBeforeUnload(hasUnsavedChanges);
+  useCloudSave(projectId ?? '');
+
+  // 加载项目数据
+  useEffect(() => {
+    if (!projectId) {
+      navigate('/projects', { replace: true });
+      return;
+    }
+    let cancelled = false;
+    setCurrentProjectId(projectId);
+    setSaveStatus('idle');
+    setLoading(true);
+    setLoadError(null);
+
+    getProject(projectId)
+      .then(({ title, data }) => {
+        if (cancelled) return;
+        loadSnapshot(data);
+        setCurrentFileName(title + '.biodraw');
+        if (searchParams.get('autoPreview') === '1') setPreviewMode(true);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoadError('项目加载失败，请返回项目列表重试');
+        setLoading(false);
+      });
+
+    return () => { cancelled = true; setCurrentProjectId(null); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
+
+  // RAF 驱动播放
   useEffect(() => {
     if (playbackStatus !== 'playing') return;
     let rafId = 0, last = performance.now();
@@ -37,15 +84,44 @@ export default function EditorPage() {
     return () => cancelAnimationFrame(rafId);
   }, [playbackStatus, advancePlayback]);
 
-  // 进入预览模式：自动适配画布（播放状态已在 setPreviewMode 中设置）
   useEffect(() => {
     if (isPreviewMode) requestFit();
   }, [isPreviewMode, requestFit]);
 
-  // 面板收起/展开后自动适配画布到新的可用空间
+  // 从项目列表以 autoPreview=1 进入预览，退出时回到项目列表
+  // prevPreviewRef 在 effect 里更新，渲染阶段读到的是上一次的值，
+  // 因此可以在渲染时检测"刚从 true 变成 false"并立即返回空，避免编辑器 UI 闪一帧
+  const prevPreviewRef = useRef(isPreviewMode);
+  const exitingAutoPreview = wasAutoPreview && prevPreviewRef.current && !isPreviewMode;
+  useLayoutEffect(() => {
+    const wasInPreview = prevPreviewRef.current;
+    prevPreviewRef.current = isPreviewMode;
+    if (wasAutoPreview && wasInPreview && !isPreviewMode) {
+      navigate('/projects');
+    }
+  }, [isPreviewMode, wasAutoPreview, navigate]);
+
   useEffect(() => {
     requestFit();
   }, [showMaterials, showInspector, showTimeline, requestFit]);
+
+  if (exitingAutoPreview) return null;
+
+  if (loading) return <div className="auth-loading">加载项目...</div>;
+
+  if (loadError) return (
+    <div className="auth-loading">
+      <div style={{ textAlign: 'center' }}>
+        <p style={{ marginBottom: 16 }}>{loadError}</p>
+        <button
+          onClick={() => navigate('/projects')}
+          style={{ padding: '6px 16px', cursor: 'pointer' }}
+        >
+          返回项目列表
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="editor-layout">

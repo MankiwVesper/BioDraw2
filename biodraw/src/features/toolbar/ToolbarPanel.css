@@ -92,14 +92,48 @@
 }
 
 
+.tb-rename-error {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #ef4444;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+}
+
 /* ── Logo ──────────────────────────────────────────── */
-.tb-logo {
+.tb-logo-btn {
   font-size: 15px;
   font-weight: 700;
   color: var(--primary-color);
   margin-right: 4px;
   letter-spacing: -0.02em;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
 }
+
+.tb-logo-btn:hover { opacity: 0.75; }
+
+/* ── 云端保存状态 */
+.tb-save-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+  margin-right: 2px;
+}
+
+.tb-save-status.is-error { color: #ef4444; }
 
 /* ── 分隔线 ─────────────────────────────────────────── */
 .tb-divider {
@@ -231,6 +265,81 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ── 用户菜单 ── */
+.tb-panel-toggles-sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+.tb-user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.tb-user-avatar:hover {
+  opacity: 0.85;
+}
+
+.tb-user-avatar.is-on {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--primary-color);
+}
+
+.tb-user-dropdown {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  z-index: 200;
+  overflow: hidden;
+}
+
+.tb-user-dropdown-email {
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tb-user-dropdown-logout {
+  display: block;
+  width: 100%;
+  padding: 9px 14px;
+  font-size: 13px;
+  color: var(--text-main);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.tb-user-dropdown-logout:hover {
+  background: var(--bg-color);
+  color: #ef4444;
 }
 
 /* ── 面板收起/展开切换按钮组（固定在工具栏最右侧） ── */

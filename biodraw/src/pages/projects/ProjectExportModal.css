@@ -1,0 +1,132 @@
+/* 隐藏画布：定位到屏幕外，驱动导出管线 */
+.pem-hidden-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* 遮罩层 */
+.pem-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 弹窗主体 */
+.pem-modal {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  width: 260px;
+  overflow: hidden;
+}
+
+/* 标题栏 */
+.pem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pem-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 280px;
+}
+
+.pem-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.12s;
+}
+
+.pem-close:hover { color: var(--text-main); }
+
+/* 加载 / 错误 */
+.pem-loading,
+.pem-error {
+  padding: 28px 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.pem-error { color: #ef4444; }
+
+/* 内容区 */
+.pem-body {
+  padding: 14px 16px 16px;
+}
+
+
+/* 导出进度 */
+.pem-progress {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pem-cancel {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.pem-cancel:hover { color: #ef4444; border-color: #ef4444; }
+
+/* 完成 / 错误状态 */
+.pem-status {
+  margin-top: 4px;
+  padding: 7px 10px;
+  border-radius: var(--radius);
+  font-size: 12px;
+}
+
+.pem-status.is-ok {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.pem-status.is-error {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+}

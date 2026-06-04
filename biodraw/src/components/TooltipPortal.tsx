@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
@@ -14,6 +14,7 @@ export function TooltipPortal() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentTargetRef = useRef<Element | null>(null);
   const currentTextRef = useRef<string | null>(null);
+  const bubbleRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const show = (el: Element, text: string) => {
@@ -89,10 +90,19 @@ export function TooltipPortal() {
     };
   }, []);
 
+  // 气泡渲染后测量宽度，若右侧超出视口则将 x 夹到安全范围
+  useLayoutEffect(() => {
+    if (!state || !bubbleRef.current) return;
+    const half = bubbleRef.current.offsetWidth / 2;
+    const clamped = Math.min(window.innerWidth - half - 8, state.x);
+    if (clamped < state.x) setState(s => s && { ...s, x: clamped });
+  }, [state]);
+
   if (!state) return null;
 
   return createPortal(
     <div
+      ref={bubbleRef}
       className={`tooltip-bubble${visible ? ' is-visible' : ''}${state.above ? ' is-above' : ''}`}
       style={{ left: state.x, top: state.above ? state.y - 8 : state.y + 8 }}
     >

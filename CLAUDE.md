@@ -139,3 +139,30 @@ Transform tasks into verifiable goals before starting. For multi-step tasks, sta
 ```
 
 Clarifying questions come before implementation, not after mistakes.
+
+### 5. Visual / layout bug protocol
+
+**Before touching code:** Read every affected file. State the root cause in one sentence. If you cannot state it clearly, keep reading — do not guess.
+
+**One change per round:** Make exactly one change that targets the root cause. Do not touch anything else.
+
+**Self-verify with Playwright:** After every visual/layout edit, start the dev server if not running, use Playwright to take a screenshot, and inspect the result yourself. Only report to the user after you have confirmed the change looks correct. Never ask the user to take a screenshot for something you can verify yourself.
+
+**Do not add anything beyond what was asked:** If the user says "just do X", do only X. No extra removals, additions, or restructuring beyond the explicit request.
+
+### 6. Clarify before acting on ambiguous visual instructions
+
+Visual and layout terms ("对齐", "居中", "一样宽", "对齐到某行") can mean different things. Before writing any code, ask one focused question to confirm the exact intended behavior. Example: "你说的对齐是指按钮行的左右边界与上面三行的整体边界一致，还是只与控件列对齐？" One question is enough — do not over-ask.
+
+This rule applies whenever the instruction involves spatial layout, alignment, sizing, or visual positioning, and there are two or more plausible interpretations. When helpful, draw a concise ASCII sketch to confirm the intended layout before writing any code. Example:
+
+```
+[ 分辨率  ] [ 1280 ] [ 720 ] [ 🔒 ]
+[ FPS/格式 ] [ 24▾  ] [ MP4▾] [ ↺  ]
+[ 导出范围 ] [ 0.00 ] [ 8.00] [ ↺  ]
+            [ 导出序列帧  ] [ 导出视频 ]
+```
+
+### 7. When user gives explicit instructions
+
+If the user says "only change X" or "just do Y", treat every word as a hard constraint. Do not modify Z because it seemed related or because it "should be consistent". Scope creep during a fix is a bug, not a feature.
