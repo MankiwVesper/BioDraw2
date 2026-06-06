@@ -81,52 +81,96 @@
   padding: 14px 16px 16px;
 }
 
+/* 弹窗内标签文字加深，覆盖工具栏的 muted 色 */
+.pem-modal .tb-canvas-size-label {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
 
 /* 导出进度 */
 .pem-progress {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   margin-top: 4px;
-  padding: 8px 10px;
-  background: var(--bg-color);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  font-size: 12px;
-  color: var(--text-muted);
+}
+
+.pem-progress-bar-wrap {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  height: 14px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pem-progress-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 4px;
+  transition: width 0.25s ease;
+}
+
+.pem-progress-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.38) 50%,
+    transparent 100%
+  );
+  animation: pem-shimmer 1.6s linear infinite;
+}
+
+@keyframes pem-shimmer {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(200%); }
+}
+
+.pem-progress-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-main);
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+  text-align: right;
 }
 
 .pem-cancel {
   background: none;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  padding: 2px 8px;
+  border: 1px solid #ef4444;
+  border-radius: 4px;
+  padding: 3px 10px;
   font-size: 11px;
-  color: var(--text-muted);
+  font-weight: 500;
+  color: #ef4444;
   cursor: pointer;
   flex-shrink: 0;
-  transition: color 0.12s, border-color 0.12s;
+  transition: background 0.12s, color 0.12s;
 }
 
-.pem-cancel:hover { color: #ef4444; border-color: #ef4444; }
+.pem-cancel:hover { background: #ef4444; color: #fff; }
 
-/* 完成 / 错误状态 */
-.pem-status {
-  margin-top: 4px;
-  padding: 7px 10px;
+.pem-done {
+  background: none;
+  border: 1px solid var(--primary-color);
   border-radius: var(--radius);
-  font-size: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--primary-color);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
 }
 
-.pem-status.is-ok {
-  background: #f0fdf4;
-  color: #16a34a;
-  border: 1px solid #bbf7d0;
-}
-
-.pem-status.is-error {
-  background: #fef2f2;
-  color: #ef4444;
-  border: 1px solid #fecaca;
-}
+.pem-done:hover { background: var(--primary-color); color: #fff; }
