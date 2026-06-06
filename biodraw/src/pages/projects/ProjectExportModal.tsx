@@ -94,7 +94,10 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
   const [exportEndSec,   setExportEndSec]   = useState('10.00');
   const [ratioLocked,    setRatioLocked]    = useState(false);
 
-  const isExporting = videoExportStatus === 'running' || sequenceExportStatus === 'running';
+  const isExporting   = videoExportStatus === 'running' || sequenceExportStatus === 'running';
+  const isExportDone  = videoExportStatus === 'done'    || sequenceExportStatus === 'done';
+  const progressMsg   = videoExportStatus === 'running' ? videoExportMessage : sequenceExportMessage;
+  const progressPct   = isExportDone ? 100 : (() => { const m = progressMsg.match(/(\d+)%/); return m ? parseInt(m[1], 10) : 0; })();
 
   useEffect(() => {
     let cancelled = false;
@@ -128,15 +131,7 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
   const handleExportVideo    = () => requestVideoExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: projectTitle, format: videoFormat });
   const handleExportSequence = () => requestSequenceExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: `${projectTitle}-frame` });
 
-  const videoIsDone = videoExportStatus    === 'done' || videoExportStatus    === 'error';
-  const seqIsDone   = sequenceExportStatus === 'done' || sequenceExportStatus === 'error';
-  const statusMsg   = videoIsDone
-    ? { ok: videoExportStatus    === 'done', text: videoExportMessage }
-    : seqIsDone
-      ? { ok: sequenceExportStatus === 'done', text: sequenceExportMessage }
-      : null;
-
-  return (
+return (
     <>
       {!loading && !loadError && (
         <div className="pem-hidden-canvas">
@@ -234,10 +229,16 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
                   </button>
                 </div>
 
-                {isExporting ? (
+                {(isExporting || isExportDone) ? (
                   <div className="tb-canvas-content-full pem-progress">
-                    <span>{videoExportStatus === 'running' ? videoExportMessage : sequenceExportMessage}</span>
-                    <button className="pem-cancel" onClick={cancelExport}>取消</button>
+                    <div className="pem-progress-bar-wrap">
+                      <div className="pem-progress-bar-fill" style={{ width: `${progressPct}%` }} />
+                    </div>
+                    <span className="pem-progress-text">{progressPct}%</span>
+                    {isExportDone
+                      ? <button className="pem-done" onClick={onClose}>完成</button>
+                      : <button className="pem-cancel" onClick={cancelExport}>取消</button>
+                    }
                   </div>
                 ) : (
                   <div className="tb-canvas-content-full tb-export-action-row">
@@ -246,11 +247,6 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
                   </div>
                 )}
 
-                {statusMsg && (
-                  <div className={`tb-canvas-content-full pem-status ${statusMsg.ok ? 'is-ok' : 'is-error'}`}>
-                    {statusMsg.ok ? `✓ ${statusMsg.text}` : `✗ ${statusMsg.text}`}
-                  </div>
-                )}
 
               </div>
             </div>
