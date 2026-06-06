@@ -1,0 +1,188 @@
+.dac-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dac-modal {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  width: 300px;
+  overflow: hidden;
+}
+
+.dac-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dac-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.dac-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color 0.12s;
+}
+
+.dac-close:hover { color: var(--text-main); }
+
+.dac-body {
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dac-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.dac-label {
+  font-size: 12px;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.dac-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.dac-input-wrap .dac-input {
+  padding-right: 30px;
+}
+
+.dac-eye {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  transition: color 0.12s;
+}
+
+.dac-eye:hover { color: var(--text-main); }
+
+.dac-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-color);
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.dac-input:focus { border-color: var(--primary-color); }
+
+.dac-warning {
+  background: #fff8f0;
+  border: 1px solid #f97316;
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  margin-bottom: 2px;
+}
+
+.dac-warning-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #c2410c;
+  margin: 0 0 6px;
+}
+
+.dac-warning-text {
+  font-size: 12px;
+  color: #7c3502;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.dac-warning-text strong {
+  color: #c2410c;
+}
+
+.dac-error {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 2px;
+}
+
+.dac-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.dac-cancel-btn {
+  background: none;
+  border: 1px solid var(--text-muted);
+  border-radius: var(--radius);
+  padding: 5px 14px;
+  font-size: 13px;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.dac-cancel-btn:hover { background: var(--bg-color); }
+.dac-cancel-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.dac-next-btn {
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius);
+  padding: 5px 14px;
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.dac-next-btn:hover:not(:disabled) { opacity: 0.88; }
+.dac-next-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.dac-danger-btn {
+  background: #ef4444;
+  border: 1px solid #ef4444;
+  border-radius: var(--radius);
+  padding: 5px 14px;
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.dac-danger-btn:hover:not(:disabled) { opacity: 0.88; }
+.dac-danger-btn:disabled { opacity: 0.5; cursor: not-allowed; }
