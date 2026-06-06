@@ -49,9 +49,6 @@ const DIST_COLORS = [
   '#FD79A8', '#00CEC9', '#FF9FF3', '#54A0FF', '#FFDD59',
 ];
 
-// 元素时间段颜色（与分布轴同一调色板，按段索引取用）
-const SEGMENT_COLORS = DIST_COLORS;
-
 // 在 hex 颜色后追加 alpha 字节（0~1）
 const hexAlpha = (hex: string, alpha: number) => {
   const a = Math.max(0, Math.min(1, alpha));
@@ -2484,7 +2481,7 @@ export function TimelinePanel() {
                 const segEnd = isDragging ? windowDragState!.previewEndMs : seg.endMs;
                 const leftPct = `${Math.max(0, Math.min(100, (segStart / safeT) * 100))}%`;
                 const widthPct = `${Math.max(0, Math.min(100, ((segEnd - segStart) / safeT) * 100))}%`;
-                const color = SEGMENT_COLORS[idx % SEGMENT_COLORS.length];
+                const color = DIST_COLORS[idx % DIST_COLORS.length];
                 const isSelected = selectedSegmentIds.includes(seg.id);
                 const fillStyle = {
                   '--seg-color': color,

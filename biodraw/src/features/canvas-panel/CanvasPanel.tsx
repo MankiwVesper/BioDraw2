@@ -457,7 +457,7 @@ export function CanvasPanel() {
     }
   }, [editingTextId, editingTarget, objects]);
 
-  // 閸濆秴绨插?Resize Observer
+  // 监听容器尺寸变化 Resize Observer
   useEffect(() => {
     if (!containerRef.current) return;
     const observer = new ResizeObserver(entries => {
@@ -697,7 +697,7 @@ export function CanvasPanel() {
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // 韫囧懘銆忕拫鍐暏閿涘苯鍘戠拋绋垮帗缁辩姾顫﹂弨鍙ョ瑓
+    e.preventDefault(); // 阻止默认事件以允许 drop
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -711,7 +711,7 @@ export function CanvasPanel() {
       if (!stage) return;
       
       const containerRect = containerRef.current!.getBoundingClientRect();
-      // 闁棗鎮滈弰鐘茬殸閿涙艾鐨㈡Η鐘崇垼鐏炲繐绠烽崸鎰垼鏉烆剚宕叉稉铏规暰鐢啰鈹栭梻鏉戞綏閺嶅浄绱欓懓鍐楠炲磭些閸滃瞼缂夐弨鎾呯礆
+      // 将鼠标位置从屏幕坐标转换为画布坐标
       const rawX = e.clientX - containerRect.left;
       const rawY = e.clientY - containerRect.top;
       const x = (rawX - stagePos.x) / stageScale;
@@ -1317,10 +1317,10 @@ export function CanvasPanel() {
             )}
           </Stage>
         ) : (
-          <div className="canvas-placeholder">鐢诲竷鍒濆鍖栦腑...</div>
+          <div className="canvas-placeholder">画布初始化中...</div>
         )}
 
-        {/* 閺傚洤鐡х紓鏍帆闁喚鍍电仦?*/}
+        {/* 文字编辑浮层 */}
         {editingTextId && editingRect && (
           <div 
             style={{
@@ -1333,7 +1333,7 @@ export function CanvasPanel() {
               zIndex: 1000,
             }}
           >
-            {/* 鐎圭懓娅掔仦鍌︾窗鐠愮喕鐭楃€规矮缍呴崪灞界€惄鏉戠湷娑?*/}
+            {/* 居中定位的文字编辑容器 */}
             <div
               style={{
                 position: 'absolute',
@@ -1343,8 +1343,8 @@ export function CanvasPanel() {
                 height: `${editingRect.height}px`,
                 transform: 'translate(-50%, -50%)',
                 display: 'flex',
-                alignItems: 'center', // 閸ㄥ倻娲跨仦鍛厬
-                justifyContent: 'center', // 濮樻潙閽╃仦鍛厬
+                alignItems: 'center', // 垂直居中
+                justifyContent: 'center', // 水平居中
                 pointerEvents: 'none',
               }}
             >
@@ -1355,7 +1355,7 @@ export function CanvasPanel() {
                 onChange={(e) => {
                   setEditingValue(e.target.value);
                   if (!isVerticalTextEditing) {
-                    // 濡亝甯撻崝銊︹偓浣界殶閺佹挳鐝惔锔夸簰闁倿鍘ら崘鍛啇
+                    // 横排文本自动撑高文本框
                     e.target.style.height = 'auto';
                     e.target.style.height = e.target.scrollHeight + 'px';
                   }
