@@ -210,7 +210,7 @@ const generateFileName = () => {
   return `biodraw_${ts}.biodraw`;
 };
 
-const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+const cloneDeep = <T>(value: T): T => structuredClone(value);
 
 const toSnapshot = (state: EditorState): EditorSnapshot => ({
   objects: cloneDeep(state.objects),
