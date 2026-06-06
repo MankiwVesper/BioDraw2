@@ -28,6 +28,7 @@ interface AuthState {
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   sendPasswordResetEmail: (email: string) => Promise<void>;
   resetPassword: (newPassword: string) => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -73,6 +74,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   resetPassword: async (newPassword) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw new Error(toChineseError(error.message));
+  },
+
+  deleteAccount: async (password) => {
+    const email = get().user?.email;
+    if (!email) throw new Error('未登录');
+    const { error: reAuthError } = await supabase.auth.signInWithPassword({ email, password });
+    if (reAuthError) throw new Error(toChineseError(reAuthError.message));
+    const { error } = await supabase.rpc('delete_current_user');
+    if (error) throw new Error('注销失败，请联系管理员');
+    await supabase.auth.signOut();
   },
 
   changePassword: async (currentPassword, newPassword) => {

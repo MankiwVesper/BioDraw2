@@ -12,6 +12,7 @@ import { useEditorStore } from '../../state/editorStore';
 import { CanvasPanel } from '../../features/canvas-panel/CanvasPanel';
 import { ProjectExportModal } from './ProjectExportModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
+import { DeleteAccountModal } from './DeleteAccountModal';
 import './ProjectsPage.css';
 
 
@@ -169,6 +170,7 @@ export default function ProjectsPage() {
   const [thumbGenTarget, setThumbGenTarget] = useState<{ id: string; snapshot: DocumentSnapshot } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const importingProjectIdRef = useRef<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -308,6 +310,7 @@ export default function ProjectsPage() {
               <div className="projects-user-dropdown-email">{user?.email}</div>
               <button className="projects-user-dropdown-item" onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}>修改密码</button>
               <button className="projects-user-dropdown-item is-danger" onClick={handleLogout}>退出登录</button>
+              <button className="projects-user-dropdown-item is-danger" onClick={() => { setShowUserMenu(false); setShowDeleteAccount(true); }}>注销账号</button>
             </div>
           )}
         </div>
@@ -379,6 +382,10 @@ export default function ProjectsPage() {
 
       {showChangePassword && (
         <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
+      )}
+
+      {showDeleteAccount && (
+        <DeleteAccountModal onClose={() => setShowDeleteAccount(false)} />
       )}
 
       {thumbGenTarget && (
