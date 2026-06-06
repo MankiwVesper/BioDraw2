@@ -1,19 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import './LoginPage.css';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from         = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/projects';
+  const prefillEmail = (location.state as { email?: string } | null)?.email ?? '';
+
+  const [email,    setEmail]    = useState(prefillEmail);
   const [password, setPassword] = useState('');
   const [submitting,   setSubmitting]   = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const login = useAuthStore((s) => s.login);
-  const error = useAuthStore((s) => s.error);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname ?? '/projects';
+  const login       = useAuthStore((s) => s.login);
+  const clearError  = useAuthStore((s) => s.clearError);
+  const error       = useAuthStore((s) => s.error);
+
+  useEffect(() => { clearError(); }, [clearError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +45,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              autoFocus
+              autoFocus={!prefillEmail}
             />
           </div>
           <div className="auth-field">
@@ -51,6 +56,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
+                autoFocus={!!prefillEmail}
               />
               <button type="button" className="auth-eye" onClick={() => setShowPassword((p) => !p)}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -63,7 +69,7 @@ export default function LoginPage() {
           </button>
         </form>
         <div className="auth-switch">
-          没有账号？<Link to="/register">去注册</Link>
+          没有账号？<Link to="/register" state={{ email }}>去注册</Link>
         </div>
       </div>
     </div>

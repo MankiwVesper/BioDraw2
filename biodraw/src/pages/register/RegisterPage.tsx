@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import '../login/LoginPage.css';
 
@@ -18,16 +18,22 @@ function getStrengthChecks(pwd: string) {
 }
 
 export default function RegisterPage() {
-  const [email,      setEmail]      = useState('');
-  const [password,   setPassword]   = useState('');
-  const [confirm,    setConfirm]    = useState('');
+  const navigate     = useNavigate();
+  const location     = useLocation();
+  const prefillEmail = (location.state as { email?: string } | null)?.email ?? '';
+
+  const [email,        setEmail]        = useState(prefillEmail);
+  const [password,     setPassword]     = useState('');
+  const [confirm,      setConfirm]      = useState('');
   const [submitting,   setSubmitting]   = useState(false);
   const [localError,   setLocalError]   = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm,  setShowConfirm]  = useState(false);
-  const register = useAuthStore((s) => s.register);
-  const error    = useAuthStore((s) => s.error);
-  const navigate = useNavigate();
+  const register   = useAuthStore((s) => s.register);
+  const clearError = useAuthStore((s) => s.clearError);
+  const error      = useAuthStore((s) => s.error);
+
+  useEffect(() => { clearError(); }, [clearError]);
 
   const checks = getStrengthChecks(password);
   const score  = Object.values(checks).filter(Boolean).length;
@@ -66,7 +72,7 @@ export default function RegisterPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="your@email.com"
-              autoFocus
+              autoFocus={!prefillEmail}
             />
           </div>
           <div className="auth-field">
@@ -77,6 +83,7 @@ export default function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="至少 8 位，含大小写字母、数字、符号"
+                autoFocus={!!prefillEmail}
               />
               <button type="button" className="auth-eye" onClick={() => setShowPassword((p) => !p)}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -131,7 +138,7 @@ export default function RegisterPage() {
           </button>
         </form>
         <div className="auth-switch">
-          已有账号？<Link to="/login">去登录</Link>
+          已有账号？<Link to="/login" state={{ email }}>去登录</Link>
         </div>
       </div>
     </div>

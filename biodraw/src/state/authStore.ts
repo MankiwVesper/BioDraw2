@@ -26,6 +26,7 @@ interface AuthState {
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  clearError: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -57,6 +58,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     await supabase.auth.signOut();
   },
+
+  clearError: () => set({ error: null }),
 
   changePassword: async (currentPassword, newPassword) => {
     const email = get().user?.email;
