@@ -85,7 +85,7 @@ export default function RegisterPage() {
                 placeholder="至少 8 位，含大小写字母、数字、符号"
                 autoFocus={!!prefillEmail}
               />
-              <button type="button" className="auth-eye" onClick={() => setShowPassword((p) => !p)}>
+              <button type="button" className="auth-eye" tabIndex={-1} onClick={() => setShowPassword((p) => !p)}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
@@ -125,7 +125,7 @@ export default function RegisterPage() {
                 onChange={(e) => setConfirm(e.target.value)}
                 placeholder="再次输入密码"
               />
-              <button type="button" className="auth-eye" onClick={() => setShowConfirm((p) => !p)}>
+              <button type="button" className="auth-eye" tabIndex={-1} onClick={() => setShowConfirm((p) => !p)}>
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
