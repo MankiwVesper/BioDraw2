@@ -78,7 +78,7 @@ export function ChangePasswordModal({ onClose }: Props) {
                 onChange={(e) => setCurrentPwd(e.target.value)}
                 autoFocus
               />
-              <button type="button" className="cpw-eye" onClick={() => setShowCurrent((p) => !p)}>
+              <button type="button" className="cpw-eye" tabIndex={-1} onClick={() => setShowCurrent((p) => !p)}>
                 {showCurrent ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
@@ -91,7 +91,7 @@ export function ChangePasswordModal({ onClose }: Props) {
                 value={newPwd}
                 onChange={(e) => setNewPwd(e.target.value)}
               />
-              <button type="button" className="cpw-eye" onClick={() => setShowNew((p) => !p)}>
+              <button type="button" className="cpw-eye" tabIndex={-1} onClick={() => setShowNew((p) => !p)}>
                 {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
@@ -131,7 +131,7 @@ export function ChangePasswordModal({ onClose }: Props) {
                 value={confirmPwd}
                 onChange={(e) => setConfirmPwd(e.target.value)}
               />
-              <button type="button" className="cpw-eye" onClick={() => setShowConfirm((p) => !p)}>
+              <button type="button" className="cpw-eye" tabIndex={-1} onClick={() => setShowConfirm((p) => !p)}>
                 {showConfirm ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>

@@ -58,7 +58,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 autoFocus={!!prefillEmail}
               />
-              <button type="button" className="auth-eye" onClick={() => setShowPassword((p) => !p)}>
+              <button type="button" className="auth-eye" tabIndex={-1} onClick={() => setShowPassword((p) => !p)}>
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
