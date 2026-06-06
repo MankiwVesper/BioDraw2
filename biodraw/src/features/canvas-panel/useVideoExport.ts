@@ -57,7 +57,7 @@ export const useVideoExport = ({
   const playPlayback = useEditorStore((s) => s.play);
 
 
-  const lastHandledRef = useRef(0);
+  const lastHandledRef = useRef(videoExportRequestId);
   const exportCancelCountRef = useRef(0);
   const exportCancelCount = useEditorStore((s) => s.exportCancelCount);
   useEffect(() => {
