@@ -93,6 +93,7 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
   const [exportStartSec, setExportStartSec] = useState('0.00');
   const [exportEndSec,   setExportEndSec]   = useState('10.00');
   const [ratioLocked,    setRatioLocked]    = useState(false);
+  const [exportStarted,  setExportStarted]  = useState(false);
 
   const isExporting   = videoExportStatus === 'running' || sequenceExportStatus === 'running';
   const isExportDone  = videoExportStatus === 'done'    || sequenceExportStatus === 'done';
@@ -128,8 +129,8 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
     fps:    Math.max(1, Math.min(60, Math.round(exportFps))),
   };
 
-  const handleExportVideo    = () => requestVideoExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: projectTitle, format: videoFormat });
-  const handleExportSequence = () => requestSequenceExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: `${projectTitle}-frame` });
+  const handleExportVideo    = () => { setExportStarted(true); requestVideoExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: projectTitle, format: videoFormat }); };
+  const handleExportSequence = () => { setExportStarted(true); requestSequenceExport({ ...exportSize, startMs: exportStartMs, endMs: exportEndMs, prefix: `${projectTitle}-frame` }); };
 
 return (
     <>
@@ -147,10 +148,9 @@ return (
             <button className="pem-close" onClick={handleClose}>✕</button>
           </div>
 
-          {loading && !loadError && <div className="pem-loading">加载中...</div>}
           {loadError && <div className="pem-error">{loadError}</div>}
 
-          {!loading && !loadError && (
+          {!loadError && (
             <div className="pem-body">
               <div className="tb-canvas-content">
 
@@ -229,7 +229,7 @@ return (
                   </button>
                 </div>
 
-                {(isExporting || isExportDone) ? (
+                {(exportStarted && (isExporting || isExportDone)) ? (
                   <div className="tb-canvas-content-full pem-progress">
                     <div className="pem-progress-bar-wrap">
                       <div className="pem-progress-bar-fill" style={{ width: `${progressPct}%` }} />
@@ -242,8 +242,8 @@ return (
                   </div>
                 ) : (
                   <div className="tb-canvas-content-full tb-export-action-row">
-                    <button className="tb-export-action-btn" onClick={handleExportSequence}>导出序列帧</button>
-                    <button className="tb-export-action-btn tb-export-action-primary" onClick={handleExportVideo}>导出视频</button>
+                    <button className="tb-export-action-btn" onClick={handleExportSequence} disabled={loading}>导出序列帧</button>
+                    <button className="tb-export-action-btn tb-export-action-primary" onClick={handleExportVideo} disabled={loading}>导出视频</button>
                   </div>
                 )}
 
