@@ -49,7 +49,10 @@ export default function LoginPage() {
             />
           </div>
           <div className="auth-field">
-            <label>密码</label>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label>密码</label>
+              <Link to="/forgot-password" className="auth-forgot" tabIndex={-1}>忘记密码？</Link>
+            </div>
             <div className="auth-input-wrap">
               <input
                 type={showPassword ? 'text' : 'password'}

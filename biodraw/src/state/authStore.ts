@@ -26,6 +26,8 @@ interface AuthState {
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
+  resetPassword: (newPassword: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -60,6 +62,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   clearError: () => set({ error: null }),
+
+  sendPasswordResetEmail: async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw new Error(toChineseError(error.message));
+  },
+
+  resetPassword: async (newPassword) => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(toChineseError(error.message));
+  },
 
   changePassword: async (currentPassword, newPassword) => {
     const email = get().user?.email;
