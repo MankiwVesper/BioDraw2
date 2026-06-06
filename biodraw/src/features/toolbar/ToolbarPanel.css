@@ -769,6 +769,11 @@
   border-color: var(--primary-color);
 }
 
+.tb-export-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .tb-export-action-primary {
   border-color: var(--primary-color);
   background: var(--primary-color);
