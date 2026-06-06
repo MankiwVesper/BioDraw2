@@ -2,6 +2,7 @@
 import { Stage, Layer, Line } from 'react-konva';
 import { SkipBack, SkipForward, Play, Pause, Square } from 'lucide-react';
 import { useEditorStore } from '../../state/editorStore';
+import { useShallow } from 'zustand/react/shallow';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { Rect, Text as KonvaText } from 'react-konva';
 import { SceneObjectRenderer } from '../../render/objects/SceneObjectRenderer';
@@ -179,48 +180,93 @@ export function CanvasPanel() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [pendingNameEditId, setPendingNameEditId] = useState<string | null>(null);
 
-  const objects = useEditorStore(state => state.objects);
-  const selectedIds = useEditorStore(state => state.selectedIds);
-  const applyAnimationFlashObjectIds = useEditorStore(state => state.applyAnimationFlashObjectIds);
-  const applyAnimationFlashKey = useEditorStore(state => state.applyAnimationFlashKey);
-  const addSceneObject = useEditorStore(state => state.addSceneObject);
-  const canvasWidth    = useEditorStore((state) => state.canvasWidth);
-  const canvasHeight   = useEditorStore((state) => state.canvasHeight);
-  const canvasBgColor  = useEditorStore((state) => state.canvasBgColor);
-  const selectObject = useEditorStore(state => state.selectObject);
-  const groupEditingId = useEditorStore(state => state.groupEditingId);
-  const enterGroupEditing = useEditorStore(state => state.enterGroupEditing);
-  const selectSceneObjects = useEditorStore(state => state.selectSceneObjects);
-  const updateSceneObject = useEditorStore(state => state.updateSceneObject);
-  const moveMultipleSceneObjects = useEditorStore(state => state.moveMultipleSceneObjects);
-  const animations = useEditorStore(state => state.animations);
-  const previewClipId = useEditorStore(state => state.previewClipId);
-  const playbackStatus = useEditorStore(state => state.playbackStatus);
-  const currentTimeMs = useEditorStore(state => state.currentTimeMs);
-  const globalDurationMs = useEditorStore(state => state.globalDurationMs);
-  const sequenceExportStatus  = useEditorStore(state => state.sequenceExportStatus);
-  const sequenceExportMessage = useEditorStore(state => state.sequenceExportMessage);
-  const videoExportStatus     = useEditorStore(state => state.videoExportStatus);
-  const videoExportMessage    = useEditorStore(state => state.videoExportMessage);
-  const setCurrentTimeMs = useEditorStore(state => state.setCurrentTimeMs);
-  const playPlayback = useEditorStore(state => state.play);
-  const pausePlayback = useEditorStore(state => state.pause);
-  const sequenceExportRequestId = useEditorStore(state => state.sequenceExportRequestId);
-  const sequenceExportOptions = useEditorStore(state => state.sequenceExportOptions);
-  const setSequenceExportStatus = useEditorStore(state => state.setSequenceExportStatus);
-  const setVideoExportStatus = useEditorStore(state => state.setVideoExportStatus);
-  const exportCancelCount = useEditorStore(state => state.exportCancelCount);
-  const cancelExport = useEditorStore(state => state.cancelExport);
-  const currentFileName = useEditorStore(state => state.currentFileName) as string;
-  const singleFrameExportId    = useEditorStore(state => state.singleFrameExportId);
-  const singleFrameExportWidth = useEditorStore(state => state.singleFrameExportWidth);
-  const fitVersion           = useEditorStore(state => state.fitVersion);
-  const isPreviewMode        = useEditorStore(state => state.isPreviewMode);
-  const focusMode            = useEditorStore(state => state.focusMode);
-  const canvasDrawingMode    = useEditorStore(state => state.canvasDrawingMode);
-  const setPreviewMode       = useEditorStore(state => state.setPreviewMode);
-  const stopPlayback         = useEditorStore(state => state.stop);
-  const stepPlaybackFrame    = useEditorStore(state => state.stepPlaybackFrame);
+  const {
+    objects,
+    selectedIds,
+    applyAnimationFlashObjectIds,
+    applyAnimationFlashKey,
+    addSceneObject,
+    canvasWidth,
+    canvasHeight,
+    canvasBgColor,
+    selectObject,
+    groupEditingId,
+    enterGroupEditing,
+    selectSceneObjects,
+    updateSceneObject,
+    moveMultipleSceneObjects,
+    animations,
+    previewClipId,
+    playbackStatus,
+    currentTimeMs,
+    globalDurationMs,
+    sequenceExportStatus,
+    sequenceExportMessage,
+    videoExportStatus,
+    videoExportMessage,
+    setCurrentTimeMs,
+    playPlayback,
+    pausePlayback,
+    sequenceExportRequestId,
+    sequenceExportOptions,
+    setSequenceExportStatus,
+    setVideoExportStatus,
+    exportCancelCount,
+    cancelExport,
+    currentFileName,
+    singleFrameExportId,
+    singleFrameExportWidth,
+    fitVersion,
+    isPreviewMode,
+    focusMode,
+    canvasDrawingMode,
+    setPreviewMode,
+    stopPlayback,
+    stepPlaybackFrame,
+  } = useEditorStore(useShallow(s => ({
+    objects: s.objects,
+    selectedIds: s.selectedIds,
+    applyAnimationFlashObjectIds: s.applyAnimationFlashObjectIds,
+    applyAnimationFlashKey: s.applyAnimationFlashKey,
+    addSceneObject: s.addSceneObject,
+    canvasWidth: s.canvasWidth,
+    canvasHeight: s.canvasHeight,
+    canvasBgColor: s.canvasBgColor,
+    selectObject: s.selectObject,
+    groupEditingId: s.groupEditingId,
+    enterGroupEditing: s.enterGroupEditing,
+    selectSceneObjects: s.selectSceneObjects,
+    updateSceneObject: s.updateSceneObject,
+    moveMultipleSceneObjects: s.moveMultipleSceneObjects,
+    animations: s.animations,
+    previewClipId: s.previewClipId,
+    playbackStatus: s.playbackStatus,
+    currentTimeMs: s.currentTimeMs,
+    globalDurationMs: s.globalDurationMs,
+    sequenceExportStatus: s.sequenceExportStatus,
+    sequenceExportMessage: s.sequenceExportMessage,
+    videoExportStatus: s.videoExportStatus,
+    videoExportMessage: s.videoExportMessage,
+    setCurrentTimeMs: s.setCurrentTimeMs,
+    playPlayback: s.play,
+    pausePlayback: s.pause,
+    sequenceExportRequestId: s.sequenceExportRequestId,
+    sequenceExportOptions: s.sequenceExportOptions,
+    setSequenceExportStatus: s.setSequenceExportStatus,
+    setVideoExportStatus: s.setVideoExportStatus,
+    exportCancelCount: s.exportCancelCount,
+    cancelExport: s.cancelExport,
+    currentFileName: s.currentFileName as string,
+    singleFrameExportId: s.singleFrameExportId,
+    singleFrameExportWidth: s.singleFrameExportWidth,
+    fitVersion: s.fitVersion,
+    isPreviewMode: s.isPreviewMode,
+    focusMode: s.focusMode,
+    canvasDrawingMode: s.canvasDrawingMode,
+    setPreviewMode: s.setPreviewMode,
+    stopPlayback: s.stop,
+    stepPlaybackFrame: s.stepPlaybackFrame,
+  })));
   const lastHandledExportRequestRef = useRef(0);
   const exportCancelCountRef = useRef(exportCancelCount);
   const lastSingleFrameExportIdRef = useRef(0);
