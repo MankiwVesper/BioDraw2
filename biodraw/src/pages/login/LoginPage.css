@@ -55,6 +55,33 @@
   color: var(--text-main);
 }
 
+.auth-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-input-wrap input {
+  width: 100%;
+  padding-right: 36px;
+}
+
+.auth-eye {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  transition: color 0.12s;
+}
+
+.auth-eye:hover { color: var(--text-main); }
+
 .auth-field input {
   height: 38px;
   padding: 0 12px;
@@ -117,6 +144,62 @@
 
 .auth-switch a:hover {
   text-decoration: underline;
+}
+
+/* 密码强度指示器（注册页） */
+.auth-strength {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 2px;
+}
+
+.auth-strength-bar-wrap {
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.auth-strength-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.auth-strength-hints {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.auth-strength-label {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 3px;
+  background: currentColor;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.auth-strength-label span {
+  color: #fff;
+  position: relative;
+}
+
+.auth-hint {
+  font-size: 12px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.auth-hint.is-ok {
+  border-color: #16a34a;
+  color: #16a34a;
 }
 
 .auth-loading {

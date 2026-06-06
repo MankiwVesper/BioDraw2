@@ -92,6 +92,9 @@
 
 .projects-user-dropdown-item:hover {
   background: var(--bg-color);
+}
+
+.projects-user-dropdown-item.is-danger:hover {
   color: #ef4444;
 }
 

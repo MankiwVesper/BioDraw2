@@ -25,9 +25,10 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   loading: true,
   error: null,
@@ -55,5 +56,14 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     await supabase.auth.signOut();
+  },
+
+  changePassword: async (currentPassword, newPassword) => {
+    const email = get().user?.email;
+    if (!email) throw new Error('未登录');
+    const { error: reAuthError } = await supabase.auth.signInWithPassword({ email, password: currentPassword });
+    if (reAuthError) throw new Error(toChineseError(reAuthError.message));
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(toChineseError(error.message));
   },
 }));
