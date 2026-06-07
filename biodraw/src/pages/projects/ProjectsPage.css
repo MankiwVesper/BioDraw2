@@ -1006,3 +1006,84 @@
   left: auto;
   top: calc(100% + 2px);
 }
+
+/* ── 内联 confirm / input modal ───────────────────────────────────────────── */
+.pp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pp-modal {
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 20px 20px 16px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pp-modal-msg {
+  font-size: 13px;
+  color: var(--text-main);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.pp-modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  font-size: 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-color);
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.pp-modal-input:focus { border-color: var(--primary-color); }
+
+.pp-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.pp-modal-cancel {
+  height: 30px;
+  padding: 0 14px;
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.pp-modal-cancel:hover { background: var(--bg-color); }
+
+.pp-modal-confirm {
+  height: 30px;
+  padding: 0 14px;
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.pp-modal-confirm:hover:not(:disabled) { opacity: 0.88; }
+.pp-modal-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+.pp-modal-confirm.is-danger { background: #ef4444; border-color: #ef4444; }

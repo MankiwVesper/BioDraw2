@@ -20,6 +20,69 @@ import './ProjectsPage.css';
 type SortKey = 'updated_at' | 'created_at' | 'title';
 type ViewMode = 'grid' | 'list';
 
+// ── 轻量确认弹窗 ──────────────────────────────────────────────────────────────
+function ConfirmModal({
+  message,
+  confirmLabel = '确认',
+  danger = false,
+  onConfirm,
+  onCancel,
+}: {
+  message: string;
+  confirmLabel?: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="pp-modal-overlay" onMouseDown={onCancel}>
+      <div className="pp-modal" onMouseDown={(e) => e.stopPropagation()}>
+        <p className="pp-modal-msg">{message}</p>
+        <div className="pp-modal-actions">
+          <button className="pp-modal-cancel" onClick={onCancel}>取消</button>
+          <button className={`pp-modal-confirm${danger ? ' is-danger' : ''}`} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 轻量输入弹窗 ──────────────────────────────────────────────────────────────
+function InputModal({
+  title,
+  defaultValue,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  defaultValue: string;
+  onConfirm: (value: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(defaultValue);
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.select(); }, []);
+  return (
+    <div className="pp-modal-overlay" onMouseDown={onCancel}>
+      <div className="pp-modal" onMouseDown={(e) => e.stopPropagation()}>
+        <p className="pp-modal-msg">{title}</p>
+        <input
+          ref={inputRef}
+          className="pp-modal-input"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && value.trim()) onConfirm(value.trim()); if (e.key === 'Escape') onCancel(); }}
+          autoFocus
+        />
+        <div className="pp-modal-actions">
+          <button className="pp-modal-cancel" onClick={onCancel}>取消</button>
+          <button className="pp-modal-confirm" disabled={!value.trim()} onClick={() => onConfirm(value.trim())}>确认</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SORT_LABELS: Record<SortKey, string> = {
   updated_at: '最近更新',
   created_at: '最近创建',
@@ -388,6 +451,10 @@ export default function ProjectsPage() {
 
   const [exportTarget, setExportTarget] = useState<{ id: string; title: string } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [bulkDeletePending, setBulkDeletePending] = useState(false);
+  const [deleteGroupTarget, setDeleteGroupTarget] = useState<{ id: string; name: string; count: number } | null>(null);
   const [thumbGenTarget, setThumbGenTarget] = useState<{ id: string; snapshot: DocumentSnapshot } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
@@ -549,10 +616,9 @@ export default function ProjectsPage() {
     }
   }
 
-  async function handleRename(id: string, currentTitle: string) {
-    const newTitle = window.prompt('请输入新名称', currentTitle);
-    if (!newTitle || newTitle.trim() === currentTitle) return;
+  async function commitRename(id: string, newTitle: string) {
     const trimmed = newTitle.trim();
+    if (!trimmed || trimmed === projects.find((p) => p.id === id)?.title) { setRenameTarget(null); return; }
     if (projects.some((p) => p.id !== id && p.title === trimmed)) {
       alert(`已存在名为「${trimmed}」的项目，请使用其他名称`);
       return;
@@ -560,6 +626,7 @@ export default function ProjectsPage() {
     try {
       await renameProject(id, trimmed);
       setProjects((prev) => prev.map((p) => p.id === id ? { ...p, title: trimmed } : p));
+      setRenameTarget(null);
     } catch {
       alert('重命名失败，请重试');
     }
@@ -581,22 +648,22 @@ export default function ProjectsPage() {
     }
   }
 
-  async function handleDelete(id: string, title: string) {
-    if (!window.confirm(`确认删除「${title}」？此操作不可恢复。`)) return;
+  async function commitDelete(id: string) {
     try {
       await deleteProject(id);
       setProjects((prev) => prev.filter((p) => p.id !== id));
+      setDeleteTarget(null);
     } catch {
       alert('删除失败，请重试');
     }
   }
 
-  async function handleBulkDelete() {
+  async function commitBulkDelete() {
     const ids = [...selectedIds];
-    if (!window.confirm(`确认删除选中的 ${ids.length} 个项目？此操作不可恢复。`)) return;
     try {
       await deleteProjects(ids);
       setProjects((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+      setBulkDeletePending(false);
       exitSelectionMode();
     } catch {
       alert('批量删除失败，请重试');
@@ -658,17 +725,13 @@ export default function ProjectsPage() {
     }
   }
 
-  async function handleDeleteGroup(id: string, name: string) {
-    const count = projects.filter((p) => p.group_id === id).length;
-    const msg = count > 0
-      ? `删除分组「${name}」后，其中 ${count} 个项目将移入未分组。确认删除？`
-      : `确认删除分组「${name}」？`;
-    if (!window.confirm(msg)) return;
+  async function commitDeleteGroup(id: string) {
     try {
       await deleteGroup(id);
       setGroups((prev) => prev.filter((g) => g.id !== id));
       setProjects((prev) => prev.map((p) => p.group_id === id ? { ...p, group_id: null } : p));
       if (activeGroupId === id) setActiveGroupId('all');
+      setDeleteGroupTarget(null);
     } catch {
       alert('删除分组失败，请重试');
     }
@@ -768,7 +831,7 @@ export default function ProjectsPage() {
                       <span
                         className="projects-sidebar-action-btn is-danger"
                         title="删除分组"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id, g.name); }}
+                        onClick={(e) => { e.stopPropagation(); setDeleteGroupTarget({ id: g.id, name: g.name, count: projects.filter((p) => p.group_id === g.id).length }); }}
                       >
                         <Trash2 size={11} />
                       </span>
@@ -849,7 +912,7 @@ export default function ProjectsPage() {
               <button
                 className="projects-danger-btn"
                 disabled={selectedIds.size === 0}
-                onClick={handleBulkDelete}
+                onClick={() => setBulkDeletePending(true)}
               >
                 <Trash2 size={13} />
                 删除所选 ({selectedIds.size})
@@ -979,11 +1042,11 @@ export default function ProjectsPage() {
                       selected={selectedIds.has(p.id)}
                       onToggleSelect={() => toggleSelect(p.id)}
                       onOpen={() => navigate(`/editor/${p.id}`)}
-                      onRename={() => handleRename(p.id, p.title)}
+                      onRename={() => setRenameTarget({ id: p.id, title: p.title })}
                       onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
                       onExport={() => setExportTarget({ id: p.id, title: p.title })}
                       onDownload={() => handleDownload(p.id, p.title)}
-                      onDelete={() => handleDelete(p.id, p.title)}
+                      onDelete={() => setDeleteTarget({ id: p.id, title: p.title })}
                       onMove={(gid) => handleMoveProject(p.id, gid)}
                     />
                   ))}
@@ -1007,11 +1070,11 @@ export default function ProjectsPage() {
                       selected={selectedIds.has(p.id)}
                       onToggleSelect={() => toggleSelect(p.id)}
                       onOpen={() => navigate(`/editor/${p.id}`)}
-                      onRename={() => handleRename(p.id, p.title)}
+                      onRename={() => setRenameTarget({ id: p.id, title: p.title })}
                       onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
                       onExport={() => setExportTarget({ id: p.id, title: p.title })}
                       onDownload={() => handleDownload(p.id, p.title)}
-                      onDelete={() => handleDelete(p.id, p.title)}
+                      onDelete={() => setDeleteTarget({ id: p.id, title: p.title })}
                       onMove={(gid) => handleMoveProject(p.id, gid)}
                     />
                   ))}
@@ -1025,6 +1088,43 @@ export default function ProjectsPage() {
         </main>
       </div>
 
+      {renameTarget && (
+        <InputModal
+          title={`重命名「${renameTarget.title}」`}
+          defaultValue={renameTarget.title}
+          onConfirm={(v) => commitRename(renameTarget.id, v)}
+          onCancel={() => setRenameTarget(null)}
+        />
+      )}
+      {deleteTarget && (
+        <ConfirmModal
+          message={`确认删除「${deleteTarget.title}」？此操作不可恢复。`}
+          confirmLabel="删除"
+          danger
+          onConfirm={() => commitDelete(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+      {bulkDeletePending && (
+        <ConfirmModal
+          message={`确认删除选中的 ${selectedIds.size} 个项目？此操作不可恢复。`}
+          confirmLabel="全部删除"
+          danger
+          onConfirm={commitBulkDelete}
+          onCancel={() => setBulkDeletePending(false)}
+        />
+      )}
+      {deleteGroupTarget && (
+        <ConfirmModal
+          message={deleteGroupTarget.count > 0
+            ? `删除分组「${deleteGroupTarget.name}」后，其中 ${deleteGroupTarget.count} 个项目将移入未分组。确认删除？`
+            : `确认删除分组「${deleteGroupTarget.name}」？`}
+          confirmLabel="删除分组"
+          danger
+          onConfirm={() => commitDeleteGroup(deleteGroupTarget.id)}
+          onCancel={() => setDeleteGroupTarget(null)}
+        />
+      )}
       {exportTarget && (
         <ProjectExportModal
           projectId={exportTarget.id}
