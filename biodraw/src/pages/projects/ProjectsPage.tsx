@@ -226,8 +226,6 @@ function ProjectCard({
   const moveMenuRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLSpanElement>(null);
   const groupTagTextRef = useRef<HTMLSpanElement>(null);
-  const [titleTruncated, setTitleTruncated] = useState(false);
-  const [groupNameTruncated, setGroupNameTruncated] = useState(false);
 
   useClickOutside(moveMenuRef, () => setShowMoveMenu(false), showMoveMenu);
 
@@ -235,14 +233,22 @@ function ProjectCard({
 
   useLayoutEffect(() => {
     const el = titleRef.current;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setTitleTruncated(!!el && el.scrollWidth > el.offsetWidth);
+    if (!el) return;
+    if (el.scrollWidth > el.offsetWidth) {
+      el.setAttribute('data-tooltip', project.title);
+    } else {
+      el.removeAttribute('data-tooltip');
+    }
   }, [project.title]);
 
   useLayoutEffect(() => {
     const el = groupTagTextRef.current;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setGroupNameTruncated(!!el && el.scrollWidth > el.offsetWidth);
+    if (!el) return;
+    if (el.scrollWidth > el.offsetWidth) {
+      el.setAttribute('data-tooltip', groupName ?? '');
+    } else {
+      el.removeAttribute('data-tooltip');
+    }
   }, [groupName]);
 
   function handleCardClick() {
@@ -270,9 +276,9 @@ function ProjectCard({
 
       <div className="project-card-footer">
         <div className="project-card-title-row">
-          <span ref={titleRef} className="project-card-title" data-tooltip={titleTruncated ? project.title : undefined}>{project.title}</span>
+          <span ref={titleRef} className="project-card-title">{project.title}</span>
           {groupName && (
-            <span className="project-card-group-tag" data-tooltip={groupNameTruncated ? groupName : undefined}>
+            <span className="project-card-group-tag">
               <Folder size={10} />
               <span ref={groupTagTextRef}>{groupName}</span>
             </span>
