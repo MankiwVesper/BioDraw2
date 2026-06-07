@@ -1,12 +1,13 @@
+/* ── 页面框架 ──────────────────────────────────────────────────────────── */
 .projects-page {
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--bg-color);
   display: flex;
   flex-direction: column;
 }
 
-/* ── 页面头部 */
+/* ── Header ────────────────────────────────────────────────────────────── */
 .projects-header {
   height: 52px;
   background: var(--panel-bg);
@@ -17,6 +18,7 @@
   padding: 0 24px;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  z-index: 10;
 }
 
 .projects-logo {
@@ -26,6 +28,7 @@
   letter-spacing: -0.02em;
 }
 
+/* ── 用户头像 + 下拉 ────────────────────────────────────────────────────── */
 .projects-user-wrap {
   position: relative;
   flex-shrink: 0;
@@ -98,32 +101,403 @@
   color: #ef4444;
 }
 
-/* ── 主内容区 */
-.projects-main {
-  flex: 1;
-  padding: 32px 40px;
-  max-width: 1200px;
-  width: 100%;
-  margin: 0 auto;
+.projects-user-dropdown-item.is-critical {
+  color: #ef4444;
+  font-weight: 500;
 }
 
-.projects-title-row {
+.projects-user-dropdown-item.is-critical:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.projects-user-dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 2px 0;
+}
+
+.projects-user-dropdown-divider--strong {
+  height: 2px;
+  background: #fecaca;
+  margin: 3px 0;
+}
+
+/* ── body 区域（sidebar + main） ──────────────────────────────────────── */
+.projects-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ── 左侧分组侧边栏 ────────────────────────────────────────────────────── */
+.projects-sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: var(--panel-bg);
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.projects-sidebar-nav {
+  flex: 1;
+  padding: 10px 8px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.projects-sidebar-group-wrap {
+  position: relative;
+}
+
+.projects-sidebar-item {
+  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
+  gap: 6px;
+  padding: 7px 8px;
+  border: none;
+  background: none;
+  border-radius: 5px;
+  font-size: 13px;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.projects-sidebar-item:hover {
+  background: var(--bg-color);
+}
+
+.projects-sidebar-item.is-active {
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
+  color: var(--primary-color);
+  font-weight: 500;
+}
+
+.projects-sidebar-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.projects-sidebar-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projects-sidebar-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.projects-sidebar-actions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.projects-sidebar-group-wrap:hover .projects-sidebar-actions {
+  display: flex;
+}
+
+.projects-sidebar-group-wrap:hover .projects-sidebar-count {
+  display: none;
+}
+
+.projects-sidebar-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.1s, color 0.1s;
+}
+
+.projects-sidebar-action-btn:hover {
+  background: var(--border-color);
+  color: var(--text-main);
+}
+
+.projects-sidebar-action-btn.is-danger:hover {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+/* 行内编辑 */
+.projects-sidebar-edit-row {
+  padding: 2px 8px;
+}
+
+.projects-sidebar-edit-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  font-size: 12px;
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  background: var(--bg-color);
+  color: var(--text-main);
+  outline: none;
+}
+
+/* 新建分组 */
+.projects-sidebar-footer {
+  padding: 8px;
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.projects-sidebar-add-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 8px;
+  border: none;
+  background: none;
+  border-radius: 5px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.projects-sidebar-add-btn:hover {
+  background: var(--bg-color);
+  color: var(--text-main);
+}
+
+.projects-sidebar-new-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.projects-sidebar-new-group-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.projects-sidebar-new-confirm,
+.projects-sidebar-new-cancel {
+  flex: 1;
+  padding: 4px 0;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: background 0.12s;
+}
+
+.projects-sidebar-new-confirm {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+.projects-sidebar-new-confirm:hover { opacity: 0.88; }
+
+.projects-sidebar-new-cancel {
+  background: none;
+  color: var(--text-muted);
+}
+
+.projects-sidebar-new-cancel:hover { background: var(--bg-color); }
+
+/* ── 主内容区 ───────────────────────────────────────────────────────────── */
+.projects-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 28px 32px;
+  min-width: 0;
+}
+
+/* ── 控制栏 ─────────────────────────────────────────────────────────────── */
+.projects-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex-wrap: nowrap;
 }
 
 .projects-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-main);
   margin: 0;
+  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
+.projects-title-count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* 搜索框 */
+.projects-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 240px;
+}
+
+.projects-search-icon {
+  position: absolute;
+  left: 8px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.projects-search-input {
+  width: 100%;
+  height: 30px;
+  padding: 0 28px 0 28px;
+  font-size: 13px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  background: var(--bg-color);
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.projects-search-input:focus { border-color: var(--primary-color); }
+.projects-search-input::placeholder { color: var(--text-muted); }
+
+.projects-search-clear {
+  position: absolute;
+  right: 6px;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: color 0.1s;
+}
+
+.projects-search-clear:hover { color: var(--text-main); }
+
+/* 排序下拉 */
+.projects-sort-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.projects-sort-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+  overflow: hidden;
+  min-width: 120px;
+}
+
+.projects-sort-menu button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-main);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.projects-sort-menu button:hover { background: var(--bg-color); }
+.projects-sort-menu button.is-active { color: var(--primary-color); }
+
+/* 视图切换 */
+.projects-view-toggle {
+  display: flex;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.projects-view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background 0.12s, color 0.12s;
+}
+
+.projects-view-btn + .projects-view-btn {
+  border-left: 1px solid var(--border-color);
+}
+
+.projects-view-btn:hover { background: var(--bg-color); color: var(--text-main); }
+.projects-view-btn.is-active { background: var(--bg-color); color: var(--primary-color); }
+
+/* 幽灵按钮（通用） */
+.projects-ghost-btn {
+  height: 30px;
+  padding: 0 10px;
+  background: none;
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.projects-ghost-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.projects-ghost-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 新建项目 */
 .projects-create-btn {
-  height: 32px;
-  padding: 0 14px;
+  height: 30px;
+  padding: 0 12px;
   background: var(--primary-color);
   color: #fff;
   border: none;
@@ -131,27 +505,18 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: background 0.15s;
 }
 
-.projects-create-btn:hover {
-  background: var(--primary-hover);
-}
+.projects-create-btn:hover { background: var(--primary-hover); }
+.projects-create-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.projects-create-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.projects-title-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+/* 导入项目 */
 .projects-import-btn {
-  height: 32px;
-  padding: 0 14px;
+  height: 30px;
+  padding: 0 12px;
   background: none;
   color: var(--text-main);
   border: 1px solid #9ca3af;
@@ -159,10 +524,12 @@
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  transition: border-color 0.15s, color 0.15s;
 }
 
 .projects-import-btn:hover {
@@ -170,16 +537,51 @@
   color: var(--primary-color);
 }
 
-.projects-import-btn.is-importing {
-  opacity: 0.75;
-}
-
+.projects-import-btn.is-importing { opacity: 0.75; }
 .projects-import-btn.is-importing:hover {
   border-color: #ef4444;
   color: #ef4444;
   opacity: 1;
 }
 
+/* 批量操作 */
+.projects-select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-main);
+  flex-shrink: 0;
+}
+
+.projects-selection-count {
+  font-size: 13px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.projects-danger-btn {
+  height: 30px;
+  padding: 0 12px;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: opacity 0.12s;
+}
+
+.projects-danger-btn:hover:not(:disabled) { opacity: 0.88; }
+.projects-danger-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ── 加载 / 错误 / 空状态 ─────────────────────────────────────────────── */
 .projects-loading,
 .projects-error {
   text-align: center;
@@ -191,24 +593,62 @@
 .projects-error { color: #ef4444; }
 
 .projects-empty {
-  text-align: center;
-  padding: 80px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80px 20px 40px;
   color: var(--text-muted);
 }
 
-.projects-empty p {
-  font-size: 14px;
-  margin-bottom: 16px;
+.projects-empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
 }
 
-/* ── 项目卡片网格 */
+.projects-empty-canvas {
+  width: 120px;
+  height: 68px;
+  border: 2px dashed var(--border-color);
+  border-radius: 6px;
+  margin-bottom: 20px;
+  background: var(--panel-bg);
+}
+
+.projects-empty-title {
+  font-size: 15px;
+  color: var(--text-main);
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+
+.projects-empty-sub {
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+
+.projects-empty-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary-color);
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.projects-empty-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ── 网格视图 ───────────────────────────────────────────────────────────── */
 .projects-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
 }
 
-/* ── 项目卡片 */
+/* ── 项目卡片 ───────────────────────────────────────────────────────────── */
 .project-card {
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
@@ -223,8 +663,13 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
+.project-card.is-selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 25%, transparent);
+}
+
 .project-card-preview {
-  height: 110px;
+  aspect-ratio: 16 / 9;
   background: var(--bg-color);
   border-bottom: 1px solid var(--border-color);
   border-radius: 8px 8px 0 0;
@@ -248,11 +693,163 @@
   opacity: 0.5;
 }
 
-.project-card-footer {
-  padding: 10px 10px 10px 12px;
+/* checkbox（网格和列表共用） */
+.project-card-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-color);
+  background: var(--panel-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.project-card-checkbox.is-checked {
+  border-color: var(--primary-color);
+  background: var(--primary-color);
+  color: #fff;
+}
+
+/* checkbox 在卡片预览区左上角 */
+.project-card-preview .project-card-checkbox {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+/* ··· 按钮移到预览区右上角 */
+.project-card-menu-wrap {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+}
+
+.project-card-menu-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.45);
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.12s, background 0.12s;
+}
+
+.project-card:hover .project-card-menu-btn,
+.project-row:hover .project-card-menu-btn {
+  opacity: 1;
+}
+
+.project-card-menu-btn:hover {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+/* 列表视图的 ··· 按钮样式覆盖 */
+.project-row-actions .project-card-menu-btn {
+  background: none;
+  color: var(--text-muted);
+  opacity: 0;
+}
+
+.project-row-actions .project-card-menu-btn:hover {
+  background: var(--bg-color);
+  color: var(--text-main);
+}
+
+.project-card-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+  overflow: visible;
+  min-width: 0;
+  width: max-content;
+}
+
+.project-card-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  font-size: 13px;
+  color: var(--text-main);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+
+.project-card-menu button:hover { background: var(--bg-color); }
+.project-card-menu button.is-danger:hover { color: #ef4444; }
+
+/* 移动到子菜单项 */
+.pcard-menu-move {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text-main);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+
+.pcard-menu-move:hover { background: var(--bg-color); }
+
+.pcard-submenu {
+  position: absolute;
+  left: 100%;
+  top: -4px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+  overflow: hidden;
+  min-width: 120px;
+}
+
+.pcard-submenu-item {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-main);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+
+.pcard-submenu-item:hover { background: var(--bg-color); }
+.pcard-submenu-item.is-current { color: var(--primary-color); font-weight: 500; }
+
+/* 卡片 footer */
+.project-card-footer {
+  padding: 8px 10px 10px 12px;
+  display: flex;
+  align-items: center;
 }
 
 .project-card-info {
@@ -270,76 +867,140 @@
   text-overflow: ellipsis;
 }
 
-.project-card-time {
-  display: block;
+.project-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
   font-size: 11px;
   color: var(--text-muted);
-  margin-top: 2px;
 }
 
-/* ── 卡片菜单 */
-.project-card-menu-wrap {
-  position: relative;
+.project-card-group {
+  color: var(--text-muted);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-card-meta-dot {
   flex-shrink: 0;
 }
 
-.project-card-menu-btn {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 13px;
+/* ── 列表视图 ───────────────────────────────────────────────────────────── */
+.projects-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.projects-list-header {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  height: 36px;
+  background: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
   color: var(--text-muted);
+  font-weight: 500;
+}
+
+.project-row {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  height: 52px;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background 0.1s;
+  background: var(--panel-bg);
+}
+
+.project-row:last-child { border-bottom: none; }
+.project-row:hover { background: var(--bg-color); }
+
+.project-row.is-selected {
+  background: color-mix(in srgb, var(--primary-color) 6%, transparent);
+}
+
+.project-row-check {
+  width: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.project-row-thumb {
+  width: 64px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding-right: 10px;
+}
+
+.project-row-thumb img {
+  width: 54px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+  display: block;
+}
+
+.project-row-thumb-placeholder {
+  width: 54px;
+  height: 30px;
+  border-radius: 3px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+}
+
+.project-row-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-main);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+
+.project-row-group {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 12px;
+}
+
+.project-row-time {
+  width: 90px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.project-row-actions {
+  width: 40px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity 0.12s, background 0.12s;
-  letter-spacing: 1px;
+  position: relative;
 }
 
-.project-card:hover .project-card-menu-btn {
-  opacity: 1;
-}
-
-.project-card-menu-btn:hover {
-  background: var(--bg-color);
-  color: var(--text-main);
-}
-
-.project-card-menu {
-  position: absolute;
+/* 列表视图的菜单从右侧打开 */
+.project-row-menu {
   right: 0;
-  bottom: calc(100% + 4px);
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  overflow: hidden;
-  min-width: 0;
-  width: max-content;
-}
-
-.project-card-menu button {
-  display: block;
-  width: 100%;
-  padding: 8px 14px;
-  text-align: left;
-  font-size: 13px;
-  color: var(--text-main);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
-.project-card-menu button:hover {
-  background: var(--bg-color);
-}
-
-.project-card-menu button.is-danger:hover {
-  color: #ef4444;
+  left: auto;
+  top: calc(100% + 2px);
 }

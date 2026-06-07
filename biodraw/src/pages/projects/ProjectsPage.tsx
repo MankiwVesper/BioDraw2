@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
-import { Upload } from 'lucide-react';
+import { useEffect, useRef, useState, useMemo } from 'react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, MoreHorizontal, Pencil, Trash2, FolderPlus, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
-  listProjects, createProject, getProject, deleteProject, renameProject, updateProjectData,
-  type ProjectRecord,
+  listProjects, createProject, getProject, deleteProject, deleteProjects,
+  renameProject, updateProjectData, moveProject, moveProjects,
+  listGroups, createGroup, renameGroup, deleteGroup,
+  type ProjectRecord, type ProjectGroup,
 } from '../../infrastructure/projectService';
 import { serializeDocument, parseDocumentFile, type DocumentSnapshot } from '../../infrastructure/documentSerializer';
 import { thumbnailCapture } from '../../infrastructure/thumbnailCapture';
@@ -15,6 +17,14 @@ import { ChangePasswordModal } from './ChangePasswordModal';
 import { DeleteAccountModal } from './DeleteAccountModal';
 import './ProjectsPage.css';
 
+type SortKey = 'updated_at' | 'created_at' | 'title';
+type ViewMode = 'grid' | 'list';
+
+const SORT_LABELS: Record<SortKey, string> = {
+  updated_at: '最近更新',
+  created_at: '最近创建',
+  title: '名称 A→Z',
+};
 
 function emptySnapshot() {
   return serializeDocument({
@@ -77,24 +87,71 @@ function ThumbnailCapture({
   );
 }
 
+// ── 移动到分组子菜单 ─────────────────────────────────────────────────────────
+function MoveToMenu({
+  groups,
+  currentGroupId,
+  onMove,
+  onClose,
+}: {
+  groups: ProjectGroup[];
+  currentGroupId: string | null | undefined;
+  onMove: (groupId: string | null) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="pcard-submenu">
+      <button
+        className={`pcard-submenu-item${!currentGroupId ? ' is-current' : ''}`}
+        onClick={() => { onMove(null); onClose(); }}
+      >
+        {!currentGroupId && <Check size={12} />}
+        未分组
+      </button>
+      {groups.map((g) => (
+        <button
+          key={g.id}
+          className={`pcard-submenu-item${currentGroupId === g.id ? ' is-current' : ''}`}
+          onClick={() => { onMove(g.id); onClose(); }}
+        >
+          {currentGroupId === g.id && <Check size={12} />}
+          {g.name}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// ── 项目卡片（网格） ──────────────────────────────────────────────────────────
 function ProjectCard({
   project,
+  groups,
+  selectionMode,
+  selected,
+  onToggleSelect,
   onOpen,
   onRename,
   onPreview,
   onExport,
   onDownload,
   onDelete,
+  onMove,
 }: {
   project: ProjectRecord;
+  groups: ProjectGroup[];
+  selectionMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
   onOpen: () => void;
   onRename: () => void;
   onPreview: () => void;
   onExport: () => void;
   onDownload: () => void;
   onDelete: () => void;
+  onMove: (groupId: string | null) => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -102,60 +159,199 @@ function ProjectCard({
     const handler = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowMenu(false);
+        setShowMoveMenu(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
 
+  const groupName = groups.find((g) => g.id === project.group_id)?.name;
+
+  function handleCardClick() {
+    if (selectionMode) { onToggleSelect(); return; }
+    onOpen();
+  }
+
   return (
-    <div className="project-card" onClick={onOpen}>
+    <div
+      className={`project-card${selected ? ' is-selected' : ''}`}
+      onClick={handleCardClick}
+    >
       <div className="project-card-preview">
         {project.thumbnail
           ? <img src={project.thumbnail} alt="" draggable={false} />
           : <span className="project-card-preview-placeholder">空白项目</span>
         }
+
+        {selectionMode && (
+          <div className={`project-card-checkbox${selected ? ' is-checked' : ''}`}>
+            {selected && <Check size={11} strokeWidth={3} />}
+          </div>
+        )}
+
+        {!selectionMode && (
+          <div className="project-card-menu-wrap" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+            <button
+              className="project-card-menu-btn"
+              onClick={() => { setShowMenu((p) => !p); setShowMoveMenu(false); }}
+              title="更多操作"
+            >
+              <MoreHorizontal size={14} />
+            </button>
+            {showMenu && (
+              <div className="project-card-menu">
+                <button onClick={() => { setShowMenu(false); onRename(); }}>重命名</button>
+                <button onClick={() => { setShowMenu(false); onPreview(); }}>预览</button>
+                <button onClick={() => { setShowMenu(false); onExport(); }}>导出</button>
+                <button onClick={() => { setShowMenu(false); onDownload(); }}>下载</button>
+                <div
+                  className="pcard-menu-move"
+                  onMouseEnter={() => setShowMoveMenu(true)}
+                  onMouseLeave={() => setShowMoveMenu(false)}
+                >
+                  <span>移动到</span>
+                  <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
+                  {showMoveMenu && (
+                    <MoveToMenu
+                      groups={groups}
+                      currentGroupId={project.group_id}
+                      onMove={onMove}
+                      onClose={() => { setShowMenu(false); setShowMoveMenu(false); }}
+                    />
+                  )}
+                </div>
+                <button className="is-danger" onClick={() => { setShowMenu(false); onDelete(); }}>删除</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
       <div className="project-card-footer">
         <div className="project-card-info">
           <span className="project-card-title">{project.title}</span>
-          <span className="project-card-time">{formatRelativeTime(project.updated_at)}</span>
-        </div>
-        <div className="project-card-menu-wrap" ref={menuRef}>
-          <button
-            className="project-card-menu-btn"
-            onClick={(e) => { e.stopPropagation(); setShowMenu((p) => !p); }}
-          >
-            ···
-          </button>
-          {showMenu && (
-            <div className="project-card-menu">
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onRename(); }}>
-                重命名
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onPreview(); }}>
-                预览
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onExport(); }}>
-                导出
-              </button>
-              <button onClick={(e) => { e.stopPropagation(); setShowMenu(false); onDownload(); }}>
-                下载
-              </button>
-              <button
-                className="is-danger"
-                onClick={(e) => { e.stopPropagation(); setShowMenu(false); onDelete(); }}
-              >
-                删除
-              </button>
-            </div>
-          )}
+          <span className="project-card-meta">
+            {groupName && <span className="project-card-group">{groupName}</span>}
+            {groupName && <span className="project-card-meta-dot">·</span>}
+            <span>{formatRelativeTime(project.updated_at)}</span>
+          </span>
         </div>
       </div>
     </div>
   );
 }
 
+// ── 项目行（列表） ────────────────────────────────────────────────────────────
+function ProjectRow({
+  project,
+  groups,
+  selectionMode,
+  selected,
+  onToggleSelect,
+  onOpen,
+  onRename,
+  onPreview,
+  onExport,
+  onDownload,
+  onDelete,
+  onMove,
+}: {
+  project: ProjectRecord;
+  groups: ProjectGroup[];
+  selectionMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
+  onOpen: () => void;
+  onRename: () => void;
+  onPreview: () => void;
+  onExport: () => void;
+  onDownload: () => void;
+  onDelete: () => void;
+  onMove: (groupId: string | null) => void;
+}) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [showMoveMenu, setShowMoveMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+        setShowMoveMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
+
+  const groupName = groups.find((g) => g.id === project.group_id)?.name ?? '未分组';
+
+  function handleRowClick() {
+    if (selectionMode) { onToggleSelect(); return; }
+    onOpen();
+  }
+
+  return (
+    <div
+      className={`project-row${selected ? ' is-selected' : ''}`}
+      onClick={handleRowClick}
+    >
+      {selectionMode && (
+        <div className="project-row-check" onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}>
+          <div className={`project-card-checkbox${selected ? ' is-checked' : ''}`}>
+            {selected && <Check size={11} strokeWidth={3} />}
+          </div>
+        </div>
+      )}
+      <div className="project-row-thumb">
+        {project.thumbnail
+          ? <img src={project.thumbnail} alt="" draggable={false} />
+          : <div className="project-row-thumb-placeholder" />
+        }
+      </div>
+      <div className="project-row-title">{project.title}</div>
+      <div className="project-row-group">{groupName}</div>
+      <div className="project-row-time">{formatRelativeTime(project.updated_at)}</div>
+      <div className="project-row-actions" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+        <button
+          className="project-card-menu-btn"
+          onClick={() => { setShowMenu((p) => !p); setShowMoveMenu(false); }}
+        >
+          <MoreHorizontal size={14} />
+        </button>
+        {showMenu && (
+          <div className="project-card-menu project-row-menu">
+            <button onClick={() => { setShowMenu(false); onRename(); }}>重命名</button>
+            <button onClick={() => { setShowMenu(false); onPreview(); }}>预览</button>
+            <button onClick={() => { setShowMenu(false); onExport(); }}>导出</button>
+            <button onClick={() => { setShowMenu(false); onDownload(); }}>下载</button>
+            <div
+              className="pcard-menu-move"
+              onMouseEnter={() => setShowMoveMenu(true)}
+              onMouseLeave={() => setShowMoveMenu(false)}
+            >
+              <span>移动到</span>
+              <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
+              {showMoveMenu && (
+                <MoveToMenu
+                  groups={groups}
+                  currentGroupId={project.group_id}
+                  onMove={onMove}
+                  onClose={() => { setShowMenu(false); setShowMoveMenu(false); }}
+                />
+              )}
+            </div>
+            <button className="is-danger" onClick={() => { setShowMenu(false); onDelete(); }}>删除</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── 主页面 ────────────────────────────────────────────────────────────────────
 export default function ProjectsPage() {
   const user   = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
@@ -163,8 +359,33 @@ export default function ProjectsPage() {
   const loadSnapshot = useEditorStore((s) => s.loadSnapshot);
 
   const [projects, setProjects] = useState<ProjectRecord[]>([]);
+  const [groups, setGroups]     = useState<ProjectGroup[]>([]);
   const [loading, setLoading]   = useState(true);
   const [listError, setListError] = useState<string | null>(null);
+
+  const [activeGroupId, setActiveGroupId] = useState<string | 'all'>('all');
+  const [viewMode, setViewMode] = useState<ViewMode>(() =>
+    (localStorage.getItem('pv_view') as ViewMode) ?? 'grid'
+  );
+  const [sortKey, setSortKey]   = useState<SortKey>('updated_at');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [searchQuery, setSearchQuery]   = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // 批量操作
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
+  const [showBulkMoveMenu, setShowBulkMoveMenu] = useState(false);
+  const bulkMoveRef = useRef<HTMLDivElement>(null);
+
+  // 分组侧边栏
+  const [creatingGroup, setCreatingGroup]   = useState(false);
+  const [newGroupName, setNewGroupName]     = useState('');
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingGroupName, setEditingGroupName] = useState('');
+  const newGroupInputRef  = useRef<HTMLInputElement>(null);
+  const editGroupInputRef = useRef<HTMLInputElement>(null);
+
   const [exportTarget, setExportTarget] = useState<{ id: string; title: string } | null>(null);
   const [importing, setImporting] = useState(false);
   const [thumbGenTarget, setThumbGenTarget] = useState<{ id: string; snapshot: DocumentSnapshot } | null>(null);
@@ -173,28 +394,101 @@ export default function ProjectsPage() {
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
   const importingProjectIdRef = useRef<string | null>(null);
-  const userMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuRef  = useRef<HTMLDivElement>(null);
+  const sortMenuRef  = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { loadAll(); }, []);
+
+  useEffect(() => {
+    if (!creatingGroup) return;
+    setTimeout(() => newGroupInputRef.current?.focus(), 0);
+  }, [creatingGroup]);
+
+  useEffect(() => {
+    if (!editingGroupId) return;
+    setTimeout(() => editGroupInputRef.current?.focus(), 0);
+  }, [editingGroupId]);
 
   useEffect(() => {
     if (!showUserMenu) return;
     const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
-        setShowUserMenu(false);
-      }
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showUserMenu]);
 
-  async function load() {
+  useEffect(() => {
+    if (!showSortMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setShowSortMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSortMenu]);
+
+  useEffect(() => {
+    if (!showBulkMoveMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (bulkMoveRef.current && !bulkMoveRef.current.contains(e.target as Node)) setShowBulkMoveMenu(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showBulkMoveMenu]);
+
+  async function loadAll() {
     try {
-      setProjects(await listProjects());
+      const [ps, gs] = await Promise.all([listProjects(), listGroups()]);
+      setProjects(ps);
+      setGroups(gs);
     } catch {
       setListError('加载项目失败，请刷新重试');
     } finally {
       setLoading(false);
+    }
+  }
+
+  // 过滤 + 排序
+  const displayedProjects = useMemo(() => {
+    let list = projects;
+    if (activeGroupId !== 'all') {
+      list = activeGroupId === 'ungrouped'
+        ? list.filter((p) => !p.group_id)
+        : list.filter((p) => p.group_id === activeGroupId);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter((p) => p.title.toLowerCase().includes(q));
+    }
+    return [...list].sort((a, b) => {
+      if (sortKey === 'title') return a.title.localeCompare(b.title, 'zh');
+      return new Date(b[sortKey]).getTime() - new Date(a[sortKey]).getTime();
+    });
+  }, [projects, activeGroupId, searchQuery, sortKey]);
+
+  function handleViewMode(mode: ViewMode) {
+    setViewMode(mode);
+    localStorage.setItem('pv_view', mode);
+  }
+
+  function exitSelectionMode() {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === displayedProjects.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(displayedProjects.map((p) => p.id)));
     }
   }
 
@@ -229,7 +523,6 @@ export default function ProjectsPage() {
       importingProjectIdRef.current = id;
       loadSnapshot(snapshot);
       setThumbGenTarget({ id, snapshot });
-      // importing + list refresh handled by ThumbnailCapture.onDone
     } catch (err) {
       alert(err instanceof Error ? err.message : '导入失败，请重试');
       setImporting(false);
@@ -288,13 +581,104 @@ export default function ProjectsPage() {
     }
   }
 
+  async function handleBulkDelete() {
+    const ids = [...selectedIds];
+    if (!window.confirm(`确认删除选中的 ${ids.length} 个项目？此操作不可恢复。`)) return;
+    try {
+      await deleteProjects(ids);
+      setProjects((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+      exitSelectionMode();
+    } catch {
+      alert('批量删除失败，请重试');
+    }
+  }
+
+  async function handleMoveProject(projectId: string, groupId: string | null) {
+    try {
+      await moveProject(projectId, groupId);
+      setProjects((prev) => prev.map((p) => p.id === projectId ? { ...p, group_id: groupId } : p));
+    } catch {
+      alert('移动失败，请重试');
+    }
+  }
+
+  async function handleBulkMove(groupId: string | null) {
+    const ids = [...selectedIds];
+    try {
+      await moveProjects(ids, groupId);
+      setProjects((prev) => prev.map((p) => selectedIds.has(p.id) ? { ...p, group_id: groupId } : p));
+      setShowBulkMoveMenu(false);
+      exitSelectionMode();
+    } catch {
+      alert('移动失败，请重试');
+    }
+  }
+
+  async function handleCreateGroup() {
+    const name = newGroupName.trim();
+    if (!name) return;
+    if (groups.some((g) => g.name === name)) {
+      alert(`已存在名为「${name}」的分组`);
+      return;
+    }
+    try {
+      const g = await createGroup(name);
+      setGroups((prev) => [...prev, g]);
+      setNewGroupName('');
+      setCreatingGroup(false);
+    } catch {
+      alert('创建分组失败，请重试');
+    }
+  }
+
+  async function handleRenameGroup(id: string) {
+    const name = editingGroupName.trim();
+    if (!name) { setEditingGroupId(null); return; }
+    if (groups.some((g) => g.id !== id && g.name === name)) {
+      alert(`已存在名为「${name}」的分组`);
+      return;
+    }
+    try {
+      await renameGroup(id, name);
+      setGroups((prev) => prev.map((g) => g.id === id ? { ...g, name } : g));
+      setEditingGroupId(null);
+    } catch {
+      alert('重命名失败，请重试');
+    }
+  }
+
+  async function handleDeleteGroup(id: string, name: string) {
+    const count = projects.filter((p) => p.group_id === id).length;
+    const msg = count > 0
+      ? `删除分组「${name}」后，其中 ${count} 个项目将移入未分组。确认删除？`
+      : `确认删除分组「${name}」？`;
+    if (!window.confirm(msg)) return;
+    try {
+      await deleteGroup(id);
+      setGroups((prev) => prev.filter((g) => g.id !== id));
+      setProjects((prev) => prev.map((p) => p.group_id === id ? { ...p, group_id: null } : p));
+      if (activeGroupId === id) setActiveGroupId('all');
+    } catch {
+      alert('删除分组失败，请重试');
+    }
+  }
+
   async function handleLogout() {
     await logout();
     navigate('/login', { replace: true });
   }
 
+  const activeGroupLabel = activeGroupId === 'all'
+    ? '全部项目'
+    : activeGroupId === 'ungrouped'
+    ? '未分组'
+    : (groups.find((g) => g.id === activeGroupId)?.name ?? '全部项目');
+
+  const allSelected = displayedProjects.length > 0 && selectedIds.size === displayedProjects.length;
+
   return (
     <div className="projects-page">
+      {/* ── Header ── */}
       <header className="projects-header">
         <span className="projects-logo">BioDraw</span>
         <div className="projects-user-wrap" ref={userMenuRef}>
@@ -309,68 +693,326 @@ export default function ProjectsPage() {
             <div className="projects-user-dropdown">
               <div className="projects-user-dropdown-email">{user?.email}</div>
               <button className="projects-user-dropdown-item" onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}>修改密码</button>
+              <div className="projects-user-dropdown-divider" />
               <button className="projects-user-dropdown-item is-danger" onClick={handleLogout}>退出登录</button>
-              <button className="projects-user-dropdown-item is-danger" onClick={() => { setShowUserMenu(false); setShowDeleteAccount(true); }}>注销账号</button>
+              <div className="projects-user-dropdown-divider projects-user-dropdown-divider--strong" />
+              <button className="projects-user-dropdown-item is-critical" onClick={() => { setShowUserMenu(false); setShowDeleteAccount(true); }}>注销账号</button>
             </div>
           )}
         </div>
       </header>
 
-      <main className="projects-main">
-        <div className="projects-title-row">
-          <h1 className="projects-title">我的项目</h1>
-          <div className="projects-title-actions">
-            <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
+      <div className="projects-body">
+        {/* ── 左侧分组侧边栏 ── */}
+        <aside className="projects-sidebar">
+          <nav className="projects-sidebar-nav">
             <button
-              className={`projects-import-btn${importing ? ' is-importing' : ''}`}
-              onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
-              data-tooltip={importing ? '点击可取消导入操作' : undefined}
+              className={`projects-sidebar-item${activeGroupId === 'all' ? ' is-active' : ''}`}
+              onClick={() => setActiveGroupId('all')}
             >
-              <Upload size={13} strokeWidth={2.5} />
-              {importing ? '导入中...' : '导入项目'}
+              <span className="projects-sidebar-icon">≡</span>
+              <span className="projects-sidebar-label">全部项目</span>
+              <span className="projects-sidebar-count">{projects.length}</span>
             </button>
-            <input
-              ref={importInputRef}
-              type="file"
-              accept=".biodraw"
-              style={{ display: 'none' }}
-              onChange={handleImport}
-            />
-          </div>
-        </div>
 
-        {loading && <div className="projects-loading">加载中...</div>}
-        {listError && <div className="projects-error">{listError}</div>}
+            {groups.map((g) => (
+              <div key={g.id} className="projects-sidebar-group-wrap">
+                {editingGroupId === g.id ? (
+                  <div className="projects-sidebar-edit-row">
+                    <input
+                      ref={editGroupInputRef}
+                      className="projects-sidebar-edit-input"
+                      value={editingGroupName}
+                      onChange={(e) => setEditingGroupName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleRenameGroup(g.id);
+                        if (e.key === 'Escape') setEditingGroupId(null);
+                      }}
+                      onBlur={() => handleRenameGroup(g.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                ) : (
+                  <button
+                    className={`projects-sidebar-item${activeGroupId === g.id ? ' is-active' : ''}`}
+                    onClick={() => setActiveGroupId(g.id)}
+                  >
+                    <span className="projects-sidebar-icon">📁</span>
+                    <span className="projects-sidebar-label">{g.name}</span>
+                    <span className="projects-sidebar-count">
+                      {projects.filter((p) => p.group_id === g.id).length}
+                    </span>
+                    <span className="projects-sidebar-actions">
+                      <span
+                        className="projects-sidebar-action-btn"
+                        title="重命名"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingGroupId(g.id);
+                          setEditingGroupName(g.name);
+                        }}
+                      >
+                        <Pencil size={11} />
+                      </span>
+                      <span
+                        className="projects-sidebar-action-btn is-danger"
+                        title="删除分组"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteGroup(g.id, g.name); }}
+                      >
+                        <Trash2 size={11} />
+                      </span>
+                    </span>
+                  </button>
+                )}
+              </div>
+            ))}
 
-        {!loading && !listError && projects.length === 0 && (
-          <div className="projects-empty">
-            <p>还没有项目，立即开始创作</p>
-            <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>创建第一个项目</button>
-          </div>
-        )}
+            <button
+              className={`projects-sidebar-item${activeGroupId === 'ungrouped' ? ' is-active' : ''}`}
+              onClick={() => setActiveGroupId('ungrouped')}
+            >
+              <span className="projects-sidebar-icon">📋</span>
+              <span className="projects-sidebar-label">未分组</span>
+              <span className="projects-sidebar-count">{projects.filter((p) => !p.group_id).length}</span>
+            </button>
+          </nav>
 
-        {!loading && projects.length > 0 && (
-          <div style={{ position: 'relative' }}>
-            <div className="projects-grid">
-              {projects.map((p) => (
-                <ProjectCard
-                  key={p.id}
-                  project={p}
-                  onOpen={() => navigate(`/editor/${p.id}`)}
-                  onRename={() => handleRename(p.id, p.title)}
-                  onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
-                  onExport={() => setExportTarget({ id: p.id, title: p.title })}
-                  onDownload={() => handleDownload(p.id, p.title)}
-                  onDelete={() => handleDelete(p.id, p.title)}
+          <div className="projects-sidebar-footer">
+            {creatingGroup ? (
+              <div className="projects-sidebar-new-group">
+                <input
+                  ref={newGroupInputRef}
+                  className="projects-sidebar-edit-input"
+                  placeholder="分组名称..."
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCreateGroup();
+                    if (e.key === 'Escape') { setCreatingGroup(false); setNewGroupName(''); }
+                  }}
                 />
-              ))}
-            </div>
-            {importing && (
-              <div style={{ position: 'absolute', inset: 0, cursor: 'not-allowed', zIndex: 1 }} />
+                <div className="projects-sidebar-new-group-actions">
+                  <button className="projects-sidebar-new-confirm" onClick={handleCreateGroup}>确认</button>
+                  <button className="projects-sidebar-new-cancel" onClick={() => { setCreatingGroup(false); setNewGroupName(''); }}>取消</button>
+                </div>
+              </div>
+            ) : (
+              <button className="projects-sidebar-add-btn" onClick={() => setCreatingGroup(true)}>
+                <FolderPlus size={13} />
+                新建分组
+              </button>
             )}
           </div>
-        )}
-      </main>
+        </aside>
+
+        {/* ── 主内容 ── */}
+        <main className="projects-main">
+          {/* 控制栏 */}
+          {selectionMode ? (
+            <div className="projects-controls">
+              <label className="projects-select-all" onClick={toggleSelectAll}>
+                <div className={`project-card-checkbox${allSelected ? ' is-checked' : ''}`}>
+                  {allSelected && <Check size={11} strokeWidth={3} />}
+                </div>
+                <span>{allSelected ? '取消全选' : '全选'}</span>
+              </label>
+              <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
+              <div style={{ flex: 1 }} />
+              <div className="projects-sort-wrap" ref={bulkMoveRef}>
+                <button
+                  className="projects-ghost-btn"
+                  disabled={selectedIds.size === 0}
+                  onClick={() => setShowBulkMoveMenu((p) => !p)}
+                >
+                  移动到 <ChevronDown size={12} />
+                </button>
+                {showBulkMoveMenu && (
+                  <div className="projects-sort-menu">
+                    <button onClick={() => handleBulkMove(null)}>未分组</button>
+                    {groups.map((g) => (
+                      <button key={g.id} onClick={() => handleBulkMove(g.id)}>{g.name}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                className="projects-danger-btn"
+                disabled={selectedIds.size === 0}
+                onClick={handleBulkDelete}
+              >
+                <Trash2 size={13} />
+                删除所选 ({selectedIds.size})
+              </button>
+              <button className="projects-ghost-btn" onClick={exitSelectionMode}>取消</button>
+            </div>
+          ) : (
+            <div className="projects-controls">
+              <h1 className="projects-title">
+                {activeGroupLabel}
+                <span className="projects-title-count">{displayedProjects.length}</span>
+              </h1>
+              <div className="projects-search-wrap">
+                <Search size={13} className="projects-search-icon" />
+                <input
+                  ref={searchRef}
+                  className="projects-search-input"
+                  placeholder="搜索项目名称..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button className="projects-search-clear" onClick={() => setSearchQuery('')}>
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+              <div className="projects-sort-wrap" ref={sortMenuRef}>
+                <button className="projects-ghost-btn" onClick={() => setShowSortMenu((p) => !p)}>
+                  {SORT_LABELS[sortKey]} <ChevronDown size={12} />
+                </button>
+                {showSortMenu && (
+                  <div className="projects-sort-menu">
+                    {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                      <button
+                        key={k}
+                        className={sortKey === k ? 'is-active' : ''}
+                        onClick={() => { setSortKey(k); setShowSortMenu(false); }}
+                      >
+                        {sortKey === k && <Check size={12} />}
+                        {SORT_LABELS[k]}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="projects-view-toggle">
+                <button
+                  className={`projects-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+                  onClick={() => handleViewMode('grid')}
+                  title="网格视图"
+                >
+                  <LayoutGrid size={14} />
+                </button>
+                <button
+                  className={`projects-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+                  onClick={() => handleViewMode('list')}
+                  title="列表视图"
+                >
+                  <List size={14} />
+                </button>
+              </div>
+              <button className="projects-ghost-btn" onClick={() => setSelectionMode(true)}>选择</button>
+              <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
+              <button
+                className={`projects-import-btn${importing ? ' is-importing' : ''}`}
+                onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
+                data-tooltip={importing ? '点击可取消导入操作' : undefined}
+              >
+                <Upload size={13} strokeWidth={2.5} />
+                {importing ? '导入中...' : '导入项目'}
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".biodraw"
+                style={{ display: 'none' }}
+                onChange={handleImport}
+              />
+            </div>
+          )}
+
+          {loading && <div className="projects-loading">加载中...</div>}
+          {listError && <div className="projects-error">{listError}</div>}
+
+          {!loading && !listError && displayedProjects.length === 0 && (
+            <div className="projects-empty">
+              {searchQuery ? (
+                <>
+                  <div className="projects-empty-icon">🔍</div>
+                  <p className="projects-empty-title">找不到匹配的项目</p>
+                  <p className="projects-empty-sub">
+                    尝试其他关键词，或{' '}
+                    <button className="projects-empty-link" onClick={() => setSearchQuery('')}>清除搜索</button>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="projects-empty-canvas" />
+                  <p className="projects-empty-title">这里还没有项目</p>
+                  <p className="projects-empty-sub">立即创作你的第一个动画示意图</p>
+                  <div className="projects-empty-actions">
+                    <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
+                    <button
+                      className={`projects-import-btn${importing ? ' is-importing' : ''}`}
+                      onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
+                    >
+                      <Upload size={13} strokeWidth={2.5} />
+                      导入项目
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {!loading && displayedProjects.length > 0 && (
+            <div style={{ position: 'relative' }}>
+              {viewMode === 'grid' ? (
+                <div className="projects-grid">
+                  {displayedProjects.map((p) => (
+                    <ProjectCard
+                      key={p.id}
+                      project={p}
+                      groups={groups}
+                      selectionMode={selectionMode}
+                      selected={selectedIds.has(p.id)}
+                      onToggleSelect={() => toggleSelect(p.id)}
+                      onOpen={() => navigate(`/editor/${p.id}`)}
+                      onRename={() => handleRename(p.id, p.title)}
+                      onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
+                      onExport={() => setExportTarget({ id: p.id, title: p.title })}
+                      onDownload={() => handleDownload(p.id, p.title)}
+                      onDelete={() => handleDelete(p.id, p.title)}
+                      onMove={(gid) => handleMoveProject(p.id, gid)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="projects-list">
+                  <div className="projects-list-header">
+                    {selectionMode && <div className="project-row-check" />}
+                    <div className="project-row-thumb" />
+                    <div className="project-row-title">名称</div>
+                    <div className="project-row-group">分组</div>
+                    <div className="project-row-time">最近更新</div>
+                    <div className="project-row-actions" />
+                  </div>
+                  {displayedProjects.map((p) => (
+                    <ProjectRow
+                      key={p.id}
+                      project={p}
+                      groups={groups}
+                      selectionMode={selectionMode}
+                      selected={selectedIds.has(p.id)}
+                      onToggleSelect={() => toggleSelect(p.id)}
+                      onOpen={() => navigate(`/editor/${p.id}`)}
+                      onRename={() => handleRename(p.id, p.title)}
+                      onPreview={() => navigate(`/editor/${p.id}?autoPreview=1`)}
+                      onExport={() => setExportTarget({ id: p.id, title: p.title })}
+                      onDownload={() => handleDownload(p.id, p.title)}
+                      onDelete={() => handleDelete(p.id, p.title)}
+                      onMove={(gid) => handleMoveProject(p.id, gid)}
+                    />
+                  ))}
+                </div>
+              )}
+              {importing && (
+                <div style={{ position: 'absolute', inset: 0, cursor: 'not-allowed', zIndex: 1 }} />
+              )}
+            </div>
+          )}
+        </main>
+      </div>
 
       {exportTarget && (
         <ProjectExportModal
@@ -379,15 +1021,12 @@ export default function ProjectsPage() {
           onClose={() => setExportTarget(null)}
         />
       )}
-
       {showChangePassword && (
         <ChangePasswordModal onClose={() => setShowChangePassword(false)} />
       )}
-
       {showDeleteAccount && (
         <DeleteAccountModal onClose={() => setShowDeleteAccount(false)} />
       )}
-
       {thumbGenTarget && (
         <ThumbnailCapture
           projectId={thumbGenTarget.id}
@@ -395,7 +1034,7 @@ export default function ProjectsPage() {
           onDone={() => {
             setThumbGenTarget(null);
             setImporting(false);
-            load();
+            loadAll();
           }}
         />
       )}
