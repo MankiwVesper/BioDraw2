@@ -933,16 +933,16 @@ export default function ProjectsPage() {
                 <List size={14} />
               </button>
             </div>
+            <div className="projects-toolbar-divider" />
+            <label className="projects-select-all" onClick={toggleSelectAll}>
+              <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
+                {allSelected && <Check size={11} strokeWidth={3} />}
+                {!allSelected && partialSelected && <Minus size={11} strokeWidth={3} />}
+              </div>
+              <span>全选</span>
+            </label>
             {selectedIds.size > 0 && (
               <>
-                <div className="projects-toolbar-divider" />
-                <label className="projects-select-all" onClick={toggleSelectAll}>
-                  <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
-                    {allSelected && <Check size={11} strokeWidth={3} />}
-                    {!allSelected && partialSelected && <Minus size={11} strokeWidth={3} />}
-                  </div>
-                  <span>全选</span>
-                </label>
                 <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
                 <div className="projects-sort-wrap" ref={bulkMoveRef}>
                   <button className="projects-ghost-btn" onClick={() => setShowBulkMoveMenu((p) => !p)}>
