@@ -383,7 +383,8 @@ export default function ProjectsPage() {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
   const newGroupInputRef  = useRef<HTMLInputElement>(null);
-  const editGroupInputRef = useRef<HTMLInputElement>(null);
+  const editGroupInputRef    = useRef<HTMLInputElement>(null);
+  const groupEditEscapedRef  = useRef(false);
 
   const [exportTarget, setExportTarget] = useState<{ id: string; title: string } | null>(null);
   const [importing, setImporting] = useState(false);
@@ -735,10 +736,10 @@ export default function ProjectsPage() {
                       value={editingGroupName}
                       onChange={(e) => setEditingGroupName(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleRenameGroup(g.id);
-                        if (e.key === 'Escape') setEditingGroupId(null);
+                        if (e.key === 'Enter') { groupEditEscapedRef.current = false; handleRenameGroup(g.id); }
+                        if (e.key === 'Escape') { groupEditEscapedRef.current = true; setEditingGroupId(null); }
                       }}
-                      onBlur={() => handleRenameGroup(g.id)}
+                      onBlur={() => { if (!groupEditEscapedRef.current) handleRenameGroup(g.id); groupEditEscapedRef.current = false; }}
                       onClick={(e) => e.stopPropagation()}
                     />
                   </div>
