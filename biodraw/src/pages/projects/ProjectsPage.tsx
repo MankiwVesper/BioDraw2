@@ -562,6 +562,7 @@ export default function ProjectsPage() {
 
   function switchGroup(id: string) {
     setActiveGroupId(id);
+    setSearchQuery('');
     if (selectionMode) exitSelectionMode();
   }
 
