@@ -234,7 +234,14 @@ function ProjectCard({
   useLayoutEffect(() => {
     const el = titleRef.current;
     if (!el) return;
-    if (el.scrollWidth > el.offsetWidth) {
+    const { width, overflow } = el.style;
+    el.style.width = 'max-content';
+    el.style.overflow = 'visible';
+    const natural = el.getBoundingClientRect().width;
+    el.style.width = width;
+    el.style.overflow = overflow;
+    const constrained = el.getBoundingClientRect().width;
+    if (natural > constrained + 0.5) {
       el.setAttribute('data-tooltip', project.title);
     } else {
       el.removeAttribute('data-tooltip');
@@ -244,7 +251,14 @@ function ProjectCard({
   useLayoutEffect(() => {
     const el = groupTagTextRef.current;
     if (!el) return;
-    if (el.scrollWidth > el.offsetWidth) {
+    const { width, overflow } = el.style;
+    el.style.width = 'max-content';
+    el.style.overflow = 'visible';
+    const natural = el.getBoundingClientRect().width;
+    el.style.width = width;
+    el.style.overflow = overflow;
+    const constrained = el.getBoundingClientRect().width;
+    if (natural > constrained + 0.5) {
       el.setAttribute('data-tooltip', groupName ?? '');
     } else {
       el.removeAttribute('data-tooltip');
