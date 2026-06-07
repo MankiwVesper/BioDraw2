@@ -20,6 +20,15 @@ import './ProjectsPage.css';
 type SortKey = 'updated_at' | 'created_at' | 'title';
 type ViewMode = 'grid' | 'list';
 
+function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void, enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return;
+    const fn = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) handler(); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, [enabled, handler, ref]);
+}
+
 // ── 轻量确认弹窗 ──────────────────────────────────────────────────────────────
 function ConfirmModal({
   message,
@@ -217,17 +226,7 @@ function ProjectCard({
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!showMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-        setShowMoveMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showMenu]);
+  useClickOutside(menuRef, () => { setShowMenu(false); setShowMoveMenu(false); }, showMenu);
 
   const groupName = project.group_id ? groupsMap.get(project.group_id) : undefined;
 
@@ -336,17 +335,7 @@ function ProjectRow({
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!showMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setShowMenu(false);
-        setShowMoveMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showMenu]);
+  useClickOutside(menuRef, () => { setShowMenu(false); setShowMoveMenu(false); }, showMenu);
 
   const groupName = (project.group_id ? groupsMap.get(project.group_id) : undefined) ?? '未分组';
 
@@ -432,8 +421,6 @@ export default function ProjectsPage() {
   const [sortKey, setSortKey]   = useState<SortKey>('updated_at');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [searchQuery, setSearchQuery]   = useState('');
-  const searchRef = useRef<HTMLInputElement>(null);
-
   // 批量操作
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
@@ -476,32 +463,9 @@ export default function ProjectsPage() {
     setTimeout(() => editGroupInputRef.current?.focus(), 0);
   }, [editingGroupId]);
 
-  useEffect(() => {
-    if (!showUserMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setShowUserMenu(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showUserMenu]);
-
-  useEffect(() => {
-    if (!showSortMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setShowSortMenu(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showSortMenu]);
-
-  useEffect(() => {
-    if (!showBulkMoveMenu) return;
-    const handler = (e: MouseEvent) => {
-      if (bulkMoveRef.current && !bulkMoveRef.current.contains(e.target as Node)) setShowBulkMoveMenu(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showBulkMoveMenu]);
+  useClickOutside(userMenuRef,  () => setShowUserMenu(false),    showUserMenu);
+  useClickOutside(sortMenuRef,  () => setShowSortMenu(false),    showSortMenu);
+  useClickOutside(bulkMoveRef,  () => setShowBulkMoveMenu(false), showBulkMoveMenu);
 
   async function loadAll() {
     try {
@@ -947,7 +911,6 @@ export default function ProjectsPage() {
               <div className="projects-search-wrap">
                 <Search size={13} className="projects-search-icon" />
                 <input
-                  ref={searchRef}
                   className="projects-search-input"
                   placeholder="搜索项目名称..."
                   value={searchQuery}
