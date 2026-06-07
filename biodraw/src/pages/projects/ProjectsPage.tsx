@@ -232,24 +232,6 @@ function ProjectCard({
 
   const groupName = project.group_id ? groupsMap.get(project.group_id) : undefined;
 
-  useLayoutEffect(() => {
-    const el = titleRef.current;
-    if (!el) return;
-    const { flex: f, width: w, overflow: o } = el.style;
-    el.style.flex = 'none';
-    el.style.width = 'max-content';
-    el.style.overflow = 'visible';
-    const natural = el.getBoundingClientRect().width;
-    el.style.flex = f;
-    el.style.width = w;
-    el.style.overflow = o;
-    const constrained = el.getBoundingClientRect().width;
-    if (natural > constrained + 0.5) {
-      el.setAttribute('data-tooltip', project.title);
-    } else {
-      el.removeAttribute('data-tooltip');
-    }
-  }, [project.title]);
 
   useLayoutEffect(() => {
     const textEl = groupTagTextRef.current;
@@ -296,7 +278,18 @@ function ProjectCard({
 
       <div className="project-card-footer">
         <div className="project-card-title-row">
-          <span ref={titleRef} className="project-card-title">{project.title}</span>
+          <span
+            ref={titleRef}
+            className="project-card-title"
+            onMouseEnter={(e) => {
+              const el = e.currentTarget;
+              if (el.scrollWidth > el.clientWidth) {
+                el.setAttribute('data-tooltip', project.title);
+              } else {
+                el.removeAttribute('data-tooltip');
+              }
+            }}
+          >{project.title}</span>
           {groupName && (
             <span ref={groupTagRef} className="project-card-group-tag">
               <Folder size={10} />
@@ -793,7 +786,17 @@ export default function ProjectsPage() {
                     onClick={() => switchGroup(g.id)}
                   >
                     <span className="projects-sidebar-icon"><Folder size={14} /></span>
-                    <span className="projects-sidebar-label">{g.name}</span>
+                    <span
+                      className="projects-sidebar-label"
+                      onMouseEnter={(e) => {
+                        const el = e.currentTarget;
+                        if (el.scrollWidth > el.clientWidth) {
+                          el.setAttribute('data-tooltip', g.name);
+                        } else {
+                          el.removeAttribute('data-tooltip');
+                        }
+                      }}
+                    >{g.name}</span>
                     <span className="projects-sidebar-count">
                       {groupCountMap.get(g.id) ?? 0}
                     </span>
