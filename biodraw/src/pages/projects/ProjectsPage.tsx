@@ -224,12 +224,20 @@ function ProjectCard({
 }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const moveMenuRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLSpanElement>(null);
   const groupTagTextRef = useRef<HTMLSpanElement>(null);
+  const [titleTruncated, setTitleTruncated] = useState(false);
   const [groupNameTruncated, setGroupNameTruncated] = useState(false);
 
   useClickOutside(moveMenuRef, () => setShowMoveMenu(false), showMoveMenu);
 
   const groupName = project.group_id ? groupsMap.get(project.group_id) : undefined;
+
+  useLayoutEffect(() => {
+    const el = titleRef.current;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setTitleTruncated(!!el && el.scrollWidth > el.offsetWidth);
+  }, [project.title]);
 
   useLayoutEffect(() => {
     const el = groupTagTextRef.current;
@@ -262,7 +270,7 @@ function ProjectCard({
 
       <div className="project-card-footer">
         <div className="project-card-title-row">
-          <span className="project-card-title">{project.title}</span>
+          <span ref={titleRef} className="project-card-title" data-tooltip={titleTruncated ? project.title : undefined}>{project.title}</span>
           {groupName && (
             <span className="project-card-group-tag" data-tooltip={groupNameTruncated ? groupName : undefined}>
               <Folder size={10} />
