@@ -884,13 +884,6 @@ export default function ProjectsPage() {
 
           {/* 工具栏（不切换模式，批量操作按需追加在右侧） */}
           <div className="projects-toolbar">
-            <label className="projects-select-all" onClick={toggleSelectAll}>
-              <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
-                {allSelected && <Check size={11} strokeWidth={3} />}
-                {!allSelected && partialSelected && <Minus size={11} strokeWidth={3} />}
-              </div>
-              <span>全选</span>
-            </label>
             <div className="projects-search-wrap">
               <Search size={13} className="projects-search-icon" />
               <input
@@ -943,6 +936,13 @@ export default function ProjectsPage() {
             {selectedIds.size > 0 && (
               <>
                 <div className="projects-toolbar-divider" />
+                <label className="projects-select-all" onClick={toggleSelectAll}>
+                  <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
+                    {allSelected && <Check size={11} strokeWidth={3} />}
+                    {!allSelected && partialSelected && <Minus size={11} strokeWidth={3} />}
+                  </div>
+                  <span>全选</span>
+                </label>
                 <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
                 <div className="projects-sort-wrap" ref={bulkMoveRef}>
                   <button className="projects-ghost-btn" onClick={() => setShowBulkMoveMenu((p) => !p)}>
