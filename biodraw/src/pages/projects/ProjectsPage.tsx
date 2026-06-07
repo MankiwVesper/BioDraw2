@@ -198,7 +198,7 @@ function MoveToMenu({
 function ProjectCard({
   project,
   groupsMap,
-  selectionMode,
+  anySelected,
   selected,
   onToggleSelect,
   onOpen,
@@ -211,7 +211,7 @@ function ProjectCard({
 }: {
   project: ProjectRecord;
   groupsMap: Map<string, string>;
-  selectionMode: boolean;
+  anySelected: boolean;
   selected: boolean;
   onToggleSelect: () => void;
   onOpen: () => void;
@@ -231,7 +231,7 @@ function ProjectCard({
   const groupName = project.group_id ? groupsMap.get(project.group_id) : undefined;
 
   function handleCardClick() {
-    if (selectionMode) { onToggleSelect(); return; }
+    if (anySelected) { onToggleSelect(); return; }
     onOpen();
   }
 
@@ -245,15 +245,15 @@ function ProjectCard({
           ? <img src={project.thumbnail} alt="" draggable={false} loading="lazy" />
           : <span className="project-card-preview-placeholder">空白项目</span>
         }
-        {selectionMode && (
-          <div className={`project-card-checkbox${selected ? ' is-checked' : ''}`}>
-            {selected && <Check size={11} strokeWidth={3} />}
-          </div>
-        )}
+        <div
+          className={`project-card-checkbox${selected ? ' is-checked' : ''}`}
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}
+        >
+          {selected && <Check size={11} strokeWidth={3} />}
+        </div>
       </div>
 
-      {!selectionMode && (
-        <div className="project-card-menu-wrap" ref={menuRef} onClick={(e) => e.stopPropagation()}>
+      <div className="project-card-menu-wrap" ref={menuRef} onClick={(e) => e.stopPropagation()}>
           <button
             className="project-card-menu-btn"
             onClick={() => { setShowMenu((p) => !p); setShowMoveMenu(false); }}
@@ -287,7 +287,6 @@ function ProjectCard({
             </div>
           )}
         </div>
-      )}
 
       <div className="project-card-footer">
         <div className="project-card-info">
@@ -307,7 +306,7 @@ function ProjectCard({
 function ProjectRow({
   project,
   groupsMap,
-  selectionMode,
+  anySelected,
   selected,
   onToggleSelect,
   onOpen,
@@ -320,7 +319,7 @@ function ProjectRow({
 }: {
   project: ProjectRecord;
   groupsMap: Map<string, string>;
-  selectionMode: boolean;
+  anySelected: boolean;
   selected: boolean;
   onToggleSelect: () => void;
   onOpen: () => void;
@@ -340,7 +339,7 @@ function ProjectRow({
   const groupName = (project.group_id ? groupsMap.get(project.group_id) : undefined) ?? '未分组';
 
   function handleRowClick() {
-    if (selectionMode) { onToggleSelect(); return; }
+    if (anySelected) { onToggleSelect(); return; }
     onOpen();
   }
 
@@ -349,13 +348,11 @@ function ProjectRow({
       className={`project-row${selected ? ' is-selected' : ''}`}
       onClick={handleRowClick}
     >
-      {selectionMode && (
-        <div className="project-row-check" onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}>
-          <div className={`project-card-checkbox${selected ? ' is-checked' : ''}`}>
-            {selected && <Check size={11} strokeWidth={3} />}
-          </div>
+      <div className="project-row-check" onClick={(e) => { e.stopPropagation(); onToggleSelect(); }}>
+        <div className={`project-card-checkbox${selected ? ' is-checked' : ''}`}>
+          {selected && <Check size={11} strokeWidth={3} />}
         </div>
-      )}
+      </div>
       <div className="project-row-thumb">
         {project.thumbnail
           ? <img src={project.thumbnail} alt="" draggable={false} loading="lazy" />
@@ -422,7 +419,6 @@ export default function ProjectsPage() {
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [searchQuery, setSearchQuery]   = useState('');
   // 批量操作
-  const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [showBulkMoveMenu, setShowBulkMoveMenu] = useState(false);
   const bulkMoveRef = useRef<HTMLDivElement>(null);
@@ -519,15 +515,10 @@ export default function ProjectsPage() {
     localStorage.setItem('pv_view', mode);
   }
 
-  function exitSelectionMode() {
-    setSelectionMode(false);
-    setSelectedIds(new Set());
-  }
-
   function switchGroup(id: string) {
     setActiveGroupId(id);
     setSearchQuery('');
-    if (selectionMode) exitSelectionMode();
+    setSelectedIds(new Set());
   }
 
   function toggleSelect(id: string) {
@@ -641,7 +632,7 @@ export default function ProjectsPage() {
       await deleteProjects(ids);
       setProjects((prev) => prev.filter((p) => !selectedIds.has(p.id)));
       setBulkDeletePending(false);
-      exitSelectionMode();
+      setSelectedIds(new Set());
     } catch {
       alert('批量删除失败，请重试');
     }
@@ -662,7 +653,7 @@ export default function ProjectsPage() {
       await moveProjects(ids, groupId);
       setProjects((prev) => prev.map((p) => selectedIds.has(p.id) ? { ...p, group_id: groupId } : p));
       setShowBulkMoveMenu(false);
-      exitSelectionMode();
+      setSelectedIds(new Set());
     } catch {
       alert('移动失败，请重试');
     }
@@ -865,7 +856,7 @@ export default function ProjectsPage() {
         {/* ── 主内容 ── */}
         <main className="projects-main">
           {/* 控制栏 */}
-          {selectionMode ? (
+          {selectedIds.size > 0 ? (
             <div className="projects-controls">
               <label className="projects-select-all" onClick={toggleSelectAll}>
                 <div className={`project-card-checkbox${allSelected ? ' is-checked' : ''}`}>
@@ -878,7 +869,6 @@ export default function ProjectsPage() {
               <div className="projects-sort-wrap" ref={bulkMoveRef}>
                 <button
                   className="projects-ghost-btn"
-                  disabled={selectedIds.size === 0}
                   onClick={() => setShowBulkMoveMenu((p) => !p)}
                 >
                   移动到 <ChevronDown size={12} />
@@ -894,13 +884,12 @@ export default function ProjectsPage() {
               </div>
               <button
                 className="projects-danger-btn"
-                disabled={selectedIds.size === 0}
                 onClick={() => setBulkDeletePending(true)}
               >
                 <Trash2 size={13} />
                 删除所选 ({selectedIds.size})
               </button>
-              <button className="projects-ghost-btn" onClick={exitSelectionMode}>取消</button>
+              <button className="projects-ghost-btn" onClick={() => setSelectedIds(new Set())}>取消</button>
             </div>
           ) : (
             <>
@@ -978,7 +967,6 @@ export default function ProjectsPage() {
                     <List size={14} />
                   </button>
                 </div>
-                <button className="projects-ghost-btn" onClick={() => setSelectionMode(true)}>选择</button>
               </div>
             </>
           )}
@@ -1026,7 +1014,7 @@ export default function ProjectsPage() {
                       key={p.id}
                       project={p}
                       groupsMap={groupsMap}
-                      selectionMode={selectionMode}
+                      anySelected={selectedIds.size > 0}
                       selected={selectedIds.has(p.id)}
                       onToggleSelect={() => toggleSelect(p.id)}
                       onOpen={() => navigate(`/editor/${p.id}`)}
@@ -1042,7 +1030,7 @@ export default function ProjectsPage() {
               ) : (
                 <div className="projects-list">
                   <div className="projects-list-header">
-                    {selectionMode && <div className="project-row-check" />}
+                    <div className="project-row-check" />
                     <div className="project-row-thumb" />
                     <div className="project-row-title">名称</div>
                     <div className="project-row-group">分组</div>
@@ -1054,7 +1042,7 @@ export default function ProjectsPage() {
                       key={p.id}
                       project={p}
                       groupsMap={groupsMap}
-                      selectionMode={selectionMode}
+                      anySelected={selectedIds.size > 0}
                       selected={selectedIds.has(p.id)}
                       onToggleSelect={() => toggleSelect(p.id)}
                       onOpen={() => navigate(`/editor/${p.id}`)}

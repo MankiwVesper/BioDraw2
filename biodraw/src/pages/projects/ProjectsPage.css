@@ -738,13 +738,21 @@
   color: #fff;
 }
 
-/* checkbox 在卡片预览区左上角 */
+/* checkbox 在卡片预览区左上角：hover 或选中时可见 */
 .project-card-preview .project-card-checkbox {
   position: absolute;
   top: 8px;
   left: 8px;
   z-index: 2;
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  opacity: 0;
+  transition: opacity 0.12s, border-color 0.12s, background 0.12s;
+  cursor: pointer;
+}
+
+.project-card:hover .project-card-preview .project-card-checkbox,
+.project-card-preview .project-card-checkbox.is-checked {
+  opacity: 1;
 }
 
 /* ··· 按钮定位在卡片右上角（相对 .project-card，不在 overflow:hidden 的 preview 内） */
@@ -957,6 +965,18 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
+}
+
+/* 列表行 checkbox：hover 或选中时可见 */
+.project-row .project-row-check .project-card-checkbox {
+  opacity: 0;
+  transition: opacity 0.12s, border-color 0.12s, background 0.12s;
+  cursor: pointer;
+}
+
+.project-row:hover .project-row-check .project-card-checkbox,
+.project-row .project-row-check .project-card-checkbox.is-checked {
+  opacity: 1;
 }
 
 .project-row-thumb {
