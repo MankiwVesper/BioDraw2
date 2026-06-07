@@ -875,6 +875,10 @@
   max-width: 72px;
 }
 
+.project-card-group-tag > svg {
+  flex-shrink: 0;
+}
+
 .project-card-group-tag > span {
   overflow: hidden;
   text-overflow: ellipsis;

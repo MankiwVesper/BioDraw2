@@ -256,7 +256,7 @@ function ProjectCard({
         <div className="project-card-title-row">
           <span className="project-card-title">{project.title}</span>
           {groupName && (
-            <span className="project-card-group-tag">
+            <span className="project-card-group-tag" data-tooltip={groupName}>
               <Folder size={10} />
               <span>{groupName}</span>
             </span>
