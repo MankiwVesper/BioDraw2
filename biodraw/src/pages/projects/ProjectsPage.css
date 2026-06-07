@@ -605,6 +605,14 @@
 .projects-danger-btn:hover:not(:disabled) { opacity: 0.88; }
 .projects-danger-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* 工具栏内批量操作区左侧竖线分隔 */
+.projects-toolbar-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-color);
+  flex-shrink: 0;
+}
+
 /* ── 加载 / 错误 / 空状态 ─────────────────────────────────────────────── */
 .projects-loading,
 .projects-error {
@@ -736,6 +744,12 @@
   border-color: var(--primary-color);
   background: var(--primary-color);
   color: #fff;
+}
+
+.project-card-checkbox.is-indeterminate {
+  border-color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 15%, var(--panel-bg));
+  color: var(--primary-color);
 }
 
 /* checkbox 在卡片预览区左上角：hover 或选中时可见 */

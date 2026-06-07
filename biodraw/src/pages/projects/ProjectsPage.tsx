@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Upload, LayoutGrid, List, Search, X, ChevronDown, MoreHorizontal, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox } from 'lucide-react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, MoreHorizontal, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
@@ -716,7 +716,8 @@ export default function ProjectsPage() {
     ? '未分组'
     : (groups.find((g) => g.id === activeGroupId)?.name ?? '全部项目');
 
-  const allSelected = displayedProjects.length > 0 && selectedIds.size === displayedProjects.length;
+  const allSelected     = displayedProjects.length > 0 && selectedIds.size === displayedProjects.length;
+  const partialSelected = selectedIds.size > 0 && !allSelected;
 
   return (
     <div className="projects-page">
@@ -855,121 +856,114 @@ export default function ProjectsPage() {
 
         {/* ── 主内容 ── */}
         <main className="projects-main">
-          {/* 控制栏 */}
-          {selectedIds.size > 0 ? (
-            <div className="projects-controls">
-              <label className="projects-select-all" onClick={toggleSelectAll}>
-                <div className={`project-card-checkbox${allSelected ? ' is-checked' : ''}`}>
-                  {allSelected && <Check size={11} strokeWidth={3} />}
-                </div>
-                <span>{allSelected ? '取消全选' : '全选'}</span>
-              </label>
-              <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
-              <div style={{ flex: 1 }} />
-              <div className="projects-sort-wrap" ref={bulkMoveRef}>
-                <button
-                  className="projects-ghost-btn"
-                  onClick={() => setShowBulkMoveMenu((p) => !p)}
-                >
-                  移动到 <ChevronDown size={12} />
-                </button>
-                {showBulkMoveMenu && (
-                  <div className="projects-sort-menu">
-                    <button onClick={() => handleBulkMove(null)}>未分组</button>
-                    {groups.map((g) => (
-                      <button key={g.id} onClick={() => handleBulkMove(g.id)}>{g.name}</button>
-                    ))}
-                  </div>
-                )}
-              </div>
+          {/* 标题行 */}
+          <div className="projects-page-header">
+            <h1 className="projects-title">
+              {activeGroupLabel}
+              <span className="projects-title-count">{displayedProjects.length}</span>
+            </h1>
+            <div className="projects-header-actions">
+              <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
               <button
-                className="projects-danger-btn"
-                onClick={() => setBulkDeletePending(true)}
+                className={`projects-import-btn${importing ? ' is-importing' : ''}`}
+                onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
+                data-tooltip={importing ? '点击可取消导入操作' : undefined}
               >
-                <Trash2 size={13} />
-                删除所选 ({selectedIds.size})
+                <Upload size={13} strokeWidth={2.5} />
+                {importing ? '导入中...' : '导入项目'}
               </button>
-              <button className="projects-ghost-btn" onClick={() => setSelectedIds(new Set())}>取消</button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".biodraw"
+                style={{ display: 'none' }}
+                onChange={handleImport}
+              />
             </div>
-          ) : (
-            <>
-              <div className="projects-page-header">
-                <h1 className="projects-title">
-                  {activeGroupLabel}
-                  <span className="projects-title-count">{displayedProjects.length}</span>
-                </h1>
-                <div className="projects-header-actions">
-                  <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
-                  <button
-                    className={`projects-import-btn${importing ? ' is-importing' : ''}`}
-                    onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
-                    data-tooltip={importing ? '点击可取消导入操作' : undefined}
-                  >
-                    <Upload size={13} strokeWidth={2.5} />
-                    {importing ? '导入中...' : '导入项目'}
-                  </button>
-                  <input
-                    ref={importInputRef}
-                    type="file"
-                    accept=".biodraw"
-                    style={{ display: 'none' }}
-                    onChange={handleImport}
-                  />
-                </div>
+          </div>
+
+          {/* 工具栏（不切换模式，批量操作按需追加在右侧） */}
+          <div className="projects-toolbar">
+            <label className="projects-select-all" onClick={toggleSelectAll}>
+              <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
+                {allSelected && <Check size={11} strokeWidth={3} />}
+                {!allSelected && partialSelected && <Minus size={11} strokeWidth={3} />}
               </div>
-              <div className="projects-toolbar">
-                <div className="projects-search-wrap">
-                  <Search size={13} className="projects-search-icon" />
-                  <input
-                    className="projects-search-input"
-                    placeholder="搜索项目名称..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button className="projects-search-clear" onClick={() => setSearchQuery('')}>
-                      <X size={12} />
+              <span>全选</span>
+            </label>
+            <div className="projects-search-wrap">
+              <Search size={13} className="projects-search-icon" />
+              <input
+                className="projects-search-input"
+                placeholder="搜索项目名称..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="projects-search-clear" onClick={() => setSearchQuery('')}>
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+            <div className="projects-sort-wrap" ref={sortMenuRef}>
+              <button className="projects-ghost-btn" onClick={() => setShowSortMenu((p) => !p)}>
+                {SORT_LABELS[sortKey]} <ChevronDown size={12} />
+              </button>
+              {showSortMenu && (
+                <div className="projects-sort-menu">
+                  {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                    <button
+                      key={k}
+                      className={sortKey === k ? 'is-active' : ''}
+                      onClick={() => { setSortKey(k); setShowSortMenu(false); }}
+                    >
+                      {sortKey === k && <Check size={12} />}
+                      {SORT_LABELS[k]}
                     </button>
-                  )}
+                  ))}
                 </div>
-                <div className="projects-sort-wrap" ref={sortMenuRef}>
-                  <button className="projects-ghost-btn" onClick={() => setShowSortMenu((p) => !p)}>
-                    {SORT_LABELS[sortKey]} <ChevronDown size={12} />
+              )}
+            </div>
+            <div className="projects-view-toggle">
+              <button
+                className={`projects-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+                onClick={() => handleViewMode('grid')}
+                title="网格视图"
+              >
+                <LayoutGrid size={14} />
+              </button>
+              <button
+                className={`projects-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+                onClick={() => handleViewMode('list')}
+                title="列表视图"
+              >
+                <List size={14} />
+              </button>
+            </div>
+            {selectedIds.size > 0 && (
+              <>
+                <div className="projects-toolbar-divider" />
+                <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
+                <div className="projects-sort-wrap" ref={bulkMoveRef}>
+                  <button className="projects-ghost-btn" onClick={() => setShowBulkMoveMenu((p) => !p)}>
+                    移动到 <ChevronDown size={12} />
                   </button>
-                  {showSortMenu && (
+                  {showBulkMoveMenu && (
                     <div className="projects-sort-menu">
-                      {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
-                        <button
-                          key={k}
-                          className={sortKey === k ? 'is-active' : ''}
-                          onClick={() => { setSortKey(k); setShowSortMenu(false); }}
-                        >
-                          {sortKey === k && <Check size={12} />}
-                          {SORT_LABELS[k]}
-                        </button>
+                      <button onClick={() => handleBulkMove(null)}>未分组</button>
+                      {groups.map((g) => (
+                        <button key={g.id} onClick={() => handleBulkMove(g.id)}>{g.name}</button>
                       ))}
                     </div>
                   )}
                 </div>
-                <div className="projects-view-toggle">
-                  <button
-                    className={`projects-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
-                    onClick={() => handleViewMode('grid')}
-                    title="网格视图"
-                  >
-                    <LayoutGrid size={14} />
-                  </button>
-                  <button
-                    className={`projects-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
-                    onClick={() => handleViewMode('list')}
-                    title="列表视图"
-                  >
-                    <List size={14} />
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
+                <button className="projects-danger-btn" onClick={() => setBulkDeletePending(true)}>
+                  <Trash2 size={13} />
+                  删除 ({selectedIds.size})
+                </button>
+              </>
+            )}
+          </div>
 
           {loading && <div className="projects-loading">加载中...</div>}
           {listError && <div className="projects-error">{listError}</div>}
