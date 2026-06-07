@@ -438,13 +438,18 @@ export default function ProjectsPage() {
 
   async function loadAll() {
     try {
-      const [ps, gs] = await Promise.all([listProjects(), listGroups()]);
+      const ps = await listProjects();
       setProjects(ps);
-      setGroups(gs);
     } catch {
       setListError('加载项目失败，请刷新重试');
     } finally {
       setLoading(false);
+    }
+    try {
+      const gs = await listGroups();
+      setGroups(gs);
+    } catch {
+      // 分组加载失败不阻断项目显示
     }
   }
 
