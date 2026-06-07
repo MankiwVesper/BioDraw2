@@ -480,6 +480,11 @@ export default function ProjectsPage() {
     setSelectedIds(new Set());
   }
 
+  function switchGroup(id: string) {
+    setActiveGroupId(id);
+    if (selectionMode) exitSelectionMode();
+  }
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -713,7 +718,7 @@ export default function ProjectsPage() {
           <nav className="projects-sidebar-nav">
             <button
               className={`projects-sidebar-item${activeGroupId === 'all' ? ' is-active' : ''}`}
-              onClick={() => setActiveGroupId('all')}
+              onClick={() => switchGroup('all')}
             >
               <span className="projects-sidebar-icon">≡</span>
               <span className="projects-sidebar-label">全部项目</span>
@@ -740,7 +745,7 @@ export default function ProjectsPage() {
                 ) : (
                   <button
                     className={`projects-sidebar-item${activeGroupId === g.id ? ' is-active' : ''}`}
-                    onClick={() => setActiveGroupId(g.id)}
+                    onClick={() => switchGroup(g.id)}
                   >
                     <span className="projects-sidebar-icon">📁</span>
                     <span className="projects-sidebar-label">{g.name}</span>
@@ -774,7 +779,7 @@ export default function ProjectsPage() {
 
             <button
               className={`projects-sidebar-item${activeGroupId === 'ungrouped' ? ' is-active' : ''}`}
-              onClick={() => setActiveGroupId('ungrouped')}
+              onClick={() => switchGroup('ungrouped')}
             >
               <span className="projects-sidebar-icon">📋</span>
               <span className="projects-sidebar-label">未分组</span>
