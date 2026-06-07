@@ -847,8 +847,16 @@
   gap: 4px;
 }
 
+.project-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
 .project-card-title {
-  display: block;
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-main);
@@ -857,25 +865,21 @@
   text-overflow: ellipsis;
 }
 
-.project-card-title-row {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  min-width: 0;
-}
-
 .project-card-group-tag {
   display: flex;
   align-items: center;
   gap: 3px;
   font-size: 11px;
   color: var(--text-muted);
-  white-space: nowrap;
   flex-shrink: 0;
   max-width: 72px;
+}
+
+.project-card-group-tag > span {
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-left: auto;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .project-card-time {

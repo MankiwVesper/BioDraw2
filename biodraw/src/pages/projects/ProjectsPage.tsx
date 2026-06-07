@@ -257,7 +257,8 @@ function ProjectCard({
           <span className="project-card-title">{project.title}</span>
           {groupName && (
             <span className="project-card-group-tag">
-              <Folder size={10} />{groupName}
+              <Folder size={10} />
+              <span>{groupName}</span>
             </span>
           )}
         </div>
