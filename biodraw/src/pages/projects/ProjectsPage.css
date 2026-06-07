@@ -857,13 +857,22 @@
   text-overflow: ellipsis;
 }
 
-.project-card-group-row {
+.project-card-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.project-card-group-tag {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   font-size: 11px;
   color: var(--text-muted);
   white-space: nowrap;
+  flex-shrink: 0;
+  max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
 }

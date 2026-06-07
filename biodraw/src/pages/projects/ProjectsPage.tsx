@@ -253,12 +253,14 @@ function ProjectCard({
       </div>
 
       <div className="project-card-footer">
-        <span className="project-card-title">{project.title}</span>
-        {groupName && (
-          <span className="project-card-group-row">
-            <Folder size={11} />{groupName}
-          </span>
-        )}
+        <div className="project-card-title-row">
+          <span className="project-card-title">{project.title}</span>
+          {groupName && (
+            <span className="project-card-group-tag">
+              <Folder size={10} />{groupName}
+            </span>
+          )}
+        </div>
         <div className="project-card-actions" onClick={(e) => e.stopPropagation()}>
           <button className="pcard-action-btn" data-tooltip="重命名" onClick={onRename}><Pencil size={13} /></button>
           <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
