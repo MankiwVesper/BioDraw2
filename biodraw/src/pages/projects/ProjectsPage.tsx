@@ -152,12 +152,12 @@ function ThumbnailCapture({
 
 // ── 移动到分组子菜单 ─────────────────────────────────────────────────────────
 function MoveToMenu({
-  groups,
+  groupsMap,
   currentGroupId,
   onMove,
   onClose,
 }: {
-  groups: ProjectGroup[];
+  groupsMap: Map<string, string>;
   currentGroupId: string | null | undefined;
   onMove: (groupId: string | null) => void;
   onClose: () => void;
@@ -171,14 +171,14 @@ function MoveToMenu({
         {!currentGroupId && <Check size={12} />}
         未分组
       </button>
-      {groups.map((g) => (
+      {[...groupsMap.entries()].map(([id, name]) => (
         <button
-          key={g.id}
-          className={`pcard-submenu-item${currentGroupId === g.id ? ' is-current' : ''}`}
-          onClick={() => { onMove(g.id); onClose(); }}
+          key={id}
+          className={`pcard-submenu-item${currentGroupId === id ? ' is-current' : ''}`}
+          onClick={() => { onMove(id); onClose(); }}
         >
-          {currentGroupId === g.id && <Check size={12} />}
-          {g.name}
+          {currentGroupId === id && <Check size={12} />}
+          {name}
         </button>
       ))}
     </div>
@@ -188,7 +188,7 @@ function MoveToMenu({
 // ── 项目卡片（网格） ──────────────────────────────────────────────────────────
 function ProjectCard({
   project,
-  groups,
+  groupsMap,
   selectionMode,
   selected,
   onToggleSelect,
@@ -201,7 +201,7 @@ function ProjectCard({
   onMove,
 }: {
   project: ProjectRecord;
-  groups: ProjectGroup[];
+  groupsMap: Map<string, string>;
   selectionMode: boolean;
   selected: boolean;
   onToggleSelect: () => void;
@@ -229,7 +229,7 @@ function ProjectCard({
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
 
-  const groupName = groups.find((g) => g.id === project.group_id)?.name;
+  const groupName = project.group_id ? groupsMap.get(project.group_id) : undefined;
 
   function handleCardClick() {
     if (selectionMode) { onToggleSelect(); return; }
@@ -277,7 +277,7 @@ function ProjectCard({
                 <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
                 {showMoveMenu && (
                   <MoveToMenu
-                    groups={groups}
+                    groupsMap={groupsMap}
                     currentGroupId={project.group_id}
                     onMove={onMove}
                     onClose={() => { setShowMenu(false); setShowMoveMenu(false); }}
@@ -307,7 +307,7 @@ function ProjectCard({
 // ── 项目行（列表） ────────────────────────────────────────────────────────────
 function ProjectRow({
   project,
-  groups,
+  groupsMap,
   selectionMode,
   selected,
   onToggleSelect,
@@ -320,7 +320,7 @@ function ProjectRow({
   onMove,
 }: {
   project: ProjectRecord;
-  groups: ProjectGroup[];
+  groupsMap: Map<string, string>;
   selectionMode: boolean;
   selected: boolean;
   onToggleSelect: () => void;
@@ -348,7 +348,7 @@ function ProjectRow({
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
 
-  const groupName = groups.find((g) => g.id === project.group_id)?.name ?? '未分组';
+  const groupName = (project.group_id ? groupsMap.get(project.group_id) : undefined) ?? '未分组';
 
   function handleRowClick() {
     if (selectionMode) { onToggleSelect(); return; }
@@ -398,7 +398,7 @@ function ProjectRow({
               <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
               {showMoveMenu && (
                 <MoveToMenu
-                  groups={groups}
+                  groupsMap={groupsMap}
                   currentGroupId={project.group_id}
                   onMove={onMove}
                   onClose={() => { setShowMenu(false); setShowMoveMenu(false); }}
@@ -519,6 +519,18 @@ export default function ProjectsPage() {
       // 分组加载失败不阻断项目显示
     }
   }
+
+  // 分组名称 Map：O(1) 查找替代 O(n) find
+  const groupsMap = useMemo(() => new Map(groups.map((g) => [g.id, g.name])), [groups]);
+
+  // 侧边栏计数 Map：一次遍历替代 n×m 过滤
+  const groupCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of projects) {
+      if (p.group_id) map.set(p.group_id, (map.get(p.group_id) ?? 0) + 1);
+    }
+    return map;
+  }, [projects]);
 
   // 过滤 + 排序
   const displayedProjects = useMemo(() => {
@@ -814,7 +826,7 @@ export default function ProjectsPage() {
                     <span className="projects-sidebar-icon">📁</span>
                     <span className="projects-sidebar-label">{g.name}</span>
                     <span className="projects-sidebar-count">
-                      {projects.filter((p) => p.group_id === g.id).length}
+                      {groupCountMap.get(g.id) ?? 0}
                     </span>
                     <span className="projects-sidebar-actions">
                       <span
@@ -831,7 +843,7 @@ export default function ProjectsPage() {
                       <span
                         className="projects-sidebar-action-btn is-danger"
                         title="删除分组"
-                        onClick={(e) => { e.stopPropagation(); setDeleteGroupTarget({ id: g.id, name: g.name, count: projects.filter((p) => p.group_id === g.id).length }); }}
+                        onClick={(e) => { e.stopPropagation(); setDeleteGroupTarget({ id: g.id, name: g.name, count: groupCountMap.get(g.id) ?? 0 }); }}
                       >
                         <Trash2 size={11} />
                       </span>
@@ -847,7 +859,7 @@ export default function ProjectsPage() {
             >
               <span className="projects-sidebar-icon">📋</span>
               <span className="projects-sidebar-label">未分组</span>
-              <span className="projects-sidebar-count">{projects.filter((p) => !p.group_id).length}</span>
+              <span className="projects-sidebar-count">{projects.length - [...groupCountMap.values()].reduce((a, b) => a + b, 0)}</span>
             </button>
           </nav>
 
@@ -1037,7 +1049,7 @@ export default function ProjectsPage() {
                     <ProjectCard
                       key={p.id}
                       project={p}
-                      groups={groups}
+                      groupsMap={groupsMap}
                       selectionMode={selectionMode}
                       selected={selectedIds.has(p.id)}
                       onToggleSelect={() => toggleSelect(p.id)}
@@ -1065,7 +1077,7 @@ export default function ProjectsPage() {
                     <ProjectRow
                       key={p.id}
                       project={p}
-                      groups={groups}
+                      groupsMap={groupsMap}
                       selectionMode={selectionMode}
                       selected={selectedIds.has(p.id)}
                       onToggleSelect={() => toggleSelect(p.id)}
