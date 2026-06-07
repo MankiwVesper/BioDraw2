@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { Upload, LayoutGrid, List, Search, X, ChevronDown, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
@@ -224,10 +224,18 @@ function ProjectCard({
 }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const moveMenuRef = useRef<HTMLDivElement>(null);
+  const groupTagTextRef = useRef<HTMLSpanElement>(null);
+  const [groupNameTruncated, setGroupNameTruncated] = useState(false);
 
   useClickOutside(moveMenuRef, () => setShowMoveMenu(false), showMoveMenu);
 
   const groupName = project.group_id ? groupsMap.get(project.group_id) : undefined;
+
+  useLayoutEffect(() => {
+    const el = groupTagTextRef.current;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGroupNameTruncated(!!el && el.scrollWidth > el.offsetWidth);
+  }, [groupName]);
 
   function handleCardClick() {
     if (anySelected) { onToggleSelect(); return; }
@@ -256,9 +264,9 @@ function ProjectCard({
         <div className="project-card-title-row">
           <span className="project-card-title">{project.title}</span>
           {groupName && (
-            <span className="project-card-group-tag" data-tooltip={groupName}>
+            <span className="project-card-group-tag" data-tooltip={groupNameTruncated ? groupName : undefined}>
               <Folder size={10} />
-              <span>{groupName}</span>
+              <span ref={groupTagTextRef}>{groupName}</span>
             </span>
           )}
         </div>
