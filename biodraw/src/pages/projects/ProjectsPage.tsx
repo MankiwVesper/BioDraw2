@@ -225,6 +225,7 @@ function ProjectCard({
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const moveMenuRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLSpanElement>(null);
+  const groupTagRef = useRef<HTMLSpanElement>(null);
   const groupTagTextRef = useRef<HTMLSpanElement>(null);
 
   useClickOutside(moveMenuRef, () => setShowMoveMenu(false), showMoveMenu);
@@ -249,19 +250,20 @@ function ProjectCard({
   }, [project.title]);
 
   useLayoutEffect(() => {
-    const el = groupTagTextRef.current;
-    if (!el) return;
-    const { width, overflow } = el.style;
-    el.style.width = 'max-content';
-    el.style.overflow = 'visible';
-    const natural = el.getBoundingClientRect().width;
-    el.style.width = width;
-    el.style.overflow = overflow;
-    const constrained = el.getBoundingClientRect().width;
+    const textEl = groupTagTextRef.current;
+    const tagEl = groupTagRef.current;
+    if (!textEl || !tagEl) return;
+    const { width, overflow } = textEl.style;
+    textEl.style.width = 'max-content';
+    textEl.style.overflow = 'visible';
+    const natural = textEl.getBoundingClientRect().width;
+    textEl.style.width = width;
+    textEl.style.overflow = overflow;
+    const constrained = textEl.getBoundingClientRect().width;
     if (natural > constrained + 0.5) {
-      el.setAttribute('data-tooltip', groupName ?? '');
+      tagEl.setAttribute('data-tooltip', groupName ?? '');
     } else {
-      el.removeAttribute('data-tooltip');
+      tagEl.removeAttribute('data-tooltip');
     }
   }, [groupName]);
 
@@ -292,7 +294,7 @@ function ProjectCard({
         <div className="project-card-title-row">
           <span ref={titleRef} className="project-card-title">{project.title}</span>
           {groupName && (
-            <span className="project-card-group-tag">
+            <span ref={groupTagRef} className="project-card-group-tag">
               <Folder size={10} />
               <span ref={groupTagTextRef}>{groupName}</span>
             </span>
