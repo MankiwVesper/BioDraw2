@@ -769,100 +769,55 @@
   opacity: 1;
 }
 
-/* ··· 按钮定位在卡片右上角（相对 .project-card，不在 overflow:hidden 的 preview 内） */
-.project-card-menu-wrap {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 2;
-}
-
-.project-card-menu-btn {
-  width: 26px;
-  height: 26px;
-  border-radius: 5px;
-  background: rgba(0, 0, 0, 0.45);
-  border: none;
-  cursor: pointer;
-  color: #fff;
+/* 卡片/行 action icon 按钮（悬停时显示） */
+.project-card-actions {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 1px;
+  flex-shrink: 0;
   opacity: 0;
-  transition: opacity 0.12s, background 0.12s;
+  transition: opacity 0.12s;
 }
 
-.project-card:hover .project-card-menu-btn,
-.project-row:hover .project-card-menu-btn {
+.project-card:hover .project-card-actions,
+.project-row:hover .project-card-actions {
   opacity: 1;
 }
 
-.project-card-menu-btn:hover {
-  background: rgba(0, 0, 0, 0.65);
-}
-
-/* 列表视图的 ··· 按钮：常驻显示，不需要 hover 才出现 */
-.project-row-actions .project-card-menu-btn {
+.pcard-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
   background: none;
+  border-radius: 5px;
   color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+  padding: 0;
 }
 
-.project-row-actions .project-card-menu-btn:hover {
+.pcard-action-btn:hover {
   background: var(--bg-color);
   color: var(--text-main);
 }
 
-.project-card-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  overflow: visible;
-  min-width: 0;
-  width: max-content;
+.pcard-action-btn.is-danger:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
 }
 
-.project-card-menu button {
-  display: block;
-  width: 100%;
-  padding: 8px 14px;
-  text-align: left;
-  font-size: 13px;
-  color: var(--text-main);
-  background: none;
-  border: none;
-  cursor: pointer;
-  transition: background 0.1s;
-  white-space: nowrap;
-}
-
-.project-card-menu button:hover { background: var(--bg-color); }
-.project-card-menu button.is-danger:hover { color: #ef4444; }
-
-/* 移动到子菜单项 */
-.pcard-menu-move {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 14px;
-  font-size: 13px;
-  color: var(--text-main);
-  cursor: pointer;
+.pcard-action-move {
   position: relative;
-  transition: background 0.1s;
-  white-space: nowrap;
 }
-
-.pcard-menu-move:hover { background: var(--bg-color); }
 
 .pcard-submenu {
   position: absolute;
-  left: 100%;
-  top: -4px;
+  right: 0;
+  bottom: calc(100% + 4px);
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
@@ -1049,19 +1004,12 @@
 }
 
 .project-row-actions {
-  width: 40px;
+  width: 164px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   position: relative;
-}
-
-/* 列表视图的菜单从右侧打开 */
-.project-row-menu {
-  right: 0;
-  left: auto;
-  top: calc(100% + 2px);
 }
 
 /* ── 内联 confirm / input modal ───────────────────────────────────────────── */

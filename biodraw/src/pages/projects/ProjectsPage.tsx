@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Upload, LayoutGrid, List, Search, X, ChevronDown, MoreHorizontal, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus } from 'lucide-react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
@@ -222,11 +222,10 @@ function ProjectCard({
   onDelete: () => void;
   onMove: (groupId: string | null) => void;
 }) {
-  const [showMenu, setShowMenu] = useState(false);
   const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const moveMenuRef = useRef<HTMLDivElement>(null);
 
-  useClickOutside(menuRef, () => { setShowMenu(false); setShowMoveMenu(false); }, showMenu);
+  useClickOutside(moveMenuRef, () => setShowMoveMenu(false), showMoveMenu);
 
   const groupName = project.group_id ? groupsMap.get(project.group_id) : undefined;
 
@@ -253,41 +252,6 @@ function ProjectCard({
         </div>
       </div>
 
-      <div className="project-card-menu-wrap" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-          <button
-            className="project-card-menu-btn"
-            onClick={() => { setShowMenu((p) => !p); setShowMoveMenu(false); }}
-            title="更多操作"
-          >
-            <MoreHorizontal size={14} />
-          </button>
-          {showMenu && (
-            <div className="project-card-menu">
-              <button onClick={() => { setShowMenu(false); onRename(); }}>重命名</button>
-              <button onClick={() => { setShowMenu(false); onPreview(); }}>预览</button>
-              <button onClick={() => { setShowMenu(false); onExport(); }}>导出</button>
-              <button onClick={() => { setShowMenu(false); onDownload(); }}>下载</button>
-              <div
-                className="pcard-menu-move"
-                onMouseEnter={() => setShowMoveMenu(true)}
-                onMouseLeave={() => setShowMoveMenu(false)}
-              >
-                <span>移动到</span>
-                <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
-                {showMoveMenu && (
-                  <MoveToMenu
-                    groupsMap={groupsMap}
-                    currentGroupId={project.group_id}
-                    onMove={onMove}
-                    onClose={() => { setShowMenu(false); setShowMoveMenu(false); }}
-                  />
-                )}
-              </div>
-              <button className="is-danger" onClick={() => { setShowMenu(false); onDelete(); }}>删除</button>
-            </div>
-          )}
-        </div>
-
       <div className="project-card-footer">
         <div className="project-card-info">
           <span className="project-card-title">{project.title}</span>
@@ -296,6 +260,24 @@ function ProjectCard({
             {groupName && <span className="project-card-meta-dot">·</span>}
             <span>{formatRelativeTime(project.updated_at)}</span>
           </span>
+        </div>
+        <div className="project-card-actions" onClick={(e) => e.stopPropagation()}>
+          <button className="pcard-action-btn" title="重命名" onClick={onRename}><Pencil size={13} /></button>
+          <button className="pcard-action-btn" title="预览" onClick={onPreview}><Eye size={13} /></button>
+          <button className="pcard-action-btn" title="导出" onClick={onExport}><Share2 size={13} /></button>
+          <button className="pcard-action-btn" title="下载" onClick={onDownload}><Download size={13} /></button>
+          <div className="pcard-action-move" ref={moveMenuRef}>
+            <button className="pcard-action-btn" title="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
+            {showMoveMenu && (
+              <MoveToMenu
+                groupsMap={groupsMap}
+                currentGroupId={project.group_id}
+                onMove={onMove}
+                onClose={() => setShowMoveMenu(false)}
+              />
+            )}
+          </div>
+          <button className="pcard-action-btn is-danger" title="删除" onClick={onDelete}><Trash2 size={13} /></button>
         </div>
       </div>
     </div>
@@ -330,11 +312,10 @@ function ProjectRow({
   onDelete: () => void;
   onMove: (groupId: string | null) => void;
 }) {
-  const [showMenu, setShowMenu] = useState(false);
   const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const moveMenuRef = useRef<HTMLDivElement>(null);
 
-  useClickOutside(menuRef, () => { setShowMenu(false); setShowMoveMenu(false); }, showMenu);
+  useClickOutside(moveMenuRef, () => setShowMoveMenu(false), showMoveMenu);
 
   const groupName = (project.group_id ? groupsMap.get(project.group_id) : undefined) ?? '未分组';
 
@@ -362,38 +343,25 @@ function ProjectRow({
       <div className="project-row-title">{project.title}</div>
       <div className="project-row-group">{groupName}</div>
       <div className="project-row-time">{formatRelativeTime(project.updated_at)}</div>
-      <div className="project-row-actions" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-        <button
-          className="project-card-menu-btn"
-          onClick={() => { setShowMenu((p) => !p); setShowMoveMenu(false); }}
-        >
-          <MoreHorizontal size={14} />
-        </button>
-        {showMenu && (
-          <div className="project-card-menu project-row-menu">
-            <button onClick={() => { setShowMenu(false); onRename(); }}>重命名</button>
-            <button onClick={() => { setShowMenu(false); onPreview(); }}>预览</button>
-            <button onClick={() => { setShowMenu(false); onExport(); }}>导出</button>
-            <button onClick={() => { setShowMenu(false); onDownload(); }}>下载</button>
-            <div
-              className="pcard-menu-move"
-              onMouseEnter={() => setShowMoveMenu(true)}
-              onMouseLeave={() => setShowMoveMenu(false)}
-            >
-              <span>移动到</span>
-              <ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} />
-              {showMoveMenu && (
-                <MoveToMenu
-                  groupsMap={groupsMap}
-                  currentGroupId={project.group_id}
-                  onMove={onMove}
-                  onClose={() => { setShowMenu(false); setShowMoveMenu(false); }}
-                />
-              )}
-            </div>
-            <button className="is-danger" onClick={() => { setShowMenu(false); onDelete(); }}>删除</button>
+      <div className="project-row-actions" onClick={(e) => e.stopPropagation()}>
+        <div className="project-card-actions">
+          <button className="pcard-action-btn" title="重命名" onClick={onRename}><Pencil size={13} /></button>
+          <button className="pcard-action-btn" title="预览" onClick={onPreview}><Eye size={13} /></button>
+          <button className="pcard-action-btn" title="导出" onClick={onExport}><Share2 size={13} /></button>
+          <button className="pcard-action-btn" title="下载" onClick={onDownload}><Download size={13} /></button>
+          <div className="pcard-action-move" ref={moveMenuRef}>
+            <button className="pcard-action-btn" title="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
+            {showMoveMenu && (
+              <MoveToMenu
+                groupsMap={groupsMap}
+                currentGroupId={project.group_id}
+                onMove={onMove}
+                onClose={() => setShowMoveMenu(false)}
+              />
+            )}
           </div>
-        )}
+          <button className="pcard-action-btn is-danger" title="删除" onClick={onDelete}><Trash2 size={13} /></button>
+        </div>
       </div>
     </div>
   );
