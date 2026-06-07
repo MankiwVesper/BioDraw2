@@ -630,7 +630,8 @@ export default function ProjectsPage() {
       setGroups((prev) => [...prev, g]);
       setNewGroupName('');
       setCreatingGroup(false);
-    } catch {
+    } catch (err) {
+      console.error('createGroup error:', err);
       alert('创建分组失败，请重试');
     }
   }

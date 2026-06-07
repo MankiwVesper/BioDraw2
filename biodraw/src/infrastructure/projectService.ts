@@ -30,19 +30,19 @@ export async function listGroups(): Promise<ProjectGroup[]> {
     .from('project_groups')
     .select('id, name, created_at')
     .order('created_at', { ascending: true });
-  if (error) throw error;
+  if (error) { console.error('listGroups error:', error); throw error; }
   return (data ?? []) as ProjectGroup[];
 }
 
 export async function createGroup(name: string): Promise<ProjectGroup> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('未登录');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user) throw new Error('未登录');
   const { data, error } = await supabase
     .from('project_groups')
-    .insert({ name, user_id: user.id })
+    .insert({ name, user_id: session.user.id })
     .select('id, name, created_at')
     .single();
-  if (error) throw error;
+  if (error) { console.error('createGroup error:', error); throw error; }
   return data as ProjectGroup;
 }
 
