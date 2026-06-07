@@ -775,13 +775,6 @@
   align-items: center;
   gap: 1px;
   flex-shrink: 0;
-  opacity: 0;
-  transition: opacity 0.12s;
-}
-
-.project-card:hover .project-card-actions,
-.project-row:hover .project-card-actions {
-  opacity: 1;
 }
 
 .pcard-action-btn {
