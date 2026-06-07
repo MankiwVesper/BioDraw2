@@ -857,21 +857,13 @@
   text-overflow: ellipsis;
 }
 
-.project-card-footer-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-}
-
 .project-card-meta {
   display: flex;
   align-items: center;
   gap: 4px;
   font-size: 11px;
   color: var(--text-muted);
-  flex: 1;
-  min-width: 0;
+  white-space: nowrap;
   overflow: hidden;
 }
 
