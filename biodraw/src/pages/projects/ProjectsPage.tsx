@@ -754,7 +754,7 @@ export default function ProjectsPage() {
                     <span className="projects-sidebar-actions">
                       <span
                         className="projects-sidebar-action-btn"
-                        title="重命名"
+                        data-tooltip="重命名"
                         onClick={(e) => {
                           e.stopPropagation();
                           setEditingGroupId(g.id);
@@ -765,7 +765,7 @@ export default function ProjectsPage() {
                       </span>
                       <span
                         className="projects-sidebar-action-btn is-danger"
-                        title="删除分组"
+                        data-tooltip="删除分组"
                         onClick={(e) => { e.stopPropagation(); setDeleteGroupTarget({ id: g.id, name: g.name, count: groupCountMap.get(g.id) ?? 0 }); }}
                       >
                         <Trash2 size={11} />
@@ -887,14 +887,14 @@ export default function ProjectsPage() {
               <button
                 className={`projects-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
                 onClick={() => handleViewMode('grid')}
-                title="网格视图"
+                data-tooltip="网格视图"
               >
                 <LayoutGrid size={14} />
               </button>
               <button
                 className={`projects-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
                 onClick={() => handleViewMode('list')}
-                title="列表视图"
+                data-tooltip="列表视图"
               >
                 <List size={14} />
               </button>
