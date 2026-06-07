@@ -243,7 +243,7 @@ function ProjectCard({
     >
       <div className="project-card-preview">
         {project.thumbnail
-          ? <img src={project.thumbnail} alt="" draggable={false} />
+          ? <img src={project.thumbnail} alt="" draggable={false} loading="lazy" />
           : <span className="project-card-preview-placeholder">空白项目</span>
         }
         {selectionMode && (
@@ -369,7 +369,7 @@ function ProjectRow({
       )}
       <div className="project-row-thumb">
         {project.thumbnail
-          ? <img src={project.thumbnail} alt="" draggable={false} />
+          ? <img src={project.thumbnail} alt="" draggable={false} loading="lazy" />
           : <div className="project-row-thumb-placeholder" />
         }
       </div>
