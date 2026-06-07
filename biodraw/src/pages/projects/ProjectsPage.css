@@ -650,6 +650,7 @@
 
 /* ── 项目卡片 ───────────────────────────────────────────────────────────── */
 .project-card {
+  position: relative;
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -722,7 +723,7 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
-/* ··· 按钮移到预览区右上角 */
+/* ··· 按钮定位在卡片右上角（相对 .project-card，不在 overflow:hidden 的 preview 内） */
 .project-card-menu-wrap {
   position: absolute;
   top: 6px;
