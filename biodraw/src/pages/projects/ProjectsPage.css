@@ -398,7 +398,7 @@
   height: 30px;
   padding: 0 28px 0 28px;
   font-size: 13px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #c4c7cd;
   border-radius: var(--radius);
   background: var(--bg-color);
   color: var(--text-main);
@@ -429,23 +429,28 @@
   position: relative;
   flex-shrink: 0;
 }
+.projects-sort-wrap > .projects-ghost-btn {
+  min-width: 105px;
+  justify-content: space-between;
+}
 
 .projects-sort-menu {
   position: absolute;
   top: calc(100% + 4px);
-  right: 0;
+  left: 0;
+  min-width: 100%;
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   z-index: 100;
   overflow: hidden;
-  min-width: 120px;
 }
 
 .projects-sort-menu button {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 6px;
   width: 100%;
   padding: 8px 12px;
@@ -455,6 +460,7 @@
   border: none;
   cursor: pointer;
   text-align: left;
+  white-space: nowrap;
   transition: background 0.1s;
 }
 
@@ -464,7 +470,7 @@
 /* 视图切换 */
 .projects-view-toggle {
   display: flex;
-  border: 1px solid var(--border-color);
+  border: 1px solid #c4c7cd;
   border-radius: var(--radius);
   overflow: hidden;
   flex-shrink: 0;
@@ -496,7 +502,7 @@
   padding: 0 10px;
   background: none;
   color: var(--text-main);
-  border: 1px solid var(--border-color);
+  border: 1px solid #c4c7cd;
   border-radius: var(--radius);
   font-size: 13px;
   cursor: pointer;
@@ -752,21 +758,18 @@
   color: var(--primary-color);
 }
 
-/* checkbox 在卡片预览区左上角：hover 或选中时可见 */
+/* checkbox 在卡片预览区左上角：始终可见 */
 .project-card-preview .project-card-checkbox {
   position: absolute;
   top: 8px;
   left: 8px;
   z-index: 2;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-  opacity: 0;
-  transition: opacity 0.12s, border-color 0.12s, background 0.12s;
+  opacity: 1;
+  transition: border-color 0.12s, background 0.12s;
   cursor: pointer;
 }
-
-.project-card:hover .project-card-preview .project-card-checkbox,
-.project-card-preview .project-card-checkbox.is-checked {
-  opacity: 1;
+.project-card:hover .project-card-preview .project-card-checkbox:not(.is-checked) {
+  border-color: var(--primary-color);
 }
 
 /* 卡片/行 action icon 按钮（悬停时显示） */
@@ -872,7 +875,7 @@
   font-size: 11px;
   color: var(--text-muted);
   flex-shrink: 0;
-  max-width: 72px;
+  width: 72px;
 }
 
 .project-card-group-tag > svg {
@@ -909,12 +912,17 @@
   align-items: center;
   padding: 0 10px;
   height: 36px;
-  background: var(--bg-color);
+  background: color-mix(in srgb, var(--border-color) 60%, var(--bg-color));
   border-radius: 8px 8px 0 0;
   border-bottom: 1px solid var(--border-color);
   font-size: 12px;
   color: var(--text-muted);
   font-weight: 500;
+}
+.projects-list-header .project-row-group,
+.projects-list-header .project-row-time,
+.projects-list-header .project-row-actions {
+  color: var(--text-main);
 }
 
 .project-row {
@@ -929,10 +937,10 @@
 }
 
 .project-row:last-child { border-bottom: none; border-radius: 0 0 8px 8px; }
-.project-row:hover { background: var(--bg-color); }
+.project-row:hover { background: color-mix(in srgb, var(--primary-color) 10%, var(--panel-bg)); }
 
 .project-row.is-selected {
-  background: color-mix(in srgb, var(--primary-color) 6%, transparent);
+  background: color-mix(in srgb, var(--primary-color) 12%, transparent);
 }
 
 .project-row-check {
@@ -942,16 +950,19 @@
   align-items: center;
 }
 
-/* 列表行 checkbox：hover 或选中时可见 */
-.project-row .project-row-check .project-card-checkbox {
-  opacity: 0;
-  transition: opacity 0.12s, border-color 0.12s, background 0.12s;
+/* 列表标题行全选 checkbox：始终可见 */
+.projects-list-header .project-row-check {
   cursor: pointer;
 }
-
-.project-row:hover .project-row-check .project-card-checkbox,
-.project-row .project-row-check .project-card-checkbox.is-checked {
+.projects-list-header .project-row-check .project-card-checkbox {
   opacity: 1;
+}
+
+/* 列表行 checkbox：始终可见 */
+.project-row .project-row-check .project-card-checkbox {
+  opacity: 1;
+  transition: border-color 0.12s, background 0.12s;
+  cursor: pointer;
 }
 
 .project-row-thumb {
@@ -1003,7 +1014,7 @@
 }
 
 .project-row-time {
-  width: 90px;
+  width: 120px;
   flex-shrink: 0;
   font-size: 12px;
   color: var(--text-muted);
@@ -1014,7 +1025,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: flex-start;
   position: relative;
 }
 

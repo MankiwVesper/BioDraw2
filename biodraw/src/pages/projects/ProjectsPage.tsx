@@ -17,7 +17,7 @@ import { ChangePasswordModal } from './ChangePasswordModal';
 import { DeleteAccountModal } from './DeleteAccountModal';
 import './ProjectsPage.css';
 
-type SortKey = 'updated_at' | 'created_at' | 'title';
+type SortKey = 'updated_at' | 'created_at' | 'title' | 'title_desc';
 type ViewMode = 'grid' | 'list';
 
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void, enabled: boolean) {
@@ -96,6 +96,7 @@ const SORT_LABELS: Record<SortKey, string> = {
   updated_at: '最近更新',
   created_at: '最近创建',
   title: '名称 A→Z',
+  title_desc: '名称 Z→A',
 };
 
 function emptySnapshot() {
@@ -378,7 +379,17 @@ function ProjectRow({
         }
       </div>
       <div className="project-row-title">{project.title}</div>
-      <div className="project-row-group">{groupName}</div>
+      <div
+        className="project-row-group"
+        onMouseEnter={(e) => {
+          const el = e.currentTarget;
+          if (el.scrollWidth > el.clientWidth) {
+            el.setAttribute('data-tooltip', groupName ?? '');
+          } else {
+            el.removeAttribute('data-tooltip');
+          }
+        }}
+      >{groupName}</div>
       <div className="project-row-time">{formatRelativeTime(project.updated_at)}</div>
       <div className="project-row-actions" onClick={(e) => e.stopPropagation()}>
         <div className="project-card-actions">
@@ -427,6 +438,8 @@ export default function ProjectsPage() {
   const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set());
   const [showBulkMoveMenu, setShowBulkMoveMenu] = useState(false);
   const bulkMoveRef = useRef<HTMLDivElement>(null);
+  const gridRef     = useRef<HTMLDivElement>(null);
+  const [cardColWidth, setCardColWidth] = useState<number | undefined>();
 
   // 分组侧边栏
   const [creatingGroup, setCreatingGroup]   = useState(false);
@@ -467,6 +480,19 @@ export default function ProjectsPage() {
   useClickOutside(userMenuRef,  () => setShowUserMenu(false),    showUserMenu);
   useClickOutside(sortMenuRef,  () => setShowSortMenu(false),    showSortMenu);
   useClickOutside(bulkMoveRef,  () => setShowBulkMoveMenu(false), showBulkMoveMenu);
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const update = () => {
+      const w = parseFloat(getComputedStyle(el).gridTemplateColumns);
+      if (w > 0) setCardColWidth(w);
+    };
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    update();
+    return () => ro.disconnect();
+  }, [viewMode, loading]);
 
   async function loadAll() {
     try {
@@ -511,6 +537,7 @@ export default function ProjectsPage() {
     }
     return [...list].sort((a, b) => {
       if (sortKey === 'title') return a.title.localeCompare(b.title, 'zh');
+      if (sortKey === 'title_desc') return b.title.localeCompare(a.title, 'zh');
       return new Date(b[sortKey]).getTime() - new Date(a[sortKey]).getTime();
     });
   }, [projects, activeGroupId, searchQuery, sortKey]);
@@ -899,7 +926,7 @@ export default function ProjectsPage() {
 
           {/* 工具栏（不切换模式，批量操作按需追加在右侧） */}
           <div className="projects-toolbar">
-            <div className="projects-search-wrap">
+            <div className="projects-search-wrap" style={cardColWidth ? { maxWidth: cardColWidth } : undefined}>
               <Search size={13} className="projects-search-icon" />
               <input
                 className="projects-search-input"
@@ -913,42 +940,6 @@ export default function ProjectsPage() {
                 </button>
               )}
             </div>
-            <div className="projects-sort-wrap" ref={sortMenuRef}>
-              <button className="projects-ghost-btn" onClick={() => setShowSortMenu((p) => !p)}>
-                {SORT_LABELS[sortKey]} <ChevronDown size={12} />
-              </button>
-              {showSortMenu && (
-                <div className="projects-sort-menu">
-                  {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
-                    <button
-                      key={k}
-                      className={sortKey === k ? 'is-active' : ''}
-                      onClick={() => { setSortKey(k); setShowSortMenu(false); }}
-                    >
-                      {sortKey === k && <Check size={12} />}
-                      {SORT_LABELS[k]}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="projects-view-toggle">
-              <button
-                className={`projects-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
-                onClick={() => handleViewMode('grid')}
-                data-tooltip="网格视图"
-              >
-                <LayoutGrid size={14} />
-              </button>
-              <button
-                className={`projects-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
-                onClick={() => handleViewMode('list')}
-                data-tooltip="列表视图"
-              >
-                <List size={14} />
-              </button>
-            </div>
-            <div className="projects-toolbar-divider" />
             <label className="projects-select-all" onClick={toggleSelectAll}>
               <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
                 {allSelected && <Check size={11} strokeWidth={3} />}
@@ -978,6 +969,41 @@ export default function ProjectsPage() {
                 </button>
               </>
             )}
+            <div className="projects-sort-wrap" ref={sortMenuRef} style={{ marginLeft: 'auto' }}>
+              <button className="projects-ghost-btn" onClick={() => setShowSortMenu((p) => !p)}>
+                {SORT_LABELS[sortKey]} <ChevronDown size={12} />
+              </button>
+              {showSortMenu && (
+                <div className="projects-sort-menu">
+                  {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                    <button
+                      key={k}
+                      className={sortKey === k ? 'is-active' : ''}
+                      onClick={() => { setSortKey(k); setShowSortMenu(false); }}
+                    >
+                      {SORT_LABELS[k]}
+                      {sortKey === k && <Check size={12} />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="projects-view-toggle">
+              <button
+                className={`projects-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+                onClick={() => handleViewMode('grid')}
+                data-tooltip="网格视图"
+              >
+                <LayoutGrid size={14} />
+              </button>
+              <button
+                className={`projects-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+                onClick={() => handleViewMode('list')}
+                data-tooltip="列表视图"
+              >
+                <List size={14} />
+              </button>
+            </div>
           </div>
 
           {loading && <div className="projects-loading">加载中...</div>}
@@ -1017,7 +1043,7 @@ export default function ProjectsPage() {
           {!loading && displayedProjects.length > 0 && (
             <div style={{ position: 'relative' }}>
               {viewMode === 'grid' ? (
-                <div className="projects-grid">
+                <div className="projects-grid" ref={gridRef}>
                   {displayedProjects.map((p) => (
                     <ProjectCard
                       key={p.id}
@@ -1039,12 +1065,17 @@ export default function ProjectsPage() {
               ) : (
                 <div className="projects-list">
                   <div className="projects-list-header">
-                    <div className="project-row-check" />
+                    <div className="project-row-check" onClick={toggleSelectAll}>
+                      <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
+                        {allSelected && <Check size={11} strokeWidth={3} />}
+                        {!allSelected && partialSelected && <Minus size={11} strokeWidth={3} />}
+                      </div>
+                    </div>
                     <div className="project-row-thumb" />
-                    <div className="project-row-title">名称</div>
-                    <div className="project-row-group">分组</div>
+                    <div className="project-row-title">项目名称</div>
+                    <div className="project-row-group">所属分组</div>
                     <div className="project-row-time">最近更新</div>
-                    <div className="project-row-actions" />
+                    <div className="project-row-actions">常用操作</div>
                   </div>
                   {displayedProjects.map((p) => (
                     <ProjectRow
