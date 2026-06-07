@@ -260,12 +260,12 @@ function ProjectCard({
           <span>{formatRelativeTime(project.updated_at)}</span>
         </span>
         <div className="project-card-actions" onClick={(e) => e.stopPropagation()}>
-          <button className="pcard-action-btn" title="重命名" onClick={onRename}><Pencil size={13} /></button>
-          <button className="pcard-action-btn" title="预览" onClick={onPreview}><Eye size={13} /></button>
-          <button className="pcard-action-btn" title="导出" onClick={onExport}><Share2 size={13} /></button>
-          <button className="pcard-action-btn" title="下载" onClick={onDownload}><Download size={13} /></button>
+          <button className="pcard-action-btn" data-tooltip="重命名" onClick={onRename}><Pencil size={13} /></button>
+          <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
+          <button className="pcard-action-btn" data-tooltip="导出" onClick={onExport}><Share2 size={13} /></button>
+          <button className="pcard-action-btn" data-tooltip="下载" onClick={onDownload}><Download size={13} /></button>
           <div className="pcard-action-move" ref={moveMenuRef}>
-            <button className="pcard-action-btn" title="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
+            <button className="pcard-action-btn" data-tooltip="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
             {showMoveMenu && (
               <MoveToMenu
                 groupsMap={groupsMap}
@@ -275,7 +275,7 @@ function ProjectCard({
               />
             )}
           </div>
-          <button className="pcard-action-btn is-danger" title="删除" onClick={onDelete}><Trash2 size={13} /></button>
+          <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
         </div>
       </div>
     </div>
@@ -343,12 +343,12 @@ function ProjectRow({
       <div className="project-row-time">{formatRelativeTime(project.updated_at)}</div>
       <div className="project-row-actions" onClick={(e) => e.stopPropagation()}>
         <div className="project-card-actions">
-          <button className="pcard-action-btn" title="重命名" onClick={onRename}><Pencil size={13} /></button>
-          <button className="pcard-action-btn" title="预览" onClick={onPreview}><Eye size={13} /></button>
-          <button className="pcard-action-btn" title="导出" onClick={onExport}><Share2 size={13} /></button>
-          <button className="pcard-action-btn" title="下载" onClick={onDownload}><Download size={13} /></button>
+          <button className="pcard-action-btn" data-tooltip="重命名" onClick={onRename}><Pencil size={13} /></button>
+          <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
+          <button className="pcard-action-btn" data-tooltip="导出" onClick={onExport}><Share2 size={13} /></button>
+          <button className="pcard-action-btn" data-tooltip="下载" onClick={onDownload}><Download size={13} /></button>
           <div className="pcard-action-move" ref={moveMenuRef}>
-            <button className="pcard-action-btn" title="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
+            <button className="pcard-action-btn" data-tooltip="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
             {showMoveMenu && (
               <MoveToMenu
                 groupsMap={groupsMap}
@@ -358,7 +358,7 @@ function ProjectRow({
               />
             )}
           </div>
-          <button className="pcard-action-btn is-danger" title="删除" onClick={onDelete}><Trash2 size={13} /></button>
+          <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
         </div>
       </div>
     </div>
