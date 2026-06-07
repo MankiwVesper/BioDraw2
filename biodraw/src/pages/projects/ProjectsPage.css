@@ -841,14 +841,10 @@
 
 /* 卡片 footer */
 .project-card-footer {
-  padding: 8px 10px 10px 12px;
+  padding: 8px 10px 8px 12px;
   display: flex;
-  align-items: center;
-}
-
-.project-card-info {
-  flex: 1;
-  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .project-card-title {
@@ -861,13 +857,22 @@
   text-overflow: ellipsis;
 }
 
+.project-card-footer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
 .project-card-meta {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 2px;
   font-size: 11px;
   color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .project-card-group {
