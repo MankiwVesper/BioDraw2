@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import { Upload, LayoutGrid, List, Search, X, ChevronDown, MoreHorizontal, Pencil, Trash2, FolderPlus, Check } from 'lucide-react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, MoreHorizontal, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
@@ -761,7 +761,7 @@ export default function ProjectsPage() {
               className={`projects-sidebar-item${activeGroupId === 'all' ? ' is-active' : ''}`}
               onClick={() => switchGroup('all')}
             >
-              <span className="projects-sidebar-icon">≡</span>
+              <span className="projects-sidebar-icon"><Layers size={14} /></span>
               <span className="projects-sidebar-label">全部项目</span>
               <span className="projects-sidebar-count">{projects.length}</span>
             </button>
@@ -788,7 +788,7 @@ export default function ProjectsPage() {
                     className={`projects-sidebar-item${activeGroupId === g.id ? ' is-active' : ''}`}
                     onClick={() => switchGroup(g.id)}
                   >
-                    <span className="projects-sidebar-icon">📁</span>
+                    <span className="projects-sidebar-icon"><Folder size={14} /></span>
                     <span className="projects-sidebar-label">{g.name}</span>
                     <span className="projects-sidebar-count">
                       {groupCountMap.get(g.id) ?? 0}
@@ -826,7 +826,7 @@ export default function ProjectsPage() {
                   className={`projects-sidebar-item${activeGroupId === 'ungrouped' ? ' is-active' : ''}`}
                   onClick={() => switchGroup('ungrouped')}
                 >
-                  <span className="projects-sidebar-icon">📋</span>
+                  <span className="projects-sidebar-icon"><Inbox size={14} /></span>
                   <span className="projects-sidebar-label">未分组</span>
                   <span className="projects-sidebar-count">{ungroupedCount}</span>
                 </button>
@@ -903,78 +903,84 @@ export default function ProjectsPage() {
               <button className="projects-ghost-btn" onClick={exitSelectionMode}>取消</button>
             </div>
           ) : (
-            <div className="projects-controls">
-              <h1 className="projects-title">
-                {activeGroupLabel}
-                <span className="projects-title-count">{displayedProjects.length}</span>
-              </h1>
-              <div className="projects-search-wrap">
-                <Search size={13} className="projects-search-icon" />
-                <input
-                  className="projects-search-input"
-                  placeholder="搜索项目名称..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                {searchQuery && (
-                  <button className="projects-search-clear" onClick={() => setSearchQuery('')}>
-                    <X size={12} />
+            <>
+              <div className="projects-page-header">
+                <h1 className="projects-title">
+                  {activeGroupLabel}
+                  <span className="projects-title-count">{displayedProjects.length}</span>
+                </h1>
+                <div className="projects-header-actions">
+                  <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
+                  <button
+                    className={`projects-import-btn${importing ? ' is-importing' : ''}`}
+                    onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
+                    data-tooltip={importing ? '点击可取消导入操作' : undefined}
+                  >
+                    <Upload size={13} strokeWidth={2.5} />
+                    {importing ? '导入中...' : '导入项目'}
                   </button>
-                )}
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".biodraw"
+                    style={{ display: 'none' }}
+                    onChange={handleImport}
+                  />
+                </div>
               </div>
-              <div className="projects-sort-wrap" ref={sortMenuRef}>
-                <button className="projects-ghost-btn" onClick={() => setShowSortMenu((p) => !p)}>
-                  {SORT_LABELS[sortKey]} <ChevronDown size={12} />
-                </button>
-                {showSortMenu && (
-                  <div className="projects-sort-menu">
-                    {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
-                      <button
-                        key={k}
-                        className={sortKey === k ? 'is-active' : ''}
-                        onClick={() => { setSortKey(k); setShowSortMenu(false); }}
-                      >
-                        {sortKey === k && <Check size={12} />}
-                        {SORT_LABELS[k]}
-                      </button>
-                    ))}
-                  </div>
-                )}
+              <div className="projects-toolbar">
+                <div className="projects-search-wrap">
+                  <Search size={13} className="projects-search-icon" />
+                  <input
+                    className="projects-search-input"
+                    placeholder="搜索项目名称..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  {searchQuery && (
+                    <button className="projects-search-clear" onClick={() => setSearchQuery('')}>
+                      <X size={12} />
+                    </button>
+                  )}
+                </div>
+                <div className="projects-sort-wrap" ref={sortMenuRef}>
+                  <button className="projects-ghost-btn" onClick={() => setShowSortMenu((p) => !p)}>
+                    {SORT_LABELS[sortKey]} <ChevronDown size={12} />
+                  </button>
+                  {showSortMenu && (
+                    <div className="projects-sort-menu">
+                      {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                        <button
+                          key={k}
+                          className={sortKey === k ? 'is-active' : ''}
+                          onClick={() => { setSortKey(k); setShowSortMenu(false); }}
+                        >
+                          {sortKey === k && <Check size={12} />}
+                          {SORT_LABELS[k]}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="projects-view-toggle">
+                  <button
+                    className={`projects-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
+                    onClick={() => handleViewMode('grid')}
+                    title="网格视图"
+                  >
+                    <LayoutGrid size={14} />
+                  </button>
+                  <button
+                    className={`projects-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
+                    onClick={() => handleViewMode('list')}
+                    title="列表视图"
+                  >
+                    <List size={14} />
+                  </button>
+                </div>
+                <button className="projects-ghost-btn" onClick={() => setSelectionMode(true)}>选择</button>
               </div>
-              <div className="projects-view-toggle">
-                <button
-                  className={`projects-view-btn${viewMode === 'grid' ? ' is-active' : ''}`}
-                  onClick={() => handleViewMode('grid')}
-                  title="网格视图"
-                >
-                  <LayoutGrid size={14} />
-                </button>
-                <button
-                  className={`projects-view-btn${viewMode === 'list' ? ' is-active' : ''}`}
-                  onClick={() => handleViewMode('list')}
-                  title="列表视图"
-                >
-                  <List size={14} />
-                </button>
-              </div>
-              <button className="projects-ghost-btn" onClick={() => setSelectionMode(true)}>选择</button>
-              <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
-              <button
-                className={`projects-import-btn${importing ? ' is-importing' : ''}`}
-                onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
-                data-tooltip={importing ? '点击可取消导入操作' : undefined}
-              >
-                <Upload size={13} strokeWidth={2.5} />
-                {importing ? '导入中...' : '导入项目'}
-              </button>
-              <input
-                ref={importInputRef}
-                type="file"
-                accept=".biodraw"
-                style={{ display: 'none' }}
-                onChange={handleImport}
-              />
-            </div>
+            </>
           )}
 
           {loading && <div className="projects-loading">加载中...</div>}
