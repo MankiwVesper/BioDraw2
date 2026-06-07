@@ -853,14 +853,20 @@ export default function ProjectsPage() {
               </div>
             ))}
 
-            <button
-              className={`projects-sidebar-item${activeGroupId === 'ungrouped' ? ' is-active' : ''}`}
-              onClick={() => switchGroup('ungrouped')}
-            >
-              <span className="projects-sidebar-icon">📋</span>
-              <span className="projects-sidebar-label">未分组</span>
-              <span className="projects-sidebar-count">{projects.length - [...groupCountMap.values()].reduce((a, b) => a + b, 0)}</span>
-            </button>
+            {(() => {
+              const ungroupedCount = projects.length - [...groupCountMap.values()].reduce((a, b) => a + b, 0);
+              if (ungroupedCount === 0 && activeGroupId !== 'ungrouped') return null;
+              return (
+                <button
+                  className={`projects-sidebar-item${activeGroupId === 'ungrouped' ? ' is-active' : ''}`}
+                  onClick={() => switchGroup('ungrouped')}
+                >
+                  <span className="projects-sidebar-icon">📋</span>
+                  <span className="projects-sidebar-label">未分组</span>
+                  <span className="projects-sidebar-count">{ungroupedCount}</span>
+                </button>
+              );
+            })()}
           </nav>
 
           <div className="projects-sidebar-footer">

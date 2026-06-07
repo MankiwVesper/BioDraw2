@@ -332,7 +332,7 @@
   align-items: center;
   gap: 8px;
   margin-bottom: 20px;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .projects-title {
@@ -755,11 +755,10 @@
   background: rgba(0, 0, 0, 0.65);
 }
 
-/* 列表视图的 ··· 按钮样式覆盖 */
+/* 列表视图的 ··· 按钮：常驻显示，不需要 hover 才出现 */
 .project-row-actions .project-card-menu-btn {
   background: none;
   color: var(--text-muted);
-  opacity: 0;
 }
 
 .project-row-actions .project-card-menu-btn:hover {
