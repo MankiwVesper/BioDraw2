@@ -875,6 +875,7 @@
   max-width: 72px;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-left: auto;
 }
 
 .project-card-time {
