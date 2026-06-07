@@ -781,11 +781,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 22px;
+  height: 22px;
   border: none;
   background: none;
-  border-radius: 5px;
+  border-radius: 4px;
   color: var(--text-muted);
   cursor: pointer;
   transition: background 0.1s, color 0.1s;
@@ -857,7 +857,7 @@
   text-overflow: ellipsis;
 }
 
-.project-card-meta {
+.project-card-group-row {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -865,19 +865,17 @@
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
-}
-
-.project-card-group {
-  color: var(--text-muted);
-  max-width: 80px;
-  overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.project-card-meta-dot {
+.project-card-time {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
   flex-shrink: 0;
 }
+
 
 /* ── 列表视图 ───────────────────────────────────────────────────────────── */
 .projects-list {

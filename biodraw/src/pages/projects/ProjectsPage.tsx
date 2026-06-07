@@ -254,11 +254,11 @@ function ProjectCard({
 
       <div className="project-card-footer">
         <span className="project-card-title">{project.title}</span>
-        <span className="project-card-meta">
-          {groupName && <span className="project-card-group">{groupName}</span>}
-          {groupName && <span className="project-card-meta-dot">·</span>}
-          <span>{formatRelativeTime(project.updated_at)}</span>
-        </span>
+        {groupName && (
+          <span className="project-card-group-row">
+            <Folder size={11} />{groupName}
+          </span>
+        )}
         <div className="project-card-actions" onClick={(e) => e.stopPropagation()}>
           <button className="pcard-action-btn" data-tooltip="重命名" onClick={onRename}><Pencil size={13} /></button>
           <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
@@ -276,6 +276,7 @@ function ProjectCard({
             )}
           </div>
           <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
+          <span className="project-card-time">{formatRelativeTime(project.updated_at)}</span>
         </div>
       </div>
     </div>
