@@ -235,12 +235,14 @@ function ProjectCard({
   useLayoutEffect(() => {
     const el = titleRef.current;
     if (!el) return;
-    const { width, overflow } = el.style;
+    const { flex: f, width: w, overflow: o } = el.style;
+    el.style.flex = 'none';
     el.style.width = 'max-content';
     el.style.overflow = 'visible';
     const natural = el.getBoundingClientRect().width;
-    el.style.width = width;
-    el.style.overflow = overflow;
+    el.style.flex = f;
+    el.style.width = w;
+    el.style.overflow = o;
     const constrained = el.getBoundingClientRect().width;
     if (natural > constrained + 0.5) {
       el.setAttribute('data-tooltip', project.title);
@@ -253,12 +255,14 @@ function ProjectCard({
     const textEl = groupTagTextRef.current;
     const tagEl = groupTagRef.current;
     if (!textEl || !tagEl) return;
-    const { width, overflow } = textEl.style;
+    const { flex: f, width: w, overflow: o } = textEl.style;
+    textEl.style.flex = 'none';
     textEl.style.width = 'max-content';
     textEl.style.overflow = 'visible';
     const natural = textEl.getBoundingClientRect().width;
-    textEl.style.width = width;
-    textEl.style.overflow = overflow;
+    textEl.style.flex = f;
+    textEl.style.width = w;
+    textEl.style.overflow = o;
     const constrained = textEl.getBoundingClientRect().width;
     if (natural > constrained + 0.5) {
       tagEl.setAttribute('data-tooltip', groupName ?? '');
