@@ -935,6 +935,7 @@ export default function ProjectsPage() {
                     <input
                       ref={editGroupInputRef}
                       className="projects-sidebar-edit-input"
+                      maxLength={20}
                       value={editingGroupName}
                       onChange={(e) => setEditingGroupName(e.target.value)}
                       onKeyDown={(e) => {
@@ -1014,6 +1015,7 @@ export default function ProjectsPage() {
                   ref={newGroupInputRef}
                   className="projects-sidebar-edit-input"
                   placeholder="分组名称..."
+                  maxLength={20}
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                   onKeyDown={(e) => {
@@ -1301,7 +1303,7 @@ export default function ProjectsPage() {
           message={deleteGroupTarget.count > 0
             ? `删除分组「${deleteGroupTarget.name}」后，其中 ${deleteGroupTarget.count} 个项目将移入未分组。确认删除？`
             : `确认删除分组「${deleteGroupTarget.name}」？`}
-          confirmLabel="删除分组"
+          confirmLabel="删除"
           danger
           onConfirm={() => commitDeleteGroup(deleteGroupTarget.id)}
           onCancel={() => setDeleteGroupTarget(null)}
