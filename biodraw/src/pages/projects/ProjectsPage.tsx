@@ -190,6 +190,12 @@ function MoveToMenu({
     const rect = anchorEl.getBoundingClientRect();
     const menuH = el.offsetHeight;
     const above = rect.top >= menuH + 4;
+    const card = anchorEl.closest('.project-card');
+    if (card) {
+      el.style.width = `${rect.right - card.getBoundingClientRect().left}px`;
+    } else {
+      el.style.width = '';
+    }
     el.style.position = 'fixed';
     el.style.right = `${window.innerWidth - rect.right}px`;
     el.style.top = above ? '' : `${rect.bottom + 4}px`;
@@ -213,7 +219,7 @@ function MoveToMenu({
         className={`pcard-submenu-item${!currentGroupId ? ' is-current' : ''}`}
         onClick={() => { if (currentGroupId) onMove(null); onClose(); }}
       >
-        未分组
+        <span className="pcard-submenu-item-label">未分组</span>
         {!currentGroupId && <Check size={12} />}
       </button>
       {[...groupsMap.entries()].map(([id, name]) => (
@@ -222,7 +228,7 @@ function MoveToMenu({
           className={`pcard-submenu-item${currentGroupId === id ? ' is-current' : ''}`}
           onClick={() => { if (currentGroupId !== id) onMove(id); onClose(); }}
         >
-          {name}
+          <span className="pcard-submenu-item-label">{name}</span>
           {currentGroupId === id && <Check size={12} />}
         </button>
       ))}
