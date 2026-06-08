@@ -565,6 +565,14 @@ export default function ProjectsPage() {
   const importingProjectIdRef = useRef<string | null>(null);
   const userMenuRef  = useRef<HTMLDivElement>(null);
   const sortMenuRef  = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    const el = mainRef.current;
+    if (!el) return;
+    const gutter = el.offsetWidth - el.clientWidth;
+    el.closest<HTMLElement>('.projects-content')?.style.setProperty('--sb-gutter', `${gutter}px`);
+  }, []);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -1160,7 +1168,7 @@ export default function ProjectsPage() {
 
         {/* ── 主内容 ── */}
         <div className="projects-content">
-        <main className="projects-main">
+        <main className="projects-main" ref={mainRef}>
           {/* 标题行 */}
           <div className="projects-page-header">
             <h1 className="projects-title">

@@ -444,6 +444,7 @@
 .projects-main {
   flex: 1;
   overflow-y: auto;
+  scrollbar-gutter: stable;
   padding: 20px 28px 0;
   min-width: 0;
 }
@@ -466,6 +467,12 @@
   width: 160px;
 }
 
+.projects-bottom-bar .projects-sort-menu button {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .projects-bottom-bar .projects-sort-wrap > .projects-ghost-btn,
 .projects-bottom-bar .projects-danger-btn {
   width: 76px;
@@ -478,6 +485,7 @@
 
 .projects-bottom-bar-actions {
   margin-left: auto;
+  margin-right: var(--sb-gutter, 0px);
   display: flex;
   align-items: center;
   gap: 8px;
