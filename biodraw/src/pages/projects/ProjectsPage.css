@@ -234,6 +234,11 @@
   flex-shrink: 0;
 }
 
+.projects-sidebar-count-gap {
+  width: 18px;
+  flex-shrink: 0;
+}
+
 .projects-sidebar-actions {
   display: none;
   align-items: center;

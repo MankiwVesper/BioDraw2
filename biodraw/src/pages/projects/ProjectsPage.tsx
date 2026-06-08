@@ -1013,6 +1013,7 @@ export default function ProjectsPage() {
               <span className="projects-sidebar-icon"><Layers size={14} /></span>
               <span className="projects-sidebar-label">全部项目</span>
               <span className="projects-sidebar-count">{projects.length}</span>
+              <span className="projects-sidebar-count-gap" aria-hidden="true" />
             </button>
 
             {(() => {
@@ -1026,6 +1027,7 @@ export default function ProjectsPage() {
                   <span className="projects-sidebar-icon"><Inbox size={14} /></span>
                   <span className="projects-sidebar-label">未分组</span>
                   <span className="projects-sidebar-count">{ungroupedCount}</span>
+                  <span className="projects-sidebar-count-gap" aria-hidden="true" />
                 </button>
               );
             })()}
