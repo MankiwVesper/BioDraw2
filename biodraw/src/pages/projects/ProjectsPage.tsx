@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Upload, LayoutGrid, List, Search, X, ChevronDown, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
@@ -165,38 +166,68 @@ function ThumbnailCapture({
   );
 }
 
-// ── 移动到分组子菜单 ─────────────────────────────────────────────────────────
+// ── 移动到分组子菜单（portal，避免被父级 overflow 裁剪）────────────────────
 function MoveToMenu({
+  anchorEl,
   groupsMap,
   currentGroupId,
   onMove,
   onClose,
 }: {
+  anchorEl: HTMLElement;
   groupsMap: Map<string, string>;
   currentGroupId: string | null | undefined;
   onMove: (groupId: string | null) => void;
   onClose: () => void;
 }) {
-  return (
-    <div className="pcard-submenu">
+  const menuRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => { onCloseRef.current = onClose; });
+
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const menuH = el.offsetHeight;
+    const above = rect.top >= menuH + 4;
+    el.style.position = 'fixed';
+    el.style.right = `${window.innerWidth - rect.right}px`;
+    el.style.top = above ? '' : `${rect.bottom + 4}px`;
+    el.style.bottom = above ? `${window.innerHeight - rect.top + 4}px` : '';
+    el.style.visibility = 'visible';
+  }, [anchorEl]);
+
+  useEffect(() => {
+    const fn = (e: MouseEvent) => {
+      if (!menuRef.current?.contains(e.target as Node) && !anchorEl.contains(e.target as Node)) {
+        onCloseRef.current();
+      }
+    };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, [anchorEl]);
+
+  return createPortal(
+    <div ref={menuRef} className="pcard-submenu" style={{ visibility: 'hidden' }}>
       <button
         className={`pcard-submenu-item${!currentGroupId ? ' is-current' : ''}`}
-        onClick={() => { onMove(null); onClose(); }}
+        onClick={() => { if (currentGroupId) onMove(null); onClose(); }}
       >
-        {!currentGroupId && <Check size={12} />}
         未分组
+        {!currentGroupId && <Check size={12} />}
       </button>
       {[...groupsMap.entries()].map(([id, name]) => (
         <button
           key={id}
           className={`pcard-submenu-item${currentGroupId === id ? ' is-current' : ''}`}
-          onClick={() => { onMove(id); onClose(); }}
+          onClick={() => { if (currentGroupId !== id) onMove(id); onClose(); }}
         >
-          {currentGroupId === id && <Check size={12} />}
           {name}
+          {currentGroupId === id && <Check size={12} />}
         </button>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -234,13 +265,10 @@ function ProjectCard({
   onRestore?: () => void;
   onPermanentDelete?: () => void;
 }) {
-  const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const moveMenuRef = useRef<HTMLDivElement>(null);
+  const [moveAnchorEl, setMoveAnchorEl] = useState<HTMLButtonElement | null>(null);
   const titleRef = useRef<HTMLSpanElement>(null);
   const groupTagRef = useRef<HTMLSpanElement>(null);
   const groupTagTextRef = useRef<HTMLSpanElement>(null);
-
-  useClickOutside(moveMenuRef, () => setShowMoveMenu(false), showMoveMenu);
 
   const groupName = project.group_id ? groupsMap.get(project.group_id) : undefined;
 
@@ -323,14 +351,21 @@ function ProjectCard({
               <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
               <button className="pcard-action-btn" data-tooltip="导出" onClick={onExport}><Share2 size={13} /></button>
               <button className="pcard-action-btn" data-tooltip="下载" onClick={onDownload}><Download size={13} /></button>
-              <div className="pcard-action-move" ref={moveMenuRef}>
-                <button className="pcard-action-btn" data-tooltip="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
-                {showMoveMenu && (
+              <div className="pcard-action-move">
+                <button
+                  className="pcard-action-btn"
+                  data-tooltip="移动到"
+                  onClick={(e) => setMoveAnchorEl(moveAnchorEl ? null : e.currentTarget)}
+                >
+                  <FolderInput size={13} />
+                </button>
+                {moveAnchorEl && (
                   <MoveToMenu
+                    anchorEl={moveAnchorEl}
                     groupsMap={groupsMap}
                     currentGroupId={project.group_id}
                     onMove={onMove}
-                    onClose={() => setShowMoveMenu(false)}
+                    onClose={() => setMoveAnchorEl(null)}
                   />
                 )}
               </div>
@@ -378,10 +413,7 @@ function ProjectRow({
   onRestore?: () => void;
   onPermanentDelete?: () => void;
 }) {
-  const [showMoveMenu, setShowMoveMenu] = useState(false);
-  const moveMenuRef = useRef<HTMLDivElement>(null);
-
-  useClickOutside(moveMenuRef, () => setShowMoveMenu(false), showMoveMenu);
+  const [moveAnchorEl, setMoveAnchorEl] = useState<HTMLButtonElement | null>(null);
 
   const groupName = (project.group_id ? groupsMap.get(project.group_id) : undefined) ?? '未分组';
 
@@ -433,14 +465,21 @@ function ProjectRow({
               <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
               <button className="pcard-action-btn" data-tooltip="导出" onClick={onExport}><Share2 size={13} /></button>
               <button className="pcard-action-btn" data-tooltip="下载" onClick={onDownload}><Download size={13} /></button>
-              <div className="pcard-action-move" ref={moveMenuRef}>
-                <button className="pcard-action-btn" data-tooltip="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
-                {showMoveMenu && (
+              <div className="pcard-action-move">
+                <button
+                  className="pcard-action-btn"
+                  data-tooltip="移动到"
+                  onClick={(e) => setMoveAnchorEl(moveAnchorEl ? null : e.currentTarget)}
+                >
+                  <FolderInput size={13} />
+                </button>
+                {moveAnchorEl && (
                   <MoveToMenu
+                    anchorEl={moveAnchorEl}
                     groupsMap={groupsMap}
                     currentGroupId={project.group_id}
                     onMove={onMove}
-                    onClose={() => setShowMoveMenu(false)}
+                    onClose={() => setMoveAnchorEl(null)}
                   />
                 )}
               </div>
