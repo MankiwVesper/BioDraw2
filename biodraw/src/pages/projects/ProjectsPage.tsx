@@ -190,8 +190,14 @@ function MoveToMenu({
     const rect = anchorEl.getBoundingClientRect();
     const menuH = el.offsetHeight;
     const above = rect.top >= menuH + 4;
+    const row = anchorEl.closest('.project-row');
     const card = anchorEl.closest('.project-card');
-    if (card) {
+    if (row) {
+      const firstBtn = row.querySelector('.pcard-action-btn');
+      el.style.width = firstBtn
+        ? `${rect.right - firstBtn.getBoundingClientRect().left}px`
+        : '';
+    } else if (card) {
       el.style.width = `${rect.right - card.getBoundingClientRect().left}px`;
     } else {
       el.style.width = '';
