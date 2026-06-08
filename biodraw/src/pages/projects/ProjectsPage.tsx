@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
-import { Upload, LayoutGrid, List, Search, X, ChevronDown, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw } from 'lucide-react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
@@ -484,6 +484,12 @@ export default function ProjectsPage() {
   const [newGroupName, setNewGroupName]     = useState('');
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
+  const [favoriteGroupIds, setFavoriteGroupIds] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem('biodraw_favorite_groups');
+      return new Set(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch { return new Set(); }
+  });
   const newGroupInputRef  = useRef<HTMLInputElement>(null);
   const editGroupInputRef    = useRef<HTMLInputElement>(null);
   const groupEditEscapedRef  = useRef(false);
@@ -570,6 +576,12 @@ export default function ProjectsPage() {
     }
     return map;
   }, [projects]);
+
+  // 收藏分组在前，普通分组在后，保持各自内部原始顺序
+  const sortedGroups = useMemo(() => [
+    ...groups.filter((g) => favoriteGroupIds.has(g.id)),
+    ...groups.filter((g) => !favoriteGroupIds.has(g.id)),
+  ], [groups, favoriteGroupIds]);
 
   const isTrash = activeGroupId === 'trash';
 
@@ -855,6 +867,15 @@ export default function ProjectsPage() {
     }
   }
 
+  function toggleFavoriteGroup(id: string) {
+    setFavoriteGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      localStorage.setItem('biodraw_favorite_groups', JSON.stringify([...next]));
+      return next;
+    });
+  }
+
   async function handleLogout() {
     await logout();
     navigate('/login', { replace: true });
@@ -928,8 +949,23 @@ export default function ProjectsPage() {
               <span className="projects-sidebar-count">{projects.length}</span>
             </button>
 
-            {groups.map((g) => (
-              <div key={g.id} className="projects-sidebar-group-wrap">
+            {(() => {
+              const ungroupedCount = projects.length - [...groupCountMap.values()].reduce((a, b) => a + b, 0);
+              if (ungroupedCount === 0 && activeGroupId !== 'ungrouped') return null;
+              return (
+                <button
+                  className={`projects-sidebar-item${activeGroupId === 'ungrouped' ? ' is-active' : ''}`}
+                  onClick={() => switchGroup('ungrouped')}
+                >
+                  <span className="projects-sidebar-icon"><Inbox size={14} /></span>
+                  <span className="projects-sidebar-label">未分组</span>
+                  <span className="projects-sidebar-count">{ungroupedCount}</span>
+                </button>
+              );
+            })()}
+
+            {sortedGroups.map((g) => (
+              <div key={g.id} className={`projects-sidebar-group-wrap${favoriteGroupIds.has(g.id) ? ' is-fav' : ''}`}>
                 {editingGroupId === g.id ? (
                   <div className="projects-sidebar-edit-row">
                     <input
@@ -968,6 +1004,13 @@ export default function ProjectsPage() {
                     </span>
                     <span className="projects-sidebar-actions">
                       <span
+                        className={`projects-sidebar-action-btn is-star${favoriteGroupIds.has(g.id) ? ' is-fav' : ''}`}
+                        data-tooltip={favoriteGroupIds.has(g.id) ? '取消收藏' : '收藏'}
+                        onClick={(e) => { e.stopPropagation(); toggleFavoriteGroup(g.id); }}
+                      >
+                        <Star size={11} />
+                      </span>
+                      <span
                         className="projects-sidebar-action-btn"
                         data-tooltip="重命名"
                         onClick={(e) => {
@@ -990,21 +1033,6 @@ export default function ProjectsPage() {
                 )}
               </div>
             ))}
-
-            {(() => {
-              const ungroupedCount = projects.length - [...groupCountMap.values()].reduce((a, b) => a + b, 0);
-              if (ungroupedCount === 0 && activeGroupId !== 'ungrouped') return null;
-              return (
-                <button
-                  className={`projects-sidebar-item${activeGroupId === 'ungrouped' ? ' is-active' : ''}`}
-                  onClick={() => switchGroup('ungrouped')}
-                >
-                  <span className="projects-sidebar-icon"><Inbox size={14} /></span>
-                  <span className="projects-sidebar-label">未分组</span>
-                  <span className="projects-sidebar-count">{ungroupedCount}</span>
-                </button>
-              );
-            })()}
           </nav>
 
           <div className="projects-sidebar-divider" />
@@ -1184,7 +1212,7 @@ export default function ProjectsPage() {
                 </>
               ) : (
                 <>
-                  <div className="projects-empty-canvas" />
+                  <div className="projects-empty-icon">🎨</div>
                   <p className="projects-empty-title">这里还没有项目</p>
                   <p className="projects-empty-sub">立即创作你的第一个动画示意图</p>
                   <div className="projects-empty-actions">
