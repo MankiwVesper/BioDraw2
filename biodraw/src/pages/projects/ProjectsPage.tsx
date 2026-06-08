@@ -1004,13 +1004,6 @@ export default function ProjectsPage() {
                     </span>
                     <span className="projects-sidebar-actions">
                       <span
-                        className={`projects-sidebar-action-btn is-star${favoriteGroupIds.has(g.id) ? ' is-fav' : ''}`}
-                        data-tooltip={favoriteGroupIds.has(g.id) ? '取消收藏' : '收藏'}
-                        onClick={(e) => { e.stopPropagation(); toggleFavoriteGroup(g.id); }}
-                      >
-                        <Star size={11} />
-                      </span>
-                      <span
                         className="projects-sidebar-action-btn"
                         data-tooltip="重命名"
                         onClick={(e) => {
@@ -1027,6 +1020,13 @@ export default function ProjectsPage() {
                         onClick={(e) => { e.stopPropagation(); setDeleteGroupTarget({ id: g.id, name: g.name, count: groupCountMap.get(g.id) ?? 0 }); }}
                       >
                         <Trash2 size={11} />
+                      </span>
+                      <span
+                        className={`projects-sidebar-action-btn is-star${favoriteGroupIds.has(g.id) ? ' is-fav' : ''}`}
+                        data-tooltip={favoriteGroupIds.has(g.id) ? '取消收藏' : '收藏'}
+                        onClick={(e) => { e.stopPropagation(); toggleFavoriteGroup(g.id); }}
+                      >
+                        <Star size={11} />
                       </span>
                     </span>
                   </button>
