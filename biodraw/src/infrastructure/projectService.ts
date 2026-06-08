@@ -94,12 +94,14 @@ export async function getProject(id: string): Promise<{ title: string; data: Doc
   return data as { title: string; data: DocumentSnapshot };
 }
 
-export async function createProject(title: string, snapshot: DocumentSnapshot): Promise<string> {
+export async function createProject(title: string, snapshot: DocumentSnapshot, groupId?: string | null): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('未登录');
+  const payload: Record<string, unknown> = { title, data: snapshot, user_id: user.id };
+  if (groupId) payload.group_id = groupId;
   const { data, error } = await supabase
     .from('projects')
-    .insert({ title, data: snapshot, user_id: user.id })
+    .insert(payload)
     .select('id')
     .single();
   if (error) throw error;
