@@ -111,12 +111,12 @@ export function TooltipPortal() {
     };
   }, []);
 
-  // 气泡渲染后测量宽度，若右侧超出视口则将 x 夹到安全范围
+  // 气泡渲染后测量宽度，若超出视口左右边界则将 x 夹到安全范围
   useLayoutEffect(() => {
     if (!state || !bubbleRef.current) return;
     const half = bubbleRef.current.offsetWidth / 2;
-    const clamped = Math.min(window.innerWidth - half - 8, state.x);
-    if (clamped < state.x) setState(s => s && { ...s, x: clamped });
+    const clamped = Math.max(half + 8, Math.min(window.innerWidth - half - 8, state.x));
+    if (clamped !== state.x) setState(s => s && { ...s, x: clamped });
   }, [state]);
 
   if (!state) return null;
