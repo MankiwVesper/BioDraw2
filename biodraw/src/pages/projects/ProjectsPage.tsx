@@ -640,7 +640,8 @@ export default function ProjectsPage() {
 
   async function handleCreate() {
     try {
-      const id = await createProject('未命名项目', emptySnapshot());
+      const gid = (activeGroupId !== 'all' && activeGroupId !== 'ungrouped' && activeGroupId !== 'trash') ? activeGroupId : null;
+      const id = await createProject('未命名项目', emptySnapshot(), gid);
       navigate(`/editor/${id}`);
     } catch {
       alert('创建项目失败，请重试');
@@ -660,8 +661,9 @@ export default function ProjectsPage() {
         setImporting(false);
         return;
       }
+      const gid = (activeGroupId !== 'all' && activeGroupId !== 'ungrouped' && activeGroupId !== 'trash') ? activeGroupId : null;
       const id = await Promise.race([
-        createProject(title, snapshot),
+        createProject(title, snapshot, gid),
         new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('网络超时，请检查连接后重试')), 15000)
         ),
