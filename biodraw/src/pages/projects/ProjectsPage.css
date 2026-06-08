@@ -258,6 +258,66 @@
   display: none;
 }
 
+/* 分组检索框 */
+.projects-sidebar-group-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 2px 0 4px;
+}
+.projects-sidebar-group-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 0.15s;
+}
+.projects-sidebar-group-search:focus-within .projects-sidebar-group-search-icon {
+  opacity: 1;
+}
+.projects-sidebar-group-search-input {
+  width: 100%;
+  height: 28px;
+  padding: 0 22px 0 30px;
+  font-size: 13px;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-main);
+  outline: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.projects-sidebar-group-search-input:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+.projects-sidebar-group-search-input:focus {
+  background: var(--panel-bg);
+  border-color: var(--border-color);
+}
+.projects-sidebar-group-search-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+.projects-sidebar-group-search-clear {
+  position: absolute;
+  right: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  transition: color 0.1s;
+}
+.projects-sidebar-group-search-clear:hover { color: var(--text-main); }
+.projects-sidebar-group-search-empty {
+  padding: 4px 12px 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
 /* 行内编辑 */
 .projects-sidebar-edit-row {
   padding: 2px 8px;
@@ -413,7 +473,7 @@
   font-size: 13px;
   border: 1px solid #c4c7cd;
   border-radius: var(--radius);
-  background: var(--bg-color);
+  background: var(--panel-bg);
   color: var(--text-main);
   outline: none;
   transition: border-color 0.12s;
