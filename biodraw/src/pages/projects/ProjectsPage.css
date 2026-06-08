@@ -257,10 +257,6 @@
 .projects-sidebar-group-wrap.is-fav:not(:hover) .projects-sidebar-action-btn:not(.is-star) {
   display: none;
 }
-/* 收藏分组：始终隐藏计数（星形按钮代替视觉指示） */
-.projects-sidebar-group-wrap.is-fav .projects-sidebar-count {
-  display: none;
-}
 
 /* 行内编辑 */
 .projects-sidebar-edit-row {
