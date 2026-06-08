@@ -258,6 +258,15 @@
   display: none;
 }
 
+/* 普通分组：非悬停时以不可见的星形按钮占位，使数字与收藏分组对齐 */
+.projects-sidebar-group-wrap:not(.is-fav):not(:hover) .projects-sidebar-actions {
+  display: flex;
+  visibility: hidden;
+}
+.projects-sidebar-group-wrap:not(.is-fav):not(:hover) .projects-sidebar-action-btn:not(.is-star) {
+  display: none;
+}
+
 /* 分组检索框 */
 .projects-sidebar-group-search {
   position: relative;
