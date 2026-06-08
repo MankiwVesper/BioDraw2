@@ -523,6 +523,7 @@ export default function ProjectsPage() {
   const [newGroupName, setNewGroupName]     = useState('');
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
+  const [groupSearchQuery, setGroupSearchQuery] = useState('');
   const [favoriteGroupIds, setFavoriteGroupIds] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem('biodraw_favorite_groups');
@@ -621,6 +622,13 @@ export default function ProjectsPage() {
     ...groups.filter((g) => favoriteGroupIds.has(g.id)),
     ...groups.filter((g) => !favoriteGroupIds.has(g.id)),
   ], [groups, favoriteGroupIds]);
+
+  // 侧边栏分组检索（分组数 ≥ 5 时生效）
+  const filteredGroups = useMemo(() => {
+    const q = groupSearchQuery.trim().toLowerCase();
+    if (!q) return sortedGroups;
+    return sortedGroups.filter((g) => g.name.toLowerCase().includes(q));
+  }, [sortedGroups, groupSearchQuery]);
 
   const isTrash = activeGroupId === 'trash';
 
@@ -1005,7 +1013,24 @@ export default function ProjectsPage() {
               );
             })()}
 
-            {sortedGroups.map((g) => (
+            {groups.length > 0 && (
+              <div className="projects-sidebar-group-search">
+                <Search size={12} className="projects-sidebar-group-search-icon" />
+                <input
+                  className="projects-sidebar-group-search-input"
+                  placeholder="搜索分组..."
+                  value={groupSearchQuery}
+                  onChange={(e) => setGroupSearchQuery(e.target.value)}
+                />
+                {groupSearchQuery && (
+                  <button className="projects-sidebar-group-search-clear" onClick={() => setGroupSearchQuery('')}>
+                    <X size={11} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {filteredGroups.map((g) => (
               <div key={g.id} className={`projects-sidebar-group-wrap${favoriteGroupIds.has(g.id) ? ' is-fav' : ''}`}>
                 {editingGroupId === g.id ? (
                   <div className="projects-sidebar-edit-row">
@@ -1074,6 +1099,10 @@ export default function ProjectsPage() {
                 )}
               </div>
             ))}
+
+            {groupSearchQuery && filteredGroups.length === 0 && (
+              <div className="projects-sidebar-group-search-empty">无匹配分组</div>
+            )}
           </nav>
 
           <div className="projects-sidebar-divider" />
