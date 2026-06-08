@@ -1,9 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
-import { Upload, LayoutGrid, List, Search, X, ChevronDown, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput } from 'lucide-react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
-  listProjects, createProject, getProject, deleteProject, deleteProjects,
+  listProjects, listDeletedProjects, createProject, getProject,
+  deleteProject, deleteProjects, restoreProject, restoreProjects,
+  permanentDeleteProject, permanentDeleteProjects, emptyRecycleBin,
   renameProject, updateProjectData, moveProject, moveProjects,
   listGroups, createGroup, renameGroup, deleteGroup,
   type ProjectRecord, type ProjectGroup,
@@ -17,7 +19,7 @@ import { ChangePasswordModal } from './ChangePasswordModal';
 import { DeleteAccountModal } from './DeleteAccountModal';
 import './ProjectsPage.css';
 
-type SortKey = 'updated_at' | 'created_at' | 'title' | 'title_desc';
+type SortKey = 'updated_at' | 'created_at' | 'title' | 'title_desc' | 'deleted_at';
 type ViewMode = 'grid' | 'list';
 
 function useClickOutside(ref: React.RefObject<HTMLElement | null>, handler: () => void, enabled: boolean) {
@@ -97,7 +99,10 @@ const SORT_LABELS: Record<SortKey, string> = {
   created_at: '最近创建',
   title: '名称 A→Z',
   title_desc: '名称 Z→A',
+  deleted_at: '删除时间',
 };
+const NORMAL_SORT_KEYS: SortKey[] = ['updated_at', 'created_at', 'title', 'title_desc'];
+const TRASH_SORT_KEYS:  SortKey[] = ['deleted_at', 'title', 'title_desc'];
 
 function emptySnapshot() {
   return serializeDocument({
@@ -209,6 +214,9 @@ function ProjectCard({
   onDownload,
   onDelete,
   onMove,
+  isTrash,
+  onRestore,
+  onPermanentDelete,
 }: {
   project: ProjectRecord;
   groupsMap: Map<string, string>;
@@ -222,6 +230,9 @@ function ProjectCard({
   onDownload: () => void;
   onDelete: () => void;
   onMove: (groupId: string | null) => void;
+  isTrash?: boolean;
+  onRestore?: () => void;
+  onPermanentDelete?: () => void;
 }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const moveMenuRef = useRef<HTMLDivElement>(null);
@@ -255,6 +266,7 @@ function ProjectCard({
   }, [groupName]);
 
   function handleCardClick() {
+    if (isTrash) return;
     if (anySelected) { onToggleSelect(); return; }
     onOpen();
   }
@@ -299,23 +311,33 @@ function ProjectCard({
           )}
         </div>
         <div className="project-card-actions" onClick={(e) => e.stopPropagation()}>
-          <button className="pcard-action-btn" data-tooltip="重命名" onClick={onRename}><Pencil size={13} /></button>
-          <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
-          <button className="pcard-action-btn" data-tooltip="导出" onClick={onExport}><Share2 size={13} /></button>
-          <button className="pcard-action-btn" data-tooltip="下载" onClick={onDownload}><Download size={13} /></button>
-          <div className="pcard-action-move" ref={moveMenuRef}>
-            <button className="pcard-action-btn" data-tooltip="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
-            {showMoveMenu && (
-              <MoveToMenu
-                groupsMap={groupsMap}
-                currentGroupId={project.group_id}
-                onMove={onMove}
-                onClose={() => setShowMoveMenu(false)}
-              />
-            )}
-          </div>
-          <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
-          <span className="project-card-time">{formatRelativeTime(project.updated_at)}</span>
+          {isTrash ? (
+            <>
+              <button className="pcard-action-btn" data-tooltip="恢复" onClick={onRestore}><RotateCcw size={13} /></button>
+              <button className="pcard-action-btn is-danger" data-tooltip="永久删除" onClick={onPermanentDelete}><Trash2 size={13} /></button>
+              <span className="project-card-time">{formatRelativeTime(project.deleted_at ?? project.updated_at)}</span>
+            </>
+          ) : (
+            <>
+              <button className="pcard-action-btn" data-tooltip="重命名" onClick={onRename}><Pencil size={13} /></button>
+              <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
+              <button className="pcard-action-btn" data-tooltip="导出" onClick={onExport}><Share2 size={13} /></button>
+              <button className="pcard-action-btn" data-tooltip="下载" onClick={onDownload}><Download size={13} /></button>
+              <div className="pcard-action-move" ref={moveMenuRef}>
+                <button className="pcard-action-btn" data-tooltip="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
+                {showMoveMenu && (
+                  <MoveToMenu
+                    groupsMap={groupsMap}
+                    currentGroupId={project.group_id}
+                    onMove={onMove}
+                    onClose={() => setShowMoveMenu(false)}
+                  />
+                )}
+              </div>
+              <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
+              <span className="project-card-time">{formatRelativeTime(project.updated_at)}</span>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -336,6 +358,9 @@ function ProjectRow({
   onDownload,
   onDelete,
   onMove,
+  isTrash,
+  onRestore,
+  onPermanentDelete,
 }: {
   project: ProjectRecord;
   groupsMap: Map<string, string>;
@@ -349,6 +374,9 @@ function ProjectRow({
   onDownload: () => void;
   onDelete: () => void;
   onMove: (groupId: string | null) => void;
+  isTrash?: boolean;
+  onRestore?: () => void;
+  onPermanentDelete?: () => void;
 }) {
   const [showMoveMenu, setShowMoveMenu] = useState(false);
   const moveMenuRef = useRef<HTMLDivElement>(null);
@@ -358,6 +386,7 @@ function ProjectRow({
   const groupName = (project.group_id ? groupsMap.get(project.group_id) : undefined) ?? '未分组';
 
   function handleRowClick() {
+    if (isTrash) return;
     if (anySelected) { onToggleSelect(); return; }
     onOpen();
   }
@@ -390,25 +419,34 @@ function ProjectRow({
           }
         }}
       >{groupName}</div>
-      <div className="project-row-time">{formatRelativeTime(project.updated_at)}</div>
+      <div className="project-row-time">{formatRelativeTime(isTrash ? (project.deleted_at ?? project.updated_at) : project.updated_at)}</div>
       <div className="project-row-actions" onClick={(e) => e.stopPropagation()}>
         <div className="project-card-actions">
-          <button className="pcard-action-btn" data-tooltip="重命名" onClick={onRename}><Pencil size={13} /></button>
-          <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
-          <button className="pcard-action-btn" data-tooltip="导出" onClick={onExport}><Share2 size={13} /></button>
-          <button className="pcard-action-btn" data-tooltip="下载" onClick={onDownload}><Download size={13} /></button>
-          <div className="pcard-action-move" ref={moveMenuRef}>
-            <button className="pcard-action-btn" data-tooltip="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
-            {showMoveMenu && (
-              <MoveToMenu
-                groupsMap={groupsMap}
-                currentGroupId={project.group_id}
-                onMove={onMove}
-                onClose={() => setShowMoveMenu(false)}
-              />
-            )}
-          </div>
-          <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
+          {isTrash ? (
+            <>
+              <button className="pcard-action-btn" data-tooltip="恢复" onClick={onRestore}><RotateCcw size={13} /></button>
+              <button className="pcard-action-btn is-danger" data-tooltip="永久删除" onClick={onPermanentDelete}><Trash2 size={13} /></button>
+            </>
+          ) : (
+            <>
+              <button className="pcard-action-btn" data-tooltip="重命名" onClick={onRename}><Pencil size={13} /></button>
+              <button className="pcard-action-btn" data-tooltip="预览" onClick={onPreview}><Eye size={13} /></button>
+              <button className="pcard-action-btn" data-tooltip="导出" onClick={onExport}><Share2 size={13} /></button>
+              <button className="pcard-action-btn" data-tooltip="下载" onClick={onDownload}><Download size={13} /></button>
+              <div className="pcard-action-move" ref={moveMenuRef}>
+                <button className="pcard-action-btn" data-tooltip="移动到" onClick={() => setShowMoveMenu((p) => !p)}><FolderInput size={13} /></button>
+                {showMoveMenu && (
+                  <MoveToMenu
+                    groupsMap={groupsMap}
+                    currentGroupId={project.group_id}
+                    onMove={onMove}
+                    onClose={() => setShowMoveMenu(false)}
+                  />
+                )}
+              </div>
+              <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -450,11 +488,15 @@ export default function ProjectsPage() {
   const editGroupInputRef    = useRef<HTMLInputElement>(null);
   const groupEditEscapedRef  = useRef(false);
 
+  const [deletedProjects, setDeletedProjects] = useState<ProjectRecord[]>([]);
   const [exportTarget, setExportTarget] = useState<{ id: string; title: string } | null>(null);
   const [importing, setImporting] = useState(false);
   const [renameTarget, setRenameTarget] = useState<{ id: string; title: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [bulkDeletePending, setBulkDeletePending] = useState(false);
+  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [bulkPermanentDeletePending, setBulkPermanentDeletePending] = useState(false);
+  const [emptyTrashPending, setEmptyTrashPending] = useState(false);
   const [deleteGroupTarget, setDeleteGroupTarget] = useState<{ id: string; name: string; count: number } | null>(null);
   const [thumbGenTarget, setThumbGenTarget] = useState<{ id: string; snapshot: DocumentSnapshot } | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -509,6 +551,12 @@ export default function ProjectsPage() {
     } catch {
       // 分组加载失败不阻断项目显示
     }
+    try {
+      const ds = await listDeletedProjects();
+      setDeletedProjects(ds);
+    } catch {
+      // 回收站加载失败不阻断
+    }
   }
 
   // 分组名称 Map：O(1) 查找替代 O(n) find
@@ -523,10 +571,16 @@ export default function ProjectsPage() {
     return map;
   }, [projects]);
 
+  const isTrash = activeGroupId === 'trash';
+
+  useEffect(() => {
+    setSortKey(isTrash ? 'deleted_at' : 'updated_at');
+  }, [isTrash]);
+
   // 过滤 + 排序
   const displayedProjects = useMemo(() => {
-    let list = projects;
-    if (activeGroupId !== 'all') {
+    let list = isTrash ? deletedProjects : projects;
+    if (!isTrash && activeGroupId !== 'all') {
       list = activeGroupId === 'ungrouped'
         ? list.filter((p) => !p.group_id)
         : list.filter((p) => p.group_id === activeGroupId);
@@ -538,9 +592,12 @@ export default function ProjectsPage() {
     return [...list].sort((a, b) => {
       if (sortKey === 'title') return a.title.localeCompare(b.title, 'zh');
       if (sortKey === 'title_desc') return b.title.localeCompare(a.title, 'zh');
+      if (sortKey === 'deleted_at') {
+        return new Date(b.deleted_at ?? b.updated_at).getTime() - new Date(a.deleted_at ?? a.updated_at).getTime();
+      }
       return new Date(b[sortKey]).getTime() - new Date(a[sortKey]).getTime();
     });
-  }, [projects, activeGroupId, searchQuery, sortKey]);
+  }, [projects, deletedProjects, isTrash, activeGroupId, searchQuery, sortKey]);
 
   function handleViewMode(mode: ViewMode) {
     setViewMode(mode);
@@ -651,7 +708,9 @@ export default function ProjectsPage() {
   async function commitDelete(id: string) {
     try {
       await deleteProject(id);
+      const item = projects.find((p) => p.id === id);
       setProjects((prev) => prev.filter((p) => p.id !== id));
+      if (item) setDeletedProjects((prev) => [{ ...item, deleted_at: new Date().toISOString() }, ...prev]);
       setDeleteTarget(null);
     } catch {
       alert('删除失败，请重试');
@@ -662,11 +721,70 @@ export default function ProjectsPage() {
     const ids = [...selectedIds];
     try {
       await deleteProjects(ids);
+      const moved = projects.filter((p) => selectedIds.has(p.id)).map((p) => ({ ...p, deleted_at: new Date().toISOString() }));
       setProjects((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+      setDeletedProjects((prev) => [...moved, ...prev]);
       setBulkDeletePending(false);
       setSelectedIds(new Set());
     } catch {
       alert('批量删除失败，请重试');
+    }
+  }
+
+  async function handleRestore(id: string) {
+    try {
+      await restoreProject(id);
+      const item = deletedProjects.find((p) => p.id === id);
+      setDeletedProjects((prev) => prev.filter((p) => p.id !== id));
+      if (item) setProjects((prev) => [{ ...item, deleted_at: null }, ...prev]);
+    } catch {
+      alert('恢复失败，请重试');
+    }
+  }
+
+  async function commitPermanentDelete(id: string) {
+    try {
+      await permanentDeleteProject(id);
+      setDeletedProjects((prev) => prev.filter((p) => p.id !== id));
+      setPermanentDeleteTarget(null);
+    } catch {
+      alert('永久删除失败，请重试');
+    }
+  }
+
+  async function handleRestoreSelected() {
+    const ids = [...selectedIds];
+    try {
+      await restoreProjects(ids);
+      const restored = deletedProjects.filter((p) => selectedIds.has(p.id)).map((p) => ({ ...p, deleted_at: null }));
+      setDeletedProjects((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+      setProjects((prev) => [...restored, ...prev]);
+      setSelectedIds(new Set());
+    } catch {
+      alert('恢复失败，请重试');
+    }
+  }
+
+  async function handlePermanentDeleteSelected() {
+    const ids = [...selectedIds];
+    try {
+      await permanentDeleteProjects(ids);
+      setDeletedProjects((prev) => prev.filter((p) => !selectedIds.has(p.id)));
+      setBulkPermanentDeletePending(false);
+      setSelectedIds(new Set());
+    } catch {
+      alert('永久删除失败，请重试');
+    }
+  }
+
+  async function handleEmptyTrash() {
+    try {
+      await emptyRecycleBin();
+      setDeletedProjects([]);
+      setEmptyTrashPending(false);
+      setSelectedIds(new Set());
+    } catch {
+      alert('清空回收站失败，请重试');
     }
   }
 
@@ -744,6 +862,8 @@ export default function ProjectsPage() {
 
   const activeGroupLabel = activeGroupId === 'all'
     ? '全部项目'
+    : activeGroupId === 'trash'
+    ? '回收站'
     : activeGroupId === 'ungrouped'
     ? '未分组'
     : (groups.find((g) => g.id === activeGroupId)?.name ?? '全部项目');
@@ -756,24 +876,42 @@ export default function ProjectsPage() {
       {/* ── Header ── */}
       <header className="projects-header">
         <span className="projects-logo">BioDraw</span>
-        <div className="projects-user-wrap" ref={userMenuRef}>
+        <div className="projects-header-actions">
+          <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
           <button
-            className={`projects-user-avatar${showUserMenu ? ' is-on' : ''}`}
-            onClick={() => setShowUserMenu((p) => !p)}
-            data-tooltip={user?.email}
+            className={`projects-import-btn${importing ? ' is-importing' : ''}`}
+            onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
+            data-tooltip={importing ? '点击可取消导入操作' : undefined}
           >
-            {(user?.email?.[0] ?? '?').toUpperCase()}
+            <Upload size={13} strokeWidth={2.5} />
+            {importing ? '导入中...' : '导入项目'}
           </button>
-          {showUserMenu && (
-            <div className="projects-user-dropdown">
-              <div className="projects-user-dropdown-email">{user?.email}</div>
-              <button className="projects-user-dropdown-item" onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}>修改密码</button>
-              <div className="projects-user-dropdown-divider" />
-              <button className="projects-user-dropdown-item is-danger" onClick={handleLogout}>退出登录</button>
-              <div className="projects-user-dropdown-divider projects-user-dropdown-divider--strong" />
-              <button className="projects-user-dropdown-item is-critical" onClick={() => { setShowUserMenu(false); setShowDeleteAccount(true); }}>注销账号</button>
-            </div>
-          )}
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".biodraw"
+            style={{ display: 'none' }}
+            onChange={handleImport}
+          />
+          <div className="projects-user-wrap" ref={userMenuRef}>
+            <button
+              className={`projects-user-avatar${showUserMenu ? ' is-on' : ''}`}
+              onClick={() => setShowUserMenu((p) => !p)}
+              data-tooltip={user?.email}
+            >
+              {(user?.email?.[0] ?? '?').toUpperCase()}
+            </button>
+            {showUserMenu && (
+              <div className="projects-user-dropdown">
+                <div className="projects-user-dropdown-email">{user?.email}</div>
+                <button className="projects-user-dropdown-item" onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}>修改密码</button>
+                <div className="projects-user-dropdown-divider" />
+                <button className="projects-user-dropdown-item is-danger" onClick={handleLogout}>退出登录</button>
+                <div className="projects-user-dropdown-divider projects-user-dropdown-divider--strong" />
+                <button className="projects-user-dropdown-item is-critical" onClick={() => { setShowUserMenu(false); setShowDeleteAccount(true); }}>注销账号</button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -868,6 +1006,7 @@ export default function ProjectsPage() {
             })()}
           </nav>
 
+          <div className="projects-sidebar-divider" />
           <div className="projects-sidebar-footer">
             {creatingGroup ? (
               <div className="projects-sidebar-new-group">
@@ -888,11 +1027,25 @@ export default function ProjectsPage() {
                 </div>
               </div>
             ) : (
-              <button className="projects-sidebar-add-btn" onClick={() => setCreatingGroup(true)}>
-                <FolderPlus size={13} />
-                新建分组
+              <button className="projects-sidebar-item projects-sidebar-add-btn" onClick={() => setCreatingGroup(true)}>
+                <span className="projects-sidebar-icon"><FolderPlus size={14} /></span>
+                <span className="projects-sidebar-label">新建分组</span>
               </button>
             )}
+          </div>
+
+          <div className="projects-sidebar-divider" />
+          <div className="projects-sidebar-trash-wrap">
+            <button
+              className={`projects-sidebar-item${isTrash ? ' is-active' : ''}`}
+              onClick={() => switchGroup('trash')}
+            >
+              <span className="projects-sidebar-icon"><Trash2 size={14} /></span>
+              <span className="projects-sidebar-label">回收站</span>
+              {deletedProjects.length > 0 && (
+                <span className="projects-sidebar-count">{deletedProjects.length}</span>
+              )}
+            </button>
           </div>
         </aside>
 
@@ -904,24 +1057,6 @@ export default function ProjectsPage() {
               {activeGroupLabel}
               <span className="projects-title-count">{displayedProjects.length}</span>
             </h1>
-            <div className="projects-header-actions">
-              <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
-              <button
-                className={`projects-import-btn${importing ? ' is-importing' : ''}`}
-                onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
-                data-tooltip={importing ? '点击可取消导入操作' : undefined}
-              >
-                <Upload size={13} strokeWidth={2.5} />
-                {importing ? '导入中...' : '导入项目'}
-              </button>
-              <input
-                ref={importInputRef}
-                type="file"
-                accept=".biodraw"
-                style={{ display: 'none' }}
-                onChange={handleImport}
-              />
-            </div>
           </div>
 
           {/* 工具栏（不切换模式，批量操作按需追加在右侧） */}
@@ -948,34 +1083,53 @@ export default function ProjectsPage() {
               <span>全选</span>
             </label>
             {selectedIds.size > 0 && (
-              <>
-                <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
-                <div className="projects-sort-wrap" ref={bulkMoveRef}>
-                  <button className="projects-ghost-btn" onClick={() => setShowBulkMoveMenu((p) => !p)}>
-                    移动到 <ChevronDown size={12} />
+              isTrash ? (
+                <>
+                  <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
+                  <button className="projects-ghost-btn" onClick={handleRestoreSelected}>
+                    <RotateCcw size={13} />
+                    恢复 ({selectedIds.size})
                   </button>
-                  {showBulkMoveMenu && (
-                    <div className="projects-sort-menu">
-                      <button onClick={() => handleBulkMove(null)}>未分组</button>
-                      {groups.map((g) => (
-                        <button key={g.id} onClick={() => handleBulkMove(g.id)}>{g.name}</button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <button className="projects-danger-btn" onClick={() => setBulkDeletePending(true)}>
-                  <Trash2 size={13} />
-                  删除 ({selectedIds.size})
-                </button>
-              </>
+                  <button className="projects-danger-btn" onClick={() => setBulkPermanentDeletePending(true)}>
+                    <Trash2 size={13} />
+                    永久删除 ({selectedIds.size})
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
+                  <div className="projects-sort-wrap" ref={bulkMoveRef}>
+                    <button className="projects-ghost-btn" onClick={() => setShowBulkMoveMenu((p) => !p)}>
+                      移动到 <ChevronDown size={12} />
+                    </button>
+                    {showBulkMoveMenu && (
+                      <div className="projects-sort-menu">
+                        <button onClick={() => handleBulkMove(null)}>未分组</button>
+                        {groups.map((g) => (
+                          <button key={g.id} onClick={() => handleBulkMove(g.id)}>{g.name}</button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button className="projects-danger-btn" onClick={() => setBulkDeletePending(true)}>
+                    <Trash2 size={13} />
+                    删除 ({selectedIds.size})
+                  </button>
+                </>
+              )
             )}
-            <div className="projects-sort-wrap" ref={sortMenuRef} style={{ marginLeft: 'auto' }}>
+            {isTrash && deletedProjects.length > 0 && (
+              <button className="projects-danger-btn" style={{ marginLeft: 'auto' }} onClick={() => setEmptyTrashPending(true)}>
+                清空回收站
+              </button>
+            )}
+            <div className="projects-sort-wrap" ref={sortMenuRef} style={isTrash && deletedProjects.length > 0 ? {} : { marginLeft: 'auto' }}>
               <button className="projects-ghost-btn" onClick={() => setShowSortMenu((p) => !p)}>
                 {SORT_LABELS[sortKey]} <ChevronDown size={12} />
               </button>
               {showSortMenu && (
                 <div className="projects-sort-menu">
-                  {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                  {(isTrash ? TRASH_SORT_KEYS : NORMAL_SORT_KEYS).map((k) => (
                     <button
                       key={k}
                       className={sortKey === k ? 'is-active' : ''}
@@ -1020,6 +1174,12 @@ export default function ProjectsPage() {
                     <button className="projects-empty-link" onClick={() => setSearchQuery('')}>清除搜索</button>
                   </p>
                 </>
+              ) : isTrash ? (
+                <>
+                  <div className="projects-empty-icon">🗑️</div>
+                  <p className="projects-empty-title">回收站为空</p>
+                  <p className="projects-empty-sub">已删除的项目会出现在这里</p>
+                </>
               ) : (
                 <>
                   <div className="projects-empty-canvas" />
@@ -1059,6 +1219,9 @@ export default function ProjectsPage() {
                       onDownload={() => handleDownload(p.id, p.title)}
                       onDelete={() => setDeleteTarget({ id: p.id, title: p.title })}
                       onMove={(gid) => handleMoveProject(p.id, gid)}
+                      isTrash={isTrash}
+                      onRestore={() => handleRestore(p.id)}
+                      onPermanentDelete={() => setPermanentDeleteTarget({ id: p.id, title: p.title })}
                     />
                   ))}
                 </div>
@@ -1074,7 +1237,7 @@ export default function ProjectsPage() {
                     <div className="project-row-thumb" />
                     <div className="project-row-title">项目名称</div>
                     <div className="project-row-group">所属分组</div>
-                    <div className="project-row-time">最近更新</div>
+                    <div className="project-row-time">{isTrash ? '删除时间' : '最近更新'}</div>
                     <div className="project-row-actions">常用操作</div>
                   </div>
                   {displayedProjects.map((p) => (
@@ -1092,6 +1255,9 @@ export default function ProjectsPage() {
                       onDownload={() => handleDownload(p.id, p.title)}
                       onDelete={() => setDeleteTarget({ id: p.id, title: p.title })}
                       onMove={(gid) => handleMoveProject(p.id, gid)}
+                      isTrash={isTrash}
+                      onRestore={() => handleRestore(p.id)}
+                      onPermanentDelete={() => setPermanentDeleteTarget({ id: p.id, title: p.title })}
                     />
                   ))}
                 </div>
@@ -1139,6 +1305,33 @@ export default function ProjectsPage() {
           danger
           onConfirm={() => commitDeleteGroup(deleteGroupTarget.id)}
           onCancel={() => setDeleteGroupTarget(null)}
+        />
+      )}
+      {permanentDeleteTarget && (
+        <ConfirmModal
+          message={`「${permanentDeleteTarget.title}」将被永久删除，无法恢复。确认继续？`}
+          confirmLabel="永久删除"
+          danger
+          onConfirm={() => commitPermanentDelete(permanentDeleteTarget.id)}
+          onCancel={() => setPermanentDeleteTarget(null)}
+        />
+      )}
+      {bulkPermanentDeletePending && (
+        <ConfirmModal
+          message={`选中的 ${selectedIds.size} 个项目将被永久删除，无法恢复。确认继续？`}
+          confirmLabel="永久删除"
+          danger
+          onConfirm={handlePermanentDeleteSelected}
+          onCancel={() => setBulkPermanentDeletePending(false)}
+        />
+      )}
+      {emptyTrashPending && (
+        <ConfirmModal
+          message={`回收站中的 ${deletedProjects.length} 个项目将被永久删除，无法恢复。确认清空？`}
+          confirmLabel="清空回收站"
+          danger
+          onConfirm={handleEmptyTrash}
+          onCancel={() => setEmptyTrashPending(false)}
         />
       )}
       {exportTarget && (

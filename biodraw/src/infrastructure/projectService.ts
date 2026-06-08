@@ -8,6 +8,7 @@ export type ProjectRecord = {
   updated_at: string;
   thumbnail?: string | null;
   group_id?: string | null;
+  deleted_at?: string | null;
 };
 
 export type ProjectGroup = {
@@ -20,7 +21,18 @@ export async function listProjects(): Promise<ProjectRecord[]> {
   const { data, error } = await supabase
     .from('projects')
     .select('id, title, created_at, updated_at, thumbnail, group_id')
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ProjectRecord[];
+}
+
+export async function listDeletedProjects(): Promise<ProjectRecord[]> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('id, title, created_at, updated_at, deleted_at, thumbnail, group_id')
+    .not('deleted_at', 'is', null)
+    .order('deleted_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as ProjectRecord[];
 }
@@ -110,11 +122,42 @@ export async function renameProject(id: string, title: string): Promise<void> {
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  const { error } = await supabase.from('projects').delete().eq('id', id);
+  const { error } = await supabase
+    .from('projects')
+    .update({ deleted_at: new Date().toISOString() })
+    .eq('id', id);
   if (error) throw error;
 }
 
 export async function deleteProjects(ids: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('projects')
+    .update({ deleted_at: new Date().toISOString() })
+    .in('id', ids);
+  if (error) throw error;
+}
+
+export async function restoreProject(id: string): Promise<void> {
+  const { error } = await supabase.from('projects').update({ deleted_at: null }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function restoreProjects(ids: string[]): Promise<void> {
+  const { error } = await supabase.from('projects').update({ deleted_at: null }).in('id', ids);
+  if (error) throw error;
+}
+
+export async function permanentDeleteProject(id: string): Promise<void> {
+  const { error } = await supabase.from('projects').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function permanentDeleteProjects(ids: string[]): Promise<void> {
   const { error } = await supabase.from('projects').delete().in('id', ids);
+  if (error) throw error;
+}
+
+export async function emptyRecycleBin(): Promise<void> {
+  const { error } = await supabase.from('projects').delete().not('deleted_at', 'is', null);
   if (error) throw error;
 }
