@@ -19,6 +19,36 @@
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   z-index: 10;
+  position: relative;
+}
+
+.projects-import-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+@keyframes import-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.projects-import-bar-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--primary-color) 30%,
+    color-mix(in srgb, var(--primary-color) 55%, white) 50%,
+    var(--primary-color) 70%
+  );
+  background-size: 200% 100%;
+  animation: import-shimmer 1.6s linear infinite;
+  border-radius: 0 2px 2px 0;
+  transition: width 0.4s ease;
 }
 
 .projects-logo {

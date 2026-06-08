@@ -549,6 +549,7 @@ export default function ProjectsPage() {
   const [deletedProjects, setDeletedProjects] = useState<ProjectRecord[]>([]);
   const [exportTarget, setExportTarget] = useState<{ id: string; title: string } | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
   const [renameTarget, setRenameTarget] = useState<{ id: string; title: string } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [bulkDeletePending, setBulkDeletePending] = useState(false);
@@ -712,12 +713,15 @@ export default function ProjectsPage() {
     if (!file) return;
     e.target.value = '';
     setImporting(true);
+    setImportProgress(10);
     try {
       const snapshot = await parseDocumentFile(file);
+      setImportProgress(35);
       const title = file.name.replace(/\.biodraw$/i, '') || '导入项目';
       if (projects.some((p) => p.title === title)) {
         alert(`已存在名为「${title}」的项目，请使用其他名称`);
         setImporting(false);
+        setImportProgress(0);
         return;
       }
       const gid = (activeGroupId !== 'all' && activeGroupId !== 'ungrouped' && activeGroupId !== 'trash') ? activeGroupId : null;
@@ -727,12 +731,14 @@ export default function ProjectsPage() {
           setTimeout(() => reject(new Error('网络超时，请检查连接后重试')), 15000)
         ),
       ]);
+      setImportProgress(65);
       importingProjectIdRef.current = id;
       loadSnapshot(snapshot);
       setThumbGenTarget({ id, snapshot });
     } catch (err) {
       alert(err instanceof Error ? err.message : '导入失败，请重试');
       setImporting(false);
+      setImportProgress(0);
     }
   }
 
@@ -741,6 +747,7 @@ export default function ProjectsPage() {
     importingProjectIdRef.current = null;
     setThumbGenTarget(null);
     setImporting(false);
+    setImportProgress(0);
     if (id) {
       try { await deleteProject(id); } catch { /* best-effort */ }
     }
@@ -957,6 +964,12 @@ export default function ProjectsPage() {
     <div className="projects-page">
       {/* ── Header ── */}
       <header className="projects-header">
+        <div
+          className="projects-import-bar"
+          style={{ opacity: importing ? 1 : 0 }}
+        >
+          <div className="projects-import-bar-fill" style={{ width: `${importProgress}%` }} />
+        </div>
         <span className="projects-logo">BioDraw</span>
         <div className="projects-header-actions">
           <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
@@ -1465,8 +1478,12 @@ export default function ProjectsPage() {
           snapshot={thumbGenTarget.snapshot}
           onDone={() => {
             setThumbGenTarget(null);
-            setImporting(false);
-            loadAll();
+            setImportProgress(100);
+            setTimeout(() => {
+              setImporting(false);
+              setImportProgress(0);
+              loadAll();
+            }, 500);
           }}
         />
       )}
