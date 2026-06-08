@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, LayoutGrid, List, Search, X, ChevronDown, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw, Star } from 'lucide-react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, ChevronUp, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
@@ -972,22 +972,6 @@ export default function ProjectsPage() {
         </div>
         <span className="projects-logo">BioDraw</span>
         <div className="projects-header-actions">
-          <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
-          <button
-            className={`projects-import-btn${importing ? ' is-importing' : ''}`}
-            onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
-            data-tooltip={importing ? '点击可取消导入操作' : undefined}
-          >
-            <Upload size={13} strokeWidth={2.5} />
-            {importing ? '导入中...' : '导入项目'}
-          </button>
-          <input
-            ref={importInputRef}
-            type="file"
-            accept=".biodraw"
-            style={{ display: 'none' }}
-            onChange={handleImport}
-          />
           <div className="projects-user-wrap" ref={userMenuRef}>
             <button
               className={`projects-user-avatar${showUserMenu ? ' is-on' : ''}`}
@@ -1175,6 +1159,7 @@ export default function ProjectsPage() {
         </aside>
 
         {/* ── 主内容 ── */}
+        <div className="projects-content">
         <main className="projects-main">
           {/* 标题行 */}
           <div className="projects-page-header">
@@ -1200,49 +1185,6 @@ export default function ProjectsPage() {
                 </button>
               )}
             </div>
-            <label className="projects-select-all" onClick={toggleSelectAll}>
-              <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
-                {allSelected && <Check size={11} strokeWidth={3} />}
-                {!allSelected && partialSelected && <Minus size={11} strokeWidth={3} />}
-              </div>
-              <span>全选</span>
-            </label>
-            {selectedIds.size > 0 && (
-              isTrash ? (
-                <>
-                  <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
-                  <button className="projects-ghost-btn" onClick={handleRestoreSelected}>
-                    <RotateCcw size={13} />
-                    恢复 ({selectedIds.size})
-                  </button>
-                  <button className="projects-danger-btn" onClick={() => setBulkPermanentDeletePending(true)}>
-                    <Trash2 size={13} />
-                    永久删除 ({selectedIds.size})
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
-                  <div className="projects-sort-wrap" ref={bulkMoveRef}>
-                    <button className="projects-ghost-btn" onClick={() => setShowBulkMoveMenu((p) => !p)}>
-                      移动到 <ChevronDown size={12} />
-                    </button>
-                    {showBulkMoveMenu && (
-                      <div className="projects-sort-menu">
-                        <button onClick={() => handleBulkMove(null)}>未分组</button>
-                        {groups.map((g) => (
-                          <button key={g.id} onClick={() => handleBulkMove(g.id)}>{g.name}</button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <button className="projects-danger-btn" onClick={() => setBulkDeletePending(true)}>
-                    <Trash2 size={13} />
-                    删除 ({selectedIds.size})
-                  </button>
-                </>
-              )
-            )}
             {isTrash && deletedProjects.length > 0 && (
               <button className="projects-danger-btn" style={{ marginLeft: 'auto' }} onClick={() => setEmptyTrashPending(true)}>
                 清空回收站
@@ -1393,6 +1335,71 @@ export default function ProjectsPage() {
             </div>
           )}
         </main>
+        {/* ── 底部操作栏 ── */}
+        <div className="projects-bottom-bar">
+          <label className="projects-select-all" onClick={toggleSelectAll}>
+            <div className={`project-card-checkbox${allSelected ? ' is-checked' : partialSelected ? ' is-indeterminate' : ''}`}>
+              {allSelected && <Check size={11} strokeWidth={3} />}
+              {!allSelected && partialSelected && <Minus size={11} strokeWidth={3} />}
+            </div>
+            <span>全选</span>
+          </label>
+          {selectedIds.size > 0 && (
+            isTrash ? (
+              <>
+                <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
+                <button className="projects-ghost-btn" onClick={handleRestoreSelected}>
+                  <RotateCcw size={13} />
+                  恢复 ({selectedIds.size})
+                </button>
+                <button className="projects-danger-btn" onClick={() => setBulkPermanentDeletePending(true)}>
+                  <Trash2 size={13} />
+                  永久删除 ({selectedIds.size})
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
+                <div className="projects-sort-wrap" ref={bulkMoveRef}>
+                  <button className="projects-ghost-btn" onClick={() => setShowBulkMoveMenu((p) => !p)}>
+                    移动到 <ChevronUp size={12} />
+                  </button>
+                  {showBulkMoveMenu && (
+                    <div className="projects-sort-menu">
+                      <button onClick={() => handleBulkMove(null)}>未分组</button>
+                      {groups.map((g) => (
+                        <button key={g.id} onClick={() => handleBulkMove(g.id)}>{g.name}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <button className="projects-danger-btn" onClick={() => setBulkDeletePending(true)}>
+                  <Trash2 size={13} />
+                  删除
+                </button>
+              </>
+            )
+          )}
+          <div className="projects-bottom-bar-actions">
+            <button className="projects-create-btn" onClick={handleCreate} disabled={importing}>+ 新建项目</button>
+            <button
+              className={`projects-import-btn${importing ? ' is-importing' : ''}`}
+              onClick={() => importing ? handleCancelImport() : importInputRef.current?.click()}
+              data-tooltip={importing ? '点击可取消导入操作' : undefined}
+            >
+              <Upload size={13} strokeWidth={2.5} />
+              {importing ? '导入中...' : '导入项目'}
+            </button>
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".biodraw"
+              style={{ display: 'none' }}
+              onChange={handleImport}
+            />
+          </div>
+        </div>
+        </div>
       </div>
 
       {renameTarget && (
