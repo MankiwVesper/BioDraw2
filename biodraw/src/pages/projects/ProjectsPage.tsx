@@ -992,10 +992,8 @@ export default function ProjectsPage() {
               <div className="projects-user-dropdown">
                 <div className="projects-user-dropdown-email">{user?.email}</div>
                 <button className="projects-user-dropdown-item" onClick={() => { setShowUserMenu(false); setShowChangePassword(true); }}>修改密码</button>
-                <div className="projects-user-dropdown-divider" />
-                <button className="projects-user-dropdown-item is-danger" onClick={handleLogout}>退出登录</button>
-                <div className="projects-user-dropdown-divider projects-user-dropdown-divider--strong" />
-                <button className="projects-user-dropdown-item is-critical" onClick={() => { setShowUserMenu(false); setShowDeleteAccount(true); }}>注销账号</button>
+                <button className="projects-user-dropdown-item" onClick={handleLogout}>退出登录</button>
+                <button className="projects-user-dropdown-item" onClick={() => { setShowUserMenu(false); setShowDeleteAccount(true); }}>注销账号</button>
               </div>
             )}
           </div>

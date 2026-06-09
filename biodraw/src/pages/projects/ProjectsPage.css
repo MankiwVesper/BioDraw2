@@ -15,7 +15,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 12px 0 24px;
   flex-shrink: 0;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   z-index: 10;
@@ -125,33 +125,9 @@
 
 .projects-user-dropdown-item:hover {
   background: var(--bg-color);
-}
-
-.projects-user-dropdown-item.is-danger:hover {
   color: #ef4444;
 }
 
-.projects-user-dropdown-item.is-critical {
-  color: #ef4444;
-  font-weight: 500;
-}
-
-.projects-user-dropdown-item.is-critical:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.projects-user-dropdown-divider {
-  height: 1px;
-  background: var(--border-color);
-  margin: 2px 0;
-}
-
-.projects-user-dropdown-divider--strong {
-  height: 2px;
-  background: #fecaca;
-  margin: 3px 0;
-}
 
 /* ── body 区域（sidebar + main） ──────────────────────────────────────── */
 .projects-body {
