@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, LayoutGrid, List, Search, X, ChevronDown, ChevronUp, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw, Star } from 'lucide-react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, ChevronUp, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw, Star, Copy } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
@@ -257,6 +257,7 @@ function ProjectCard({
   onDownload,
   onDelete,
   onMove,
+  onCopy,
   isTrash,
   onRestore,
   onPermanentDelete,
@@ -273,6 +274,7 @@ function ProjectCard({
   onDownload: () => void;
   onDelete: () => void;
   onMove: (groupId: string | null) => void;
+  onCopy: () => void;
   isTrash?: boolean;
   onRestore?: () => void;
   onPermanentDelete?: () => void;
@@ -381,6 +383,7 @@ function ProjectCard({
                   />
                 )}
               </div>
+              <button className="pcard-action-btn" data-tooltip="复制" onClick={onCopy}><Copy size={13} /></button>
               <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
               <span className="project-card-time">{formatRelativeTime(project.updated_at)}</span>
             </>
@@ -405,6 +408,7 @@ function ProjectRow({
   onDownload,
   onDelete,
   onMove,
+  onCopy,
   isTrash,
   onRestore,
   onPermanentDelete,
@@ -421,6 +425,7 @@ function ProjectRow({
   onDownload: () => void;
   onDelete: () => void;
   onMove: (groupId: string | null) => void;
+  onCopy: () => void;
   isTrash?: boolean;
   onRestore?: () => void;
   onPermanentDelete?: () => void;
@@ -495,6 +500,7 @@ function ProjectRow({
                   />
                 )}
               </div>
+              <button className="pcard-action-btn" data-tooltip="复制" onClick={onCopy}><Copy size={13} /></button>
               <button className="pcard-action-btn is-danger" data-tooltip="删除" onClick={onDelete}><Trash2 size={13} /></button>
             </>
           )}
@@ -790,6 +796,30 @@ export default function ProjectsPage() {
       URL.revokeObjectURL(url);
     } catch {
       alert('下载失败，请重试');
+    }
+  }
+
+  async function handleCopyProject(project: ProjectRecord) {
+    const existingTitles = new Set(projects.map((p) => p.title));
+    let candidate = `${project.title} - 副本`;
+    if (existingTitles.has(candidate)) {
+      let n = 2;
+      while (existingTitles.has(`${project.title} - 副本 (${n})`)) n++;
+      candidate = `${project.title} - 副本 (${n})`;
+    }
+    try {
+      const { data } = await getProject(project.id);
+      const newId = await createProject(candidate, data, project.group_id);
+      if (project.thumbnail) {
+        await updateProjectData(newId, data, project.thumbnail);
+      }
+      const now = new Date().toISOString();
+      setProjects((prev) => [
+        { id: newId, title: candidate, created_at: now, updated_at: now, thumbnail: project.thumbnail ?? null, group_id: project.group_id ?? null },
+        ...prev,
+      ]);
+    } catch {
+      alert('复制失败，请重试');
     }
   }
 
@@ -1294,6 +1324,7 @@ export default function ProjectsPage() {
                       onDownload={() => handleDownload(p.id, p.title)}
                       onDelete={() => setDeleteTarget({ id: p.id, title: p.title })}
                       onMove={(gid) => handleMoveProject(p.id, gid)}
+                      onCopy={() => handleCopyProject(p)}
                       isTrash={isTrash}
                       onRestore={() => handleRestore(p.id)}
                       onPermanentDelete={() => setPermanentDeleteTarget({ id: p.id, title: p.title })}
@@ -1330,6 +1361,7 @@ export default function ProjectsPage() {
                       onDownload={() => handleDownload(p.id, p.title)}
                       onDelete={() => setDeleteTarget({ id: p.id, title: p.title })}
                       onMove={(gid) => handleMoveProject(p.id, gid)}
+                      onCopy={() => handleCopyProject(p)}
                       isTrash={isTrash}
                       onRestore={() => handleRestore(p.id)}
                       onPermanentDelete={() => setPermanentDeleteTarget({ id: p.id, title: p.title })}
