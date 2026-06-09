@@ -918,7 +918,7 @@
 .project-card-actions {
   display: flex;
   align-items: center;
-  gap: 1px;
+  gap: 0;
   flex-shrink: 0;
 }
 
@@ -926,8 +926,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border: none;
   background: none;
   border-radius: 4px;
@@ -940,7 +940,7 @@
 
 .pcard-action-btn:hover {
   background: var(--bg-color);
-  color: var(--text-main);
+  color: var(--primary-color);
 }
 
 .pcard-action-btn.is-danger:hover {
@@ -961,7 +961,6 @@
   overflow-x: hidden;
   overflow-y: auto;
   max-height: min(320px, 60vh);
-  min-width: 120px;
 }
 
 .pcard-submenu-item {

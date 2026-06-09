@@ -801,12 +801,9 @@ export default function ProjectsPage() {
 
   async function handleCopyProject(project: ProjectRecord) {
     const existingTitles = new Set(projects.map((p) => p.title));
-    let candidate = `${project.title} - 副本`;
-    if (existingTitles.has(candidate)) {
-      let n = 2;
-      while (existingTitles.has(`${project.title} - 副本 (${n})`)) n++;
-      candidate = `${project.title} - 副本 (${n})`;
-    }
+    let n = 1;
+    while (existingTitles.has(`${project.title} - ${n}`)) n++;
+    const candidate = `${project.title} - ${n}`;
     try {
       const { data } = await getProject(project.id);
       const newId = await createProject(candidate, data, project.group_id);
