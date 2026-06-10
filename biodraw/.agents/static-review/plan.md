@@ -156,7 +156,7 @@
 ---
 
 ### 第 4 轮 — 导出流程
-- **状态**：⬜ 待执行（第 3 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/features/canvas-panel/useVideoExport.ts` + `src/infrastructure/video-encoder/`
 - **focus 约束**：
   - 导出是不可逆操作，部分失败时的状态回滚

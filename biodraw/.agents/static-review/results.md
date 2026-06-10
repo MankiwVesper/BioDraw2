@@ -232,3 +232,60 @@
 | 4 | `src/hooks/useAutoSave.ts` | 删除死代码 | ✅ 已删除 |
 
 构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 4 轮 — 导出流程
+
+**完成时间**：2026-06-11
+**审查范围**：`src/features/canvas-panel/useVideoExport.ts` + `src/infrastructure/video-encoder/VideoExportEncoder.ts`，branch diff against `35a5711`
+**整体结论**：⛔ needs-attention
+
+> No-ship: cancellation and encoder boundary handling still have user-visible failure modes.
+
+---
+
+### Findings
+
+#### [HIGH] VideoFrame 缺少 duration，MP4 输出损坏
+**文件**：`biodraw/src/infrastructure/video-encoder/VideoExportEncoder.ts:110-128`
+**置信度**：高
+
+`encodeFrame` 只传 `timestamp` 给 `VideoFrame`，未传 `duration`；mp4-muxer 要求每个 sample 有明确时长，否则 flush/mux 失败或输出不可 seek 的 MP4。
+
+---
+
+#### [HIGH] cancel 无法中断 finalize()（跳过，低优先级）
+**文件**：`biodraw/src/features/canvas-panel/useVideoExport.ts:161-165`
+**置信度**：低（对 BioDraw 短动画场景影响可忽略）
+
+finalize 完成后立即检查 cancel，对 <240 帧的典型导出耗时极短。引入 AbortController 竞争复杂度不对等，暂不修。
+
+---
+
+#### [MEDIUM] unmount 后异步任务继续执行，操作 stale stage ref
+**文件**：`biodraw/src/features/canvas-panel/useVideoExport.ts:198-199`
+**置信度**：高
+
+cleanup 只处理 `encoder` 已构建的情况；encoder 构建前有 3 个 await（waitForNextPaint、waitForMaterialImages、resolveSupported），组件卸载时 cleanup 是 no-op，异步任务继续修改 store 状态。
+
+---
+
+#### [MEDIUM] 构造函数不验证 fps/尺寸边界值
+**文件**：`biodraw/src/infrastructure/video-encoder/VideoExportEncoder.ts:64-87`
+**置信度**：中
+
+`this.fps = opts.fps` 无校验；fps=0 时 timestamp 计算除以 0。虽然唯一调用方已做 clamp，基础设施层自身无防线。
+
+---
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/infrastructure/video-encoder/VideoExportEncoder.ts` | `encodeFrame` 计算 `durationUs = Math.round(1_000_000 / fps)` 并传入 `VideoFrame` | ✅ 已修复 |
+| 2 | `src/features/canvas-panel/useVideoExport.ts` | 新增 `aborted` flag；cleanup 置位；encoder 构建前 3 个 await 后均加 `if (aborted) return` | ✅ 已修复 |
+| 3 | `src/infrastructure/video-encoder/VideoExportEncoder.ts` | 构造函数入口校验 fps ≥ 1、width/height ≥ 1，不满足立即抛出明确错误 | ✅ 已修复 |
+| 4 | Finding 2（cancel 无法中断 finalize） | 跳过，风险不对等 | ⏭️ 跳过 |
+
+构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。

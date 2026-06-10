@@ -72,6 +72,7 @@ export const useVideoExport = ({
     const cancelSnapshot = exportCancelCountRef.current;
     let encoder: VideoExportEncoder | null = null;
     let cancelled = false;
+    let aborted = false;
 
     const run = async () => {
       const stage = stageRef.current;
@@ -103,12 +104,15 @@ export const useVideoExport = ({
       try {
         commitTextChangeRef.current();
         await waitForNextPaint();
+        if (aborted) return;
         await waitForMaterialImages(objectsSnapRef.current);
+        if (aborted) return;
 
         if (wasPlaying) pausePlayback();
         setVideoExportStatus('running', formatExportProgress(0, totalFrames));
         fitCanvasRef.current();
         await waitForNextPaint();
+        if (aborted) return;
 
         const resolution = await VideoExportEncoder.resolveSupported({
           width, height, fps, format: opts.format,
@@ -196,6 +200,7 @@ export const useVideoExport = ({
     void run();
 
     return () => {
+      aborted = true;
       if (encoder) encoder.cancel();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps

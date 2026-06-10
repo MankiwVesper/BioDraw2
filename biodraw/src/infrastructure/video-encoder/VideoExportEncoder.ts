@@ -61,6 +61,8 @@ export class VideoExportEncoder {
   }
 
   constructor(opts: EncoderOptions, resolution: EncoderResolution) {
+    if (opts.fps < 1 || !isFinite(opts.fps)) throw new Error(`无效的帧率：${opts.fps}`);
+    if (opts.width < 1 || opts.height < 1) throw new Error(`无效的分辨率：${opts.width}x${opts.height}`);
     this.fps = opts.fps;
     this.keyFrameInterval = Math.max(1, opts.fps);
     const bitrate = opts.bitrate ?? getDefaultBitrate(opts.width, opts.height, opts.fps);
@@ -125,7 +127,8 @@ export class VideoExportEncoder {
     }
 
     const timestampUs = Math.round((frameIndex * 1_000_000) / this.fps);
-    const frame = new VideoFrame(source, { timestamp: timestampUs });
+    const durationUs = Math.round(1_000_000 / this.fps);
+    const frame = new VideoFrame(source, { timestamp: timestampUs, duration: durationUs });
     try {
       this.encoder.encode(frame, { keyFrame: frameIndex % this.keyFrameInterval === 0 });
     } finally {
