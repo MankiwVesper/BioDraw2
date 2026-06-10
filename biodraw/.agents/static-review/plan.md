@@ -122,7 +122,7 @@
 ---
 
 ### 第 2 轮 — 动画引擎
-- **状态**：⬜ 待执行（第 1 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/animation/engine.ts`
 - **focus 约束**：
   - 时间轴边界计算（clipStartMs + durationMs 的越界处理）

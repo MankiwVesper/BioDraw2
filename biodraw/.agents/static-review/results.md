@@ -139,3 +139,51 @@
 | 3 | `src/state/editorStore.ts` | `moveMultipleObjectsForward/Backward` 移除全局边界提前返回，改为 `canMove` 检查（是否存在至少一个可交换项），只在确有交换时调用 `pushHistory` | ✅ 已修复 |
 
 构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 2 轮 — 动画引擎
+
+**完成时间**：2026-06-10
+**审查范围**：`src/animation/engine.ts`，branch diff against `35a5711`
+**整体结论**：⛔ needs-attention
+
+> 不建议发版：`engine.ts` 在多段出现窗口和 cubic-bezier 端点上有可复现的边界错误，会导致预览/导出帧和时间轴语义不一致。
+
+---
+
+### Findings
+
+#### [HIGH] 删除所有出现段后对象会被引擎重新显示
+**文件**：`biodraw/src/animation/engine.ts:250-258`
+**置信度**：高
+
+`obj.appearSegments && obj.appearSegments.length > 0` 才启用多段语义，空数组会落入 legacy `appearStartMs/appearEndMs` 分支。用户主动删完所有出现窗口后，预览和导出仍可能按旧字段显示该对象。应只在 `appearSegments === undefined` 时回退 legacy；字段存在时空数组应直接跳过（不可见）。
+
+---
+
+#### [HIGH] 动画 clip 未按所属出现段隔离，跨段状态串扰
+**文件**：`biodraw/src/animation/engine.ts:261-275`
+**置信度**：高
+
+引擎只过滤 `stateChange`，其余 clip 按绝对时间全量应用，完全忽略 `clip.segmentId`。有多个出现段时，第一段的已结束 clip（`isClipEndedAt` 为真）会被套用到对象后续出现段，将前段的末态（位置/透明度/缩放）污染后段。例如对象第一段有移动 clip，第二段重新出现时会继续显示移动结束位置，而非原始位置。
+
+---
+
+#### [MEDIUM] cubic-bezier easing 在 t=0/t=1 不精确返回端点
+**文件**：`biodraw/src/animation/engine.ts:22-36`
+**置信度**：中
+
+`solveCubicBezierY` 直接进入二分求解，未对 `x=0` / `x=1` 做提前返回。20 次迭代后 t≈1e-6，`cubicBezierAt(t, y1, y2)` 约为 `3e-6 * y1` 而非精确 0；`x=1` 同理。clip 开始/结束帧的属性值会有微小漂移（sub-pixel 量级）。
+
+---
+
+### 修复记录（2026-06-10）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/animation/engine.ts` | 出现窗口判定改为 `appearSegments !== undefined` 触发多段语义；空数组直接 `continue`（不可见）；捕获 `activeSegmentId` | ✅ 已修复 |
+| 2 | `src/animation/engine.ts` | clip 过滤追加 `segmentId` 隔离：`!activeSegmentId \|\| !clip.segmentId \|\| clip.segmentId === activeSegmentId`；无 segmentId 的旧 clip 视为 unbound，全段有效 | ✅ 已修复 |
+| 3 | `src/animation/engine.ts` | `solveCubicBezierY` 头部加 `x <= 0 return 0` / `x >= 1 return 1` 两行 guard | ✅ 已修复 |
+
+构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。

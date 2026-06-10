@@ -20,6 +20,8 @@ const cubicBezierAt = (t: number, p1: number, p2: number) => {
 };
 
 const solveCubicBezierY = (x: number, x1: number, y1: number, x2: number, y2: number) => {
+  if (x <= 0) return 0;
+  if (x >= 1) return 1;
   let left = 0;
   let right = 1;
   for (let i = 0; i < 20; i += 1) {
@@ -246,12 +248,14 @@ export const buildAnimatedPreviewObjects = (
 
   const result: SceneObject[] = [];
   for (const obj of objects) {
-    // 出现窗口硬切：优先按多段语义判定，回退到旧版单段语义。
-    if (obj.appearSegments && obj.appearSegments.length > 0) {
-      const inAnySegment = obj.appearSegments.some(
+    // 出现窗口硬切：appearSegments 存在（含空数组）按多段语义，undefined 才回退 legacy。
+    let activeSegmentId: string | null = null;
+    if (obj.appearSegments !== undefined) {
+      const activeSeg = obj.appearSegments.find(
         (seg) => currentTimeMs >= seg.startMs && currentTimeMs <= seg.endMs,
       );
-      if (!inAnySegment) continue;
+      if (!activeSeg) continue;
+      activeSegmentId = activeSeg.id;
     } else {
       const startMs = obj.appearStartMs ?? 0;
       const endMs = obj.appearEndMs ?? Infinity;
@@ -260,6 +264,7 @@ export const buildAnimatedPreviewObjects = (
 
     const clips = (clipsByObjectId.get(obj.id) || [])
       .filter((clip) => clip.type !== 'stateChange')
+      .filter((clip) => !activeSegmentId || !clip.segmentId || clip.segmentId === activeSegmentId)
       .sort((a, b) => a.startTimeMs - b.startTimeMs);
 
     if (clips.length === 0) {
