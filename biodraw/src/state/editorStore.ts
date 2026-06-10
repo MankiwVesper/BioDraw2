@@ -33,6 +33,9 @@ type EditorSnapshot = {
   objects: SceneObject[];
   animations: AnimationClip[];
   globalDurationMs: number;
+  canvasWidth: number;
+  canvasHeight: number;
+  canvasBgColor: string;
 };
 
 type ApplyAnimationResult = {
@@ -216,6 +219,9 @@ const toSnapshot = (state: EditorState): EditorSnapshot => ({
   objects: cloneDeep(state.objects),
   animations: cloneDeep(state.animations),
   globalDurationMs: state.globalDurationMs,
+  canvasWidth: state.canvasWidth,
+  canvasHeight: state.canvasHeight,
+  canvasBgColor: state.canvasBgColor,
 });
 
 const clampTime = (timeMs: number, durationMs: number) =>
@@ -1490,12 +1496,14 @@ export const useEditorStore = create<EditorState>()(
 
     setCanvasSize: (width, height) =>
       set((state) => {
+        pushHistory(state);
         state.canvasWidth = Math.max(100, Math.round(width));
         state.canvasHeight = Math.max(100, Math.round(height));
       }),
 
     setCanvasBgColor: (color) =>
       set((state) => {
+        pushHistory(state);
         state.canvasBgColor = color;
       }),
 
@@ -1504,9 +1512,9 @@ export const useEditorStore = create<EditorState>()(
         state.objects = snapshot.objects;
         state.animations = snapshot.animations;
         state.globalDurationMs = snapshot.globalDurationMs;
-        if (snapshot.canvasWidth !== undefined) state.canvasWidth = snapshot.canvasWidth;
-        if (snapshot.canvasHeight !== undefined) state.canvasHeight = snapshot.canvasHeight;
-        if (snapshot.canvasBgColor !== undefined) state.canvasBgColor = snapshot.canvasBgColor;
+        state.canvasWidth = snapshot.canvasWidth ?? 1280;
+        state.canvasHeight = snapshot.canvasHeight ?? 720;
+        state.canvasBgColor = snapshot.canvasBgColor ?? '#ffffff';
         state.selectedIds = [];
         state.applyAnimationFlashObjectIds = [];
         state.past = [];
@@ -1580,6 +1588,9 @@ export const useEditorStore = create<EditorState>()(
         state.objects = snapshot.objects;
         state.animations = snapshot.animations;
         state.globalDurationMs = snapshot.globalDurationMs;
+        state.canvasWidth = snapshot.canvasWidth;
+        state.canvasHeight = snapshot.canvasHeight;
+        state.canvasBgColor = snapshot.canvasBgColor;
         state.currentTimeMs = clampTime(state.currentTimeMs, state.globalDurationMs);
         state.playbackStatus = 'stopped';
         state.selectedIds = [];
@@ -1594,6 +1605,9 @@ export const useEditorStore = create<EditorState>()(
         state.objects = snapshot.objects;
         state.animations = snapshot.animations;
         state.globalDurationMs = snapshot.globalDurationMs;
+        state.canvasWidth = snapshot.canvasWidth;
+        state.canvasHeight = snapshot.canvasHeight;
+        state.canvasBgColor = snapshot.canvasBgColor;
         state.currentTimeMs = clampTime(state.currentTimeMs, state.globalDurationMs);
         state.playbackStatus = 'stopped';
         state.selectedIds = [];

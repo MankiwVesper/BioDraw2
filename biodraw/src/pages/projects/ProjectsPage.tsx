@@ -807,14 +807,14 @@ export default function ProjectsPage() {
     try {
       const { data } = await getProject(project.id);
       const newId = await createProject(candidate, data, project.group_id);
-      if (project.thumbnail) {
-        await updateProjectData(newId, data, project.thumbnail);
-      }
       const now = new Date().toISOString();
       setProjects((prev) => [
         { id: newId, title: candidate, created_at: now, updated_at: now, thumbnail: project.thumbnail ?? null, group_id: project.group_id ?? null },
         ...prev,
       ]);
+      if (project.thumbnail) {
+        updateProjectData(newId, data, project.thumbnail).catch(() => {});
+      }
     } catch {
       alert('复制失败，请重试');
     }

@@ -18,10 +18,14 @@ export function useCloudSave(projectId: string) {
   const setSaveStatus    = useProjectStore((s) => s.setSaveStatus);
   const setLastSavedAt   = useProjectStore((s) => s.setLastSavedAt);
 
-  const isFirstRender = useRef(true);
-  const timerRef      = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender  = useRef(true);
+  const timerRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 每次有新编辑时递增；performSave 完成时若版本已变则跳过 markSaved，
+  // 防止慢请求清除更新改动的 dirty 标志。
+  const editRevisionRef = useRef(0);
 
   const performSave = useCallback(async () => {
+    const revision = editRevisionRef.current;
     const s = useEditorStore.getState();
     setSaveStatus('saving');
     try {
@@ -35,9 +39,11 @@ export function useCloudSave(projectId: string) {
       });
       const thumbnail = thumbnailCapture.current?.() ?? null;
       await updateProjectData(projectId, snapshot, thumbnail);
-      setSaveStatus('saved');
-      setLastSavedAt(new Date());
-      markSaved();
+      if (editRevisionRef.current === revision) {
+        setSaveStatus('saved');
+        setLastSavedAt(new Date());
+        markSaved();
+      }
     } catch {
       setSaveStatus('error');
     }
@@ -48,6 +54,7 @@ export function useCloudSave(projectId: string) {
       isFirstRender.current = false;
       return;
     }
+    editRevisionRef.current++;
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(performSave, DEBOUNCE_MS);
     return () => {
