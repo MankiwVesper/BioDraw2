@@ -187,3 +187,48 @@
 | 3 | `src/animation/engine.ts` | `solveCubicBezierY` 头部加 `x <= 0 return 0` / `x >= 1 return 1` 两行 guard | ✅ 已修复 |
 
 构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 3 轮 — 数据持久化层
+
+**完成时间**：2026-06-10
+**审查范围**：`src/infrastructure/documentSerializer.ts` + `src/hooks/useAutoSave.ts` + `src/hooks/useCloudSave.ts`，branch diff against `35a5711`
+**整体结论**：⛔ needs-attention
+
+---
+
+### Findings
+
+#### [CRITICAL→HIGH] 并发保存可用旧请求覆盖新手动保存
+**文件**：`biodraw/src/hooks/useCloudSave.ts:27-45`
+
+`revision` 守卫只保护 `markSaved()`，`updateProjectData` 在守卫之前无条件执行。慢自动保存在快手动保存之后完成时，旧快照覆盖云端，UI 仍显示"已保存"。实际为 HIGH。
+
+#### [HIGH] 切换项目时会把上一项目快照排队保存到新 projectId
+**文件**：`biodraw/src/hooks/useCloudSave.ts:52-59`
+
+`performSave` 引用变化（因 `projectId` 变化）触发 useEffect，给新 `projectId` 排 5 秒定时器，但 store 仍是旧项目数据。
+
+#### [HIGH→LOW] FILE_VERSION 只写不读，反序列化没有版本迁移边界
+**文件**：`biodraw/src/infrastructure/documentSerializer.ts:57-70`
+
+`parseDocumentFile` 不检查 `version`，`canvasBgColor` 未做类型校验。当前只有版本 1，实际影响为零。
+
+#### [MEDIUM→删除] useAutoSave 死代码
+**文件**：`biodraw/src/hooks/useAutoSave.ts`
+
+无任何调用方，描述的运行时风险不存在，直接删除。
+
+---
+
+### 修复记录（2026-06-10）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/hooks/useCloudSave.ts` | `do-while` 串行化保存：在途时新请求置位 pending，当前完成后立即用最新快照再保存 | ✅ 已修复 |
+| 2 | `src/hooks/useCloudSave.ts` | `prevProjectIdRef` 检测项目切换，变化时清除定时器跳过排队 | ✅ 已修复 |
+| 3 | `src/infrastructure/documentSerializer.ts` | 追加版本校验及 `canvasBgColor` 类型兜底 | ✅ 已修复 |
+| 4 | `src/hooks/useAutoSave.ts` | 删除死代码 | ✅ 已删除 |
+
+构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。

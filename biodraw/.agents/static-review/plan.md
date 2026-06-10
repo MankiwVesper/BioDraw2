@@ -139,7 +139,7 @@
 ---
 
 ### 第 3 轮 — 数据持久化层
-- **状态**：⬜ 待执行（第 2 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/infrastructure/documentSerializer.ts` + `src/hooks/useAutoSave.ts` + `src/hooks/useCloudSave.ts`
 - **focus 约束**：
   - 序列化/反序列化的往返一致性（serialize → deserialize 是否幂等）

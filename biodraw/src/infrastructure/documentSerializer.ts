@@ -67,7 +67,14 @@ export function parseDocumentFile(file: File): Promise<DocumentSnapshot> {
           reject(new Error('文件格式不正确，请确认是有效的 .biodraw 文件'));
           return;
         }
-        resolve(data);
+        if (data.version !== undefined && data.version !== FILE_VERSION) {
+          reject(new Error(`文件版本不兼容（版本 ${data.version}），请使用最新版本的 BioDraw 打开`));
+          return;
+        }
+        resolve({
+          ...data,
+          canvasBgColor: typeof data.canvasBgColor === 'string' ? data.canvasBgColor : '#ffffff',
+        });
       } catch {
         reject(new Error('文件解析失败，请确认是有效的 .biodraw 文件'));
       }
