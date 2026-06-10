@@ -522,6 +522,7 @@ export function TimelinePanel() {
   const [segLabelStart, setSegLabelStart] = useState('');
   const [segLabelEnd, setSegLabelEnd] = useState('');
   const segLabelCancelledRef = useRef(false);
+  const segLabelSilentDirtyRef = useRef(false);
   const segLabelStartRef = useRef('');
   const segLabelEndRef = useRef('');
   const segLabelLastEditedFieldRef = useRef<LabelTimeField>('end');
@@ -690,6 +691,7 @@ export function TimelinePanel() {
     const end = formatLabelTimeValue(endMs);
     if (segLabelStartRef.current === start && segLabelEndRef.current === end) return;
     segLabelCancelledRef.current = false;
+    segLabelSilentDirtyRef.current = false;
     segLabelLastEditedFieldRef.current = 'end';
     segLabelStartRef.current = start;
     segLabelEndRef.current = end;
@@ -1180,6 +1182,7 @@ export function TimelinePanel() {
     const ne = Math.max(ns + 1000, Math.min(boundR, endMs));
     if (ne <= boundR && (ns !== activeSeg.startMs || ne !== activeSeg.endMs)) {
       updateAppearSegmentSilent(selectedObject.id, activeSeg.id, { startMs: ns, endMs: ne });
+      segLabelSilentDirtyRef.current = true;
     }
   };
 
@@ -1229,7 +1232,8 @@ export function TimelinePanel() {
       }
       const ns = Math.max(boundL, Math.min(boundR - 1000, startMs));
       const ne = Math.max(ns + 1000, Math.min(boundR, endMs));
-      if (ne <= boundR && (ns !== activeSeg.startMs || ne !== activeSeg.endMs)) {
+      if (ne <= boundR && segLabelSilentDirtyRef.current) {
+        segLabelSilentDirtyRef.current = false;
         updateAppearSegment(selectedObject.id, activeSeg.id, { startMs: ns, endMs: ne });
       }
       const newStart = formatLabelTimeValue(ns);

@@ -598,6 +598,8 @@ export const useEditorStore = create<EditorState>()(
 
     removeSceneObject: (id) =>
       set((state) => {
+        const obj = state.objects.find((o) => o.id === id);
+        if (!obj || obj.locked) return;
         pushHistory(state);
         state.objects = state.objects.filter((o) => o.id !== id);
         state.selectedIds = state.selectedIds.filter((sid) => sid !== id);
@@ -617,8 +619,10 @@ export const useEditorStore = create<EditorState>()(
     removeSceneObjects: (ids) =>
       set((state) => {
         if (ids.length === 0) return;
+        const lockedIds = new Set(state.objects.filter((o) => o.locked).map((o) => o.id));
+        const idSet = new Set(ids.filter((id) => !lockedIds.has(id)));
+        if (idSet.size === 0) return;
         pushHistory(state);
-        const idSet = new Set(ids);
         const removedClipIds = new Set(
           state.animations.filter((a) => idSet.has(a.objectId)).map((a) => a.id),
         );
@@ -850,7 +854,11 @@ export const useEditorStore = create<EditorState>()(
           .map((o, i) => (idSet.has(o.id) ? i : -1))
           .filter((i) => i >= 0)
           .sort((a, b) => b - a);
-        if (indices.length === 0 || indices[0] >= state.objects.length - 1) return;
+        if (indices.length === 0) return;
+        const canMove = indices.some(
+          (idx) => idx < state.objects.length - 1 && !idSet.has(state.objects[idx + 1].id),
+        );
+        if (!canMove) return;
         pushHistory(state);
         for (const idx of indices) {
           if (idx < state.objects.length - 1 && !idSet.has(state.objects[idx + 1].id)) {
@@ -869,7 +877,11 @@ export const useEditorStore = create<EditorState>()(
           .map((o, i) => (idSet.has(o.id) ? i : -1))
           .filter((i) => i >= 0)
           .sort((a, b) => a - b);
-        if (indices.length === 0 || indices[0] <= 0) return;
+        if (indices.length === 0) return;
+        const canMove = indices.some(
+          (idx) => idx > 0 && !idSet.has(state.objects[idx - 1].id),
+        );
+        if (!canMove) return;
         pushHistory(state);
         for (const idx of indices) {
           if (idx > 0 && !idSet.has(state.objects[idx - 1].id)) {

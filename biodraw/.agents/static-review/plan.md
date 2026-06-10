@@ -105,7 +105,7 @@
 ---
 
 ### 第 1 轮 — 状态层（最高优先级）
-- **状态**：⬜ 待执行（第 0 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/state/editorStore.ts`
 - **focus 约束**：
   - 每个可 undo 操作是否在修改 state 前调用 `pushHistory`

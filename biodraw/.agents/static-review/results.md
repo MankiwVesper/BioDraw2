@@ -85,3 +85,57 @@
 | 4 | `src/pages/projects/ProjectsPage.tsx` | `createProject` 成功后立即写入 local state，缩略图更新改为 best-effort（`.catch(() => {})`） | ✅ 已修复 |
 
 构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 1 轮 — 状态层
+
+**完成时间**：2026-06-10
+**审查范围**：`src/state/editorStore.ts`，branch diff against `35a5711`
+**整体结论**：⛔ needs-attention
+
+> No ship: editorStore still has undo/dirty bypasses and lock-protection gaps in user-visible editing paths.
+
+---
+
+### Findings
+
+#### [HIGH] Segment 时间编辑绕过 undo 和 dirty 追踪
+**文件**：`biodraw/src/state/editorStore.ts:1183-1204`
+**置信度**：高
+
+`updateAppearSegmentSilent` 在没有调用 `pushHistory` 或直接 dirty 标记的情况下，修改 `obj.appearSegments` 并重写 `state.animations` 中的匹配 clip。这不只是瞬态状态：timeline 标签编辑器在输入预览阶段调用 silent updater，最终提交时可能看到已变更的 segment 并跳过正常的 `updateAppearSegment` 路径。结果：教师修改 segment/clip 时序后，没有 undo 条目，也没有未保存提示，快速导航或关闭前保存是数据丢失路径。
+
+**建议**：不要通过无历史记录的 store action 持久化预览编辑。要么将预览时序保留在本地直到提交，要么以提交前快照为起点追踪编辑事务，在提交时恰好调用一次 `pushHistory`；同时确保持久化的 silent migration 与用户编辑明确区分。
+
+---
+
+#### [HIGH] 锁定对象可通过批量删除被删除
+**文件**：`biodraw/src/state/editorStore.ts:617-633`
+**置信度**：高
+
+`removeSceneObjects` 删除传入的所有 id 并移除其 clips，但从不过滤 `locked` 对象。UI 已存在 selectedIds 包含锁定对象的路径，且多选删除按钮直接传入 `selectedIds`，store 层未执行锁定不变量。锁定对象及其动画可被不可逆删除（除 undo 外），破坏了"防止意外删除"的锁定保护声明。
+
+**建议**：在 store 中强制执行锁定保护：从现有未锁定对象中派生可删除 id 集合，若为空则返回，并用该集合执行对象删除、clip 删除和选中状态清理。对 `removeSceneObject` 应用相同守卫。
+
+---
+
+#### [MEDIUM] 批量图层步进操作在混合边界选中时错误地不执行
+**文件**：`biodraw/src/state/editorStore.ts:845-880`
+**置信度**：中
+
+`moveMultipleObjectsForward` 在最高选中对象已位于顶层时立即返回；`moveMultipleObjectsBackward` 在最低选中对象已位于底层时立即返回。对于包含边界对象和其他可移动对象的非连续多选，可移动对象永远不会与相邻未选中对象交换。用户可见的"上移一层/下移一层"批量层操作可能在有效交换存在时静默地什么都不做。
+
+**建议**：移除全局边界提前返回。按现有排序顺序遍历并对每个有未选中相邻对象的选中 index 执行交换，只跳过单个边界项。
+
+---
+
+### 修复记录（2026-06-10）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/features/timeline-panel/TimelinePanel.tsx` | 新增 `segLabelSilentDirtyRef`；Silent 调用时置位；commit 路径改用 dirty ref 判断是否需要 `pushHistory`，不再与已被 Silent 污染的 store 值对比 | ✅ 已修复 |
+| 2 | `src/state/editorStore.ts` | `removeSceneObject` 加 locked 守卫提前返回；`removeSceneObjects` 先过滤出未锁定 id 集合，空则跳过 | ✅ 已修复 |
+| 3 | `src/state/editorStore.ts` | `moveMultipleObjectsForward/Backward` 移除全局边界提前返回，改为 `canMove` 检查（是否存在至少一个可交换项），只在确有交换时调用 `pushHistory` | ✅ 已修复 |
+
+构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。
