@@ -289,3 +289,177 @@ cleanup 只处理 `encoder` 已构建的情况；encoder 构建前有 3 个 awai
 | 4 | Finding 2（cancel 无法中断 finalize） | 跳过，风险不对等 | ⏭️ 跳过 |
 
 构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 5 轮 — 类型与领域层
+
+**完成时间**：2026-06-11
+**审查范围**：`src/types/index.ts` + `src/domain/clipFactory.ts`
+**审查方式**：Claude 自查 + Codex adversarial-review 交叉验证
+**整体结论**：⛔ needs-attention
+
+---
+
+### Findings
+
+#### [MEDIUM] `clipFactory.ts` 全文件死代码
+**文件**：`src/domain/clipFactory.ts`
+**来源**：Claude 发现，Codex 确认
+
+`buildAnimationClip`、`CLIP_TYPE_OPTIONS`、`ClipCreatableType` 三个导出在整个 `src/` 中零引用。docstring "用于'添加动画'入口"具有误导性——实际入口是 `TimelinePanel.createClip`，独立实现且正确设置 `segmentId`。误用工厂生成的 clip 缺少 `segmentId`，会成为跨所有出现段生效的 unbound legacy clip。
+
+#### [MEDIUM] `applyClip` default 分支静默吸收未处理类型
+**文件**：`src/animation/engine.ts:228`
+**来源**：Codex 发现，Claude 确认
+
+`default: return obj` 无编译期穷举保证。`stateChange` 已在上游 `.filter()` 过滤，但将来新增 clip 类型而忘记更新 `applyClip` 时会静默漏处理。
+
+#### [LOW / 记录不修] `SceneObject.data` 无判别联合
+`data?: Record<string, unknown>` 无类型级约束，修复需重构为判别联合，超出本轮范围。
+
+#### [LOW / 记录不修] `points: number[]` 平铺数组无类型保障
+`points[i + 1]` 假设偶数长度数组，无 `FlatPointArray` brand 或守卫函数，超出本轮范围。
+
+#### [LOW / 记录不修] `SceneObject.zIndex` 只写不读
+创建时写入 `objects.length`，实际 z-order 由数组位置决定，`zIndex` 字段从未被读取，本轮不动。
+
+---
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/domain/clipFactory.ts` | 删除全文件（零引用死代码） | ✅ 已删除 |
+| 2 | `src/animation/engine.ts` | `applyClip` 新增 `case 'stateChange': return obj` + `default` 改用 `never` 断言 | ✅ 已修复 |
+| 3 | SceneObject.data 判别联合、FlatPointArray brand、zIndex | 记录，超出本轮范围 | ⏭️ 跳过 |
+
+构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 6 轮 — 渲染层
+
+**完成时间**：2026-06-11
+**审查范围**：`src/render/objects/SceneObjectRenderer.tsx` + `src/render/animation/AnimationPathOverlay.tsx`
+**审查方式**：Claude 自查 + Codex adversarial-review 交叉验证
+**整体结论**：⛔ needs-attention
+
+### Findings
+
+#### [HIGH / 记录不修] `stateChange` clip 在完整渲染链路中完全无效
+engine 过滤 stateChange 并声明"由 renderer 处理"，但 CanvasPanel 和 SceneObjectRenderer 均无任何 stateChange 处理逻辑，stateKey 从未根据活跃 clip 变更。功能完全缺失，需单独立项实现。
+
+**跳过原因**：这是功能未实现，不是 bug fix。实现需要：① 在 SceneObjectRenderer 中读取当前时间下活跃的 stateChange clip；② 根据 currentTimeMs 求值 `toStateKey`；③ 覆盖 sceneObject.stateKey 以驱动 MaterialItem SVG 变体渲染。涉及 renderer 核心逻辑改动，属于新功能开发，需单独立项。
+
+#### [MEDIUM] arrow/line 控制点 `onDragMove` 每帧写 store → undo 历史污染
+`commitLinePoints` 在 onDragMove 中调用 → `updateSceneObject` → `pushHistory`，每次鼠标移动产生一条 undo 历史。curve 已正确使用 draft 模式（setCurveDraftPoints + 仅 onDragEnd 提交），line/arrow 缺失。
+
+#### [LOW] `renderContent()` `default: return null` 缺穷举保护
+同 engine.ts applyClip 已修复的模式，新增 SceneObjectType 时会静默渲染空。
+
+#### [LOW / 记录不修] `useImage` 无 stale URL 防护
+unmount 或快速 URL 切换后 decode promise 可能仍回调，低风险。
+
+**跳过原因**：BioDraw 的 material URL 是静态 SVG asset path，不会频繁切换，unmount 窗口极短。将第三方 `useImage` hook 替换为可取消版本改动成本与收益不对等，且不影响可见正确性。
+
+#### [NOTE / 记录不修] 曲线/箭头几何内联在 renderer（架构债）
+`getCurveNameLabelPosition`、箭头轴头几何等属于 domain 数学，内联在组件中违反"组件要薄"约定，下次触碰时迁移。
+
+**跳过原因**：不影响当前正确性，属于架构清理。建议下次触碰这些文件时顺手迁移到 `src/domain/geometry.ts`，避免为此单独开一轮改动。
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/render/objects/SceneObjectRenderer.tsx` | 新增 `lineDraftPoints` state；arrow/line onDragMove 改写草稿，onDragEnd 才 commitLinePoints + 清草稿 | ✅ 已修复 |
+| 2 | `src/render/objects/SceneObjectRenderer.tsx` | `renderContent()` default 改用 never 断言 | ✅ 已修复 |
+| 3 | stateChange 完整实现、useImage 防护、几何架构迁移 | 记录，超出本轮范围 | ⏭️ 跳过 |
+
+构建验证：`npm run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 7 轮 — 时间轴 UI（2026-06-11）
+
+**范围**：`src/features/timeline-panel/TimelinePanel.tsx` + `src/features/timeline-panel/KeyframeEditor.tsx`
+
+**审查方式**：Claude 自查 + Codex adversarial review，结论完全一致。
+
+### 确认正常
+
+- `updateAnimationClip` / `reorderAnimationClips` / `updateAppearSegment` 均调用 `pushHistory` ✅
+- `updateAppearSegmentSilent` 故意不调用 pushHistory（输入框实时预览专用）✅
+- Clip 拖拽是 draft 模式：mousemove 只更新本地 `dragState`，mouseup 才一次性 `updateAnimationClip` ✅
+- KeyframeEditor 关键帧拖拽也是 draft 模式：mousemove 只 `setDragState`，mouseup 才提交 ✅
+- 冲突检测 `conflictMeta` 正确使用 `dragState.previewStartMs/previewDurationMs` 实时计算 ✅
+- Segment 最小宽度 1000ms：拖拽中和 commit 均强制 ✅
+- Segment 不超出全局时长：commit 时 `Math.min(globalDurationMs, ...)` 强制 ✅
+
+### Findings
+
+#### [MEDIUM] `autoResolveConflicts` 和 `applyBatchEdits` 批量循环产生多条 undo 历史
+两个函数均在 for/forEach 循环内逐条调用 `updateAnimationClip`，每次调用触发 `pushHistory`。N 条冲突解决/批改产生 N 条 undo 历史，用户需多次 Ctrl+Z 才能整体还原。
+
+#### [LOW] `sortClipsByStartTime` 缺 `ensurePausedForEdit()`
+`reorderAnimationClips` 有 pushHistory，但播放中调用不会暂停，与所有其他写操作行为不一致。
+
+#### [LOW / 记录不修] Clip drag `startClipDrag` 在 mousedown 无条件暂停
+Claude 独立发现。`startClipDrag`/`startClipResizeStart`/`startClipResizeEnd` 在 mousedown 立即 `ensurePausedForEdit()`，即使用户只是单击未拖拽也会暂停播放。对比 segment 窗口拖拽的 lazy-pause 设计不一致。
+
+**跳过原因**：行为不影响正确性，仅影响"单击 clip 时是否暂停"的交互体验。修复需要引入类似 `windowDragMovedRef` 的 lazy-pause 机制，改动量与收益不对等。
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/state/editorStore.ts` | 新增 `batchUpdateAnimationClips` action：一次 pushHistory + 批量 patch | ✅ 已修复 |
+| 2 | `src/features/timeline-panel/TimelinePanel.tsx` | `autoResolveConflicts` 和 `applyBatchEdits` 改为收集 patches 后单次调用 `batchUpdateAnimationClips` | ✅ 已修复 |
+| 3 | `src/features/timeline-panel/TimelinePanel.tsx` | `sortClipsByStartTime` 补调 `ensurePausedForEdit()` | ✅ 已修复 |
+
+构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 8 轮 — 画布 UI（2026-06-11）
+
+**范围**：`src/features/canvas-panel/CanvasPanel.tsx`
+
+**审查方式**：Claude 自查 + Codex adversarial review，交叉验证后结论一致。
+
+### 确认正常
+
+- `handleDrop` 新建对象未带 `appearSegments`：store `addSceneObject` 自动补 ✅
+- Drop 坐标转换 `(pointer.x - pos.x) / scale` 正确 ✅
+- 对象删除时 clips 清理完整（store 负责）✅
+- Konva Stage / Layer 无节点泄漏 ✅
+
+### Findings
+
+#### [HIGH] 组拖拽产生两次 pushHistory → undo 状态拆坏
+**Claude + Codex 均确认（Codex 升为 HIGH）。**
+
+原流程：
+1. `SceneObjectRenderer.handleDragEnd` 先调 `onDragStop()`（`moveMultipleSceneObjects(followers)`，pushHistory #1）
+2. 再调 `updateSceneObject(leader)`（pushHistory #2）
+
+两次 pushHistory 意味着 undo 先还原跟随对象位置、再还原主对象位置，中间状态不一致（跟随对象回到移动后位置 + 主对象停留原位）。
+
+#### [MEDIUM / 记录不修] 橡皮筋框选忽略旋转（AABB）
+命中测试使用轴对齐包围盒（AABB）。旋转后的对象仍以旋转前坐标做碰撞检测，视觉上"选中"区域不准确。Claude 评 LOW，Codex 评 MEDIUM，不影响功能正确性。
+
+**跳过原因**：旋转感知框选需要 SAT（分离轴定理）或 OBB 检测，改动量大；实际使用中旋转元素较少，且 Konva Transformer 有补偿。留作后续优化。
+
+#### [LOW / 记录不修] Escape 退出文字编辑可能提交而非取消
+`commitTextChange` 在 textarea 的 `onBlur` 里调用，Escape 触发卸载时会先 blur 再 unmount，可能意外提交。需要运行时验证才能确认。
+
+**跳过原因**：需要人工/Playwright 运行时验证，静态无法确定路径，暂不修。
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/render/objects/SceneObjectRenderer.tsx` | `handleDragEnd` 改为将 `(id, x, y)` 传给 `onDragStop`，不再直接调 `updateSceneObject` | ✅ 已修复 |
+| 2 | `src/features/canvas-panel/CanvasPanel.tsx` | `handleObjectDragStop(id, finalX, finalY)` 单拖走 `updateSceneObject`，组拖走 `batchUpdateSceneObjects` 一次提交所有对象 | ✅ 已修复 |
+
+构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。

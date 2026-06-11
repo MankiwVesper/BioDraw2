@@ -19,8 +19,8 @@ interface Props {
   onDragStart?: (id: string) => void;
   /** Called on each dragmove; return the snapped {x,y} in canvas coords */
   onDragMove?: (id: string, x: number, y: number, w: number, h: number, shiftKey: boolean) => { x: number; y: number } | null;
-  /** Clears snap lines when drag ends */
-  onDragStop?: () => void;
+  /** Called when drag ends; receives final canvas position so caller can commit atomically */
+  onDragStop?: (id: string, x: number, y: number) => void;
   /** When true, automatically focus the name label for editing (used on first drop) */
   autoFocusName?: boolean;
   /** 短暂显示”套用动画成功”的画布反馈效果 */
@@ -115,11 +115,11 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
   // 画板内随意拖拽结束回调
   const handleDragEnd = (e: Konva.KonvaEventObject<DragEvent>) => {
     if (e.target !== e.currentTarget) return;
-    onDragStop?.();
-    updateSceneObject(sceneObject.id, {
-      x: e.target.x(),
-      y: e.target.y(),
-    });
+    if (onDragStop) {
+      onDragStop(sceneObject.id, e.target.x(), e.target.y());
+    } else {
+      updateSceneObject(sceneObject.id, { x: e.target.x(), y: e.target.y() });
+    }
   };
 
   const handleDragStartEvt = (e: Konva.KonvaEventObject<DragEvent>) => {

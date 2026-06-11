@@ -194,7 +194,7 @@ export function CanvasPanel() {
     enterGroupEditing,
     selectSceneObjects,
     updateSceneObject,
-    moveMultipleSceneObjects,
+    batchUpdateSceneObjects,
     animations,
     previewClipId,
     playbackStatus,
@@ -237,7 +237,7 @@ export function CanvasPanel() {
     enterGroupEditing: s.enterGroupEditing,
     selectSceneObjects: s.selectSceneObjects,
     updateSceneObject: s.updateSceneObject,
-    moveMultipleSceneObjects: s.moveMultipleSceneObjects,
+    batchUpdateSceneObjects: s.batchUpdateSceneObjects,
     animations: s.animations,
     previewClipId: s.previewClipId,
     playbackStatus: s.playbackStatus,
@@ -824,28 +824,36 @@ export function CanvasPanel() {
       : null;
   }, []);
 
-  const handleObjectDragStop = useCallback(() => {
+  const handleObjectDragStop = useCallback((id: string, finalX: number, finalY: number) => {
     setSnapLines([]);
     const draggingId = groupDragIdRef.current;
+    groupDragIdRef.current = null;
+
     if (!draggingId || groupDragStartsRef.current.size < 2) {
-      groupDragIdRef.current = null;
+      groupDragStartsRef.current = new Map();
       setGroupDragOffset(null);
+      updateSceneObject(id, { x: finalX, y: finalY });
       return;
     }
+
     const offset = groupDragOffsetRef.current;
-    groupDragIdRef.current = null;
     groupDragOffsetRef.current = null;
     setGroupDragOffset(null);
+
     if (!offset || (offset.dx === 0 && offset.dy === 0)) {
       groupDragStartsRef.current = new Map();
+      updateSceneObject(id, { x: finalX, y: finalY });
       return;
     }
-    const moves = Array.from(groupDragStartsRef.current.entries())
-      .filter(([sid]) => sid !== draggingId)
-      .map(([sid, start]) => ({ id: sid, x: start.x + offset.dx, y: start.y + offset.dy }));
+
+    const allUpdates = Array.from(groupDragStartsRef.current.entries()).map(([sid, start]) =>
+      sid === draggingId
+        ? { id: sid, patch: { x: finalX, y: finalY } }
+        : { id: sid, patch: { x: start.x + offset.dx, y: start.y + offset.dy } }
+    );
     groupDragStartsRef.current = new Map();
-    if (moves.length > 0) moveMultipleSceneObjects(moves);
-  }, [moveMultipleSceneObjects]);
+    batchUpdateSceneObjects(allUpdates);
+  }, [updateSceneObject, batchUpdateSceneObjects]);
 
   const handleStageDblClick = (e: Konva.KonvaEventObject<MouseEvent>) => {
     // 若名称/文字编辑刚被内层触发，跳过组内编辑

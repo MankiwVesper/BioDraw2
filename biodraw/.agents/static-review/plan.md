@@ -172,7 +172,7 @@
 ---
 
 ### 第 5 轮 — 类型与领域层
-- **状态**：⬜ 待执行（第 4 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/types/index.ts` + `src/domain/clipFactory.ts`
 - **focus 约束**：
   - `SceneObject.data: Record<string, unknown>` 的类型安全风险
@@ -183,7 +183,7 @@
 ---
 
 ### 第 6 轮 — 渲染层
-- **状态**：⬜ 待执行（第 5 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/render/objects/SceneObjectRenderer.tsx` + `src/render/animation/AnimationPathOverlay.tsx`
 - **focus 约束**：
   - `stateChange` clip 在 renderer 中的单独处理逻辑是否覆盖所有状态
@@ -193,7 +193,7 @@
 ---
 
 ### 第 7 轮 — 时间轴 UI
-- **状态**：⬜ 待执行（第 6 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/features/timeline-panel/TimelinePanel.tsx` + `src/features/timeline-panel/KeyframeEditor.tsx`
 - **focus 约束**：
   - clip 拖拽重定位时是否正确触发 pushHistory
@@ -203,7 +203,7 @@
 ---
 
 ### 第 8 轮 — 画布 UI
-- **状态**：⬜ 待执行（第 7 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/features/canvas-panel/CanvasPanel.tsx`
 - **focus 约束**：
   - Konva Stage 的多选与拖拽事件处理
