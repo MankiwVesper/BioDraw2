@@ -60,6 +60,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
   const materialNameRef = useRef<Konva.Text>(null);
   const objectNameRef = useRef<Konva.Text>(null);
   const [curveDraftPoints, setCurveDraftPoints] = useState<number[] | null>(null);
+  const [lineDraftPoints, setLineDraftPoints] = useState<number[] | null>(null);
   const [applyFlashProgress, setApplyFlashProgress] = useState(1);
   
   // 当物体 ID 或数据点变化时，通过渲染过程中同步更新状态来重置草稿点（避免 useEffect 的性能报警）
@@ -71,6 +72,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
     setPrevId(sceneObject.id);
     setPrevDataPoints(currentPoints);
     setCurveDraftPoints(sceneObject.type === 'curve' ? currentPoints : null);
+    setLineDraftPoints(null);
   }
 
   // 利用 use-image 方便地加载素材图片（SVG/PNG）
@@ -203,6 +205,11 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
   const getCurvePoints = () => {
     if (curveDraftPoints) return curveDraftPoints;
     return (sceneObject.data?.points as number[]) || DEFAULT_CURVE_POINTS;
+  };
+
+  const getLinePoints = () => {
+    if (lineDraftPoints) return lineDraftPoints;
+    return (sceneObject.data?.points as number[]) || DEFAULT_LINE_POINTS;
   };
 
   const commitCurvePoints = (nextPoints: number[]) => {
@@ -976,7 +983,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       }
       case 'line':
       case 'arrow': {
-        const points = (sceneObject.data?.points as number[]) || DEFAULT_LINE_POINTS;
+        const points = getLinePoints();
         const bounds = getPointsBounds(points);
         const centerX = bounds.minX + (bounds.maxX - bounds.minX) / 2;
         const centerY = bounds.minY + (bounds.maxY - bounds.minY) / 2;
@@ -1120,8 +1127,8 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
                       const nextPoints = [...points];
                       nextPoints[pointIndex * 2] = e.target.x();
                       nextPoints[pointIndex * 2 + 1] = e.target.y();
+                      setLineDraftPoints(nextPoints);
                       e.target.getLayer()?.batchDraw();
-                      commitLinePoints(nextPoints);
                     }}
                     onDragEnd={(e) => {
                       e.cancelBubble = true;
@@ -1129,6 +1136,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
                       nextPoints[pointIndex * 2] = e.target.x();
                       nextPoints[pointIndex * 2 + 1] = e.target.y();
                       commitLinePoints(nextPoints);
+                      setLineDraftPoints(null);
                     }}
                   />
                 ))}
@@ -1202,8 +1210,8 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
                       const nextPoints = [...points];
                       nextPoints[pointIndex * 2] = e.target.x();
                       nextPoints[pointIndex * 2 + 1] = e.target.y();
+                      setLineDraftPoints(nextPoints);
                       e.target.getLayer()?.batchDraw();
-                      commitLinePoints(nextPoints);
                     }}
                     onDragEnd={(e) => {
                       e.cancelBubble = true;
@@ -1211,6 +1219,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
                       nextPoints[pointIndex * 2] = e.target.x();
                       nextPoints[pointIndex * 2 + 1] = e.target.y();
                       commitLinePoints(nextPoints);
+                      setLineDraftPoints(null);
                     }}
                   />
                 ))}
@@ -1300,8 +1309,10 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
           </Group>
         );
       }
-      default:
-        return null;
+      default: {
+        const _exhaustive: never = sceneObject.type;
+        return _exhaustive;
+      }
     }
   };
 
