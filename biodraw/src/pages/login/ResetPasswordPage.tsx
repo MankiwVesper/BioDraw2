@@ -34,6 +34,7 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') setReady(true);
+      else if (event === 'SIGNED_OUT') setLocalError('重置链接无效或已过期，请重新申请');
     });
     return () => subscription.unsubscribe();
   }, []);

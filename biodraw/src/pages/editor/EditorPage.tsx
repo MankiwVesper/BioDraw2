@@ -67,7 +67,7 @@ export default function EditorPage() {
         setLoading(false);
       });
 
-    return () => { cancelled = true; setCurrentProjectId(null); };
+    return () => { cancelled = true; setCurrentProjectId(null); setPreviewMode(false); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId]);
 

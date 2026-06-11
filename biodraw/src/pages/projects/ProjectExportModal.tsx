@@ -111,7 +111,9 @@ export function ProjectExportModal({ projectId, title, onClose }: Props) {
       setExportEndSec((data.globalDurationMs / 1000).toFixed(2));
       setLoading(false);
     }).catch(() => {
-      if (!cancelled) setLoadError('加载项目失败，请重试');
+      if (cancelled) return;
+      setLoadError('加载项目失败，请重试');
+      setLoading(false);
     });
     return () => { cancelled = true; };
   }, [projectId, loadSnapshot]);
