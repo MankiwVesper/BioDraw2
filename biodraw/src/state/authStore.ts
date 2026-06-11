@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '../infrastructure/supabaseClient';
+import { useProjectStore } from './projectStore';
 
 const AUTH_ERROR_MAP: Record<string, string> = {
   'Invalid login credentials': '邮箱或密码错误',
@@ -32,18 +33,28 @@ interface AuthState {
   clearError: () => void;
 }
 
+let _authSubscription: { unsubscribe: () => void } | null = null;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   loading: true,
   error: null,
 
   init: () => {
+    if (_authSubscription) return;
     supabase.auth.getSession().then(({ data }) => {
       set({ user: data.session?.user ?? null, loading: false });
+    }).catch(() => {
+      set({ loading: false });
     });
-    supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       set({ user: session?.user ?? null, loading: false });
+      if (event === 'SIGNED_OUT') {
+        useProjectStore.getState().setCurrentProjectId(null);
+        useProjectStore.getState().setSaveStatus('idle');
+      }
     });
+    _authSubscription = data.subscription;
   },
 
   login: async (email, password) => {
