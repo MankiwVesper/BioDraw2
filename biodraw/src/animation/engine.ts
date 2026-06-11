@@ -225,8 +225,12 @@ const applyClip = (obj: SceneObject, timeMs: number, clip: AnimationClip): Scene
         rotation: resolveTrackValue(progress, fromRotation, toRotation, keyframes),
       };
     }
-    default:
-      return obj;
+    case 'stateChange':
+      return obj; // handled separately by renderer; upstream .filter() should prevent this path
+    default: {
+      const _exhaustive: never = clip;
+      return _exhaustive;
+    }
   }
 };
 
