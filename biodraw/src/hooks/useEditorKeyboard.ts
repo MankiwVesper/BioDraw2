@@ -18,7 +18,8 @@ export function useEditorKeyboard() {
   const groupObjects             = useEditorStore((s) => s.groupObjects);
   const ungroupObjects           = useEditorStore((s) => s.ungroupObjects);
   const exitGroupEditing         = useEditorStore((s) => s.exitGroupEditing);
-  const moveMultipleSceneObjects = useEditorStore((s) => s.moveMultipleSceneObjects);
+  const moveMultipleSceneObjects       = useEditorStore((s) => s.moveMultipleSceneObjects);
+  const moveMultipleSceneObjectsSilent = useEditorStore((s) => s.moveMultipleSceneObjectsSilent);
   const play                     = useEditorStore((s) => s.play);
   const pause                    = useEditorStore((s) => s.pause);
   const undo                     = useEditorStore((s) => s.undo);
@@ -33,7 +34,8 @@ export function useEditorKeyboard() {
   const selectedIdsRef              = useRef(selectedIds);
   const objectsRef                  = useRef(objects);
   const playbackRef                 = useRef(playbackStatus);
-  const moveMultipleSceneObjectsRef = useRef(moveMultipleSceneObjects);
+  const moveMultipleSceneObjectsRef        = useRef(moveMultipleSceneObjects);
+  const moveMultipleSceneObjectsSilentRef  = useRef(moveMultipleSceneObjectsSilent);
   const isPreviewModeRef            = useRef(isPreviewMode);
   const canvasDrawingModeRef        = useRef(canvasDrawingMode);
 
@@ -41,6 +43,7 @@ export function useEditorKeyboard() {
   useEffect(() => { objectsRef.current = objects; }, [objects]);
   useEffect(() => { playbackRef.current = playbackStatus; }, [playbackStatus]);
   useEffect(() => { moveMultipleSceneObjectsRef.current = moveMultipleSceneObjects; }, [moveMultipleSceneObjects]);
+  useEffect(() => { moveMultipleSceneObjectsSilentRef.current = moveMultipleSceneObjectsSilent; }, [moveMultipleSceneObjectsSilent]);
   useEffect(() => { isPreviewModeRef.current = isPreviewMode; }, [isPreviewMode]);
   useEffect(() => { canvasDrawingModeRef.current = canvasDrawingMode; }, [canvasDrawingMode]);
 
@@ -123,13 +126,15 @@ export function useEditorKeyboard() {
       if (ctrl && e.key === 'v' && clipboard.length > 0) {
         e.preventDefault();
         clipboard.forEach((src) => {
+          const cloned = JSON.parse(JSON.stringify(src)) as SceneObject;
           const newObj: SceneObject = {
-            ...JSON.parse(JSON.stringify(src)),
+            ...cloned,
             id: crypto.randomUUID(),
             x: src.x + 20,
             y: src.y + 20,
             animationIds: [],
             groupId: undefined,
+            appearSegments: cloned.appearSegments?.map((seg) => ({ ...seg, id: crypto.randomUUID() })),
           };
           addSceneObject(newObj);
         });
@@ -197,7 +202,11 @@ export function useEditorKeyboard() {
         const moves = objectsRef.current
           .filter((o) => selectedAll.includes(o.id))
           .map((o) => ({ id: o.id, x: o.x + dx, y: o.y + dy }));
-        moveMultipleSceneObjectsRef.current(moves);
+        if (e.repeat) {
+          moveMultipleSceneObjectsSilentRef.current(moves);
+        } else {
+          moveMultipleSceneObjectsRef.current(moves);
+        }
         return;
       }
     };

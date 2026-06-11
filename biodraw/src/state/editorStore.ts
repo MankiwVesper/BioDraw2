@@ -97,6 +97,7 @@ interface EditorState {
   selectAllObjects: () => void;
   duplicateObject: (id: string) => void;
   moveMultipleSceneObjects: (moves: Array<{ id: string; x: number; y: number }>) => void;
+  moveMultipleSceneObjectsSilent: (moves: Array<{ id: string; x: number; y: number }>) => void;
   batchUpdateSceneObjects: (updates: Array<{ id: string; patch: Partial<SceneObject> }>) => void;
   setCanvasSize: (width: number, height: number) => void;
   setCanvasBgColor: (color: string) => void;
@@ -1477,6 +1478,22 @@ export const useEditorStore = create<EditorState>()(
         });
         if (unlockedMoves.length === 0) return;
         pushHistory(state);
+        const moveMap = new Map(unlockedMoves.map((m) => [m.id, m]));
+        state.objects = state.objects.map((o) => {
+          const m = moveMap.get(o.id);
+          if (!m) return o;
+          return { ...o, x: m.x, y: m.y };
+        });
+      }),
+
+    moveMultipleSceneObjectsSilent: (moves) =>
+      set((state) => {
+        if (moves.length === 0) return;
+        const unlockedMoves = moves.filter((m) => {
+          const obj = state.objects.find((o) => o.id === m.id);
+          return obj && !obj.locked;
+        });
+        if (unlockedMoves.length === 0) return;
         const moveMap = new Map(unlockedMoves.map((m) => [m.id, m]));
         state.objects = state.objects.map((o) => {
           const m = moveMap.get(o.id);
