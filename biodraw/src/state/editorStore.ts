@@ -642,9 +642,9 @@ export const useEditorStore = create<EditorState>()(
 
     updateSceneObject: (id, updates) =>
       set((state) => {
-        pushHistory(state);
         const idx = state.objects.findIndex((o) => o.id === id);
         if (idx !== -1) {
+          pushHistory(state);
           state.objects[idx] = { ...state.objects[idx], ...updates };
         }
       }),
@@ -1505,8 +1505,10 @@ export const useEditorStore = create<EditorState>()(
     batchUpdateSceneObjects: (updates) =>
       set((state) => {
         if (updates.length === 0) return;
-        pushHistory(state);
         const patchMap = new Map(updates.map((u) => [u.id, u.patch]));
+        const hasChanges = state.objects.some((o) => patchMap.has(o.id) && !o.locked);
+        if (!hasChanges) return;
+        pushHistory(state);
         state.objects = state.objects.map((o) => {
           const patch = patchMap.get(o.id);
           if (!patch || o.locked) return o;
@@ -1516,9 +1518,9 @@ export const useEditorStore = create<EditorState>()(
 
     duplicateObject: (id) =>
       set((state) => {
-        pushHistory(state);
         const src = state.objects.find((o) => o.id === id);
         if (!src) return;
+        pushHistory(state);
         const newObj: SceneObject = {
           ...cloneDeep(src),
           id: crypto.randomUUID(),
