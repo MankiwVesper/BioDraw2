@@ -1497,7 +1497,7 @@ export default function ProjectsPage() {
       {emptyTrashPending && (
         <ConfirmModal
           message={`回收站中的 ${deletedProjects.length} 个项目将被永久删除，无法恢复。确认清空？`}
-          confirmLabel="清空回收站"
+          confirmLabel="清空"
           danger
           onConfirm={handleEmptyTrash}
           onCancel={() => setEmptyTrashPending(false)}
