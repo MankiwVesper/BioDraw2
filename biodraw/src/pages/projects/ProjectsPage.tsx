@@ -1449,7 +1449,7 @@ export default function ProjectsPage() {
       )}
       {deleteTarget && (
         <ConfirmModal
-          message={`确认删除「${deleteTarget.title}」？此操作不可恢复。`}
+          message={`确认删除「${deleteTarget.title}」？`}
           confirmLabel="删除"
           danger
           onConfirm={() => commitDelete(deleteTarget.id)}
@@ -1458,8 +1458,8 @@ export default function ProjectsPage() {
       )}
       {bulkDeletePending && (
         <ConfirmModal
-          message={`确认删除选中的 ${selectedIds.size} 个项目？此操作不可恢复。`}
-          confirmLabel="全部删除"
+          message={`确认删除选中的 ${selectedIds.size} 个项目？`}
+          confirmLabel="删除"
           danger
           onConfirm={commitBulkDelete}
           onCancel={() => setBulkDeletePending(false)}
