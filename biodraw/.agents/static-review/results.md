@@ -672,3 +672,36 @@ outer 1500ms 已有 `clearTimeout`，inner 8000ms timeout 和 `onDoneRef.current
 | 3 | `src/pages/login/ResetPasswordPage.tsx` | `onAuthStateChange` 加 `SIGNED_OUT` 分支，过期/无效 token 显示错误而非永久转圈 | ✅ 已修复 |
 
 构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 补查第 1 轮 — 状态层 Claude 自查（2026-06-11）
+
+**审查方式**：Claude 独立复查（昨天第 1 轮仅经过 Codex，未做 Claude 自查）
+**审查范围**：`src/state/editorStore.ts`，重点验证 Codex 修复正确性并查漏
+
+### Codex 修复验证
+
+- `removeSceneObjects` locked 过滤 ✅
+- `moveMultipleObjectsForward/Backward` canMove 前置守卫 ✅
+
+### Claude 新发现（3 处，均属 Round 9 pushHistory 前置守卫同类问题）
+
+| # | 函数 | 行 | 问题 |
+|---|---|---|---|
+| R1-C1 | `updateSceneObject` | 645 | `pushHistory` 在 `findIndex` 之前；id 不存在时产生空历史快照 |
+| R1-C2 | `batchUpdateSceneObjects` | 1508 | `pushHistory` 在 locked-filter 循环之前；所有目标均锁定时产生空历史快照 |
+| R1-C3 | `duplicateObject` | 1519 | `pushHistory` 在 `find` 之前；id 不存在时产生空历史快照 |
+
+实际触达概率极低，但与第 9 轮修复模式完全一致，统一补修。
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| R1-C1 | `src/state/editorStore.ts` | `updateSceneObject`：将 `pushHistory` 移入 `idx !== -1` 分支内 | ✅ 已修复 |
+| R1-C2 | `src/state/editorStore.ts` | `batchUpdateSceneObjects`：先计算 `hasChanges`（存在未锁定目标），无变更直接返回，有变更才 `pushHistory` | ✅ 已修复 |
+| R1-C3 | `src/state/editorStore.ts` | `duplicateObject`：先 `find` 确认 src 存在，再 `pushHistory` | ✅ 已修复 |
+
+构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
+commit：`7b59c83`
