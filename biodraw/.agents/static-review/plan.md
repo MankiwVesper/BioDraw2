@@ -222,7 +222,7 @@
 ---
 
 ### 第 10 轮 — 其余 state / infrastructure
-- **状态**：⬜ 待执行（第 9 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/state/projectStore.ts` + `src/state/authStore.ts` + `src/infrastructure/projectService.ts` + `src/infrastructure/thumbnailCapture.ts` + `src/infrastructure/zipExport.ts`
 - **focus 约束**：
   - Supabase 调用的错误处理是否完整（网络失败、权限不足）
@@ -231,7 +231,7 @@
 ---
 
 ### 第 11 轮 — Hooks 与键盘交互
-- **状态**：⬜ 待执行（第 10 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/hooks/useEditorKeyboard.ts` + `src/hooks/useBeforeUnload.ts` + `src/hooks/useNumberInputWheelEdit.ts`
 - **focus 约束**：
   - 键盘事件监听的注册/注销是否对称（防止泄漏）
@@ -240,7 +240,7 @@
 ---
 
 ### 第 12 轮 — 页面层（低风险扫描）
-- **状态**：⬜ 待执行（第 11 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/pages/editor/EditorPage.tsx` + `src/pages/projects/ProjectsPage.tsx` + 各 Modal + 登录/注册页 + `src/App.tsx`
 - **focus 约束**：
   - 路由权限保护（ProtectedRoute）的覆盖完整性

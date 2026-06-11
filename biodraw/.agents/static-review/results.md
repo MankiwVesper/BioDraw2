@@ -509,3 +509,166 @@ source 从顶层移除后，target 行上移，`+1` 导致过度偏移，C 落�
 | 2 | `src/features/inspector-panel/LayerPanel.tsx` | `useLayerDnD.onDrop` 向下拖动时不加 `+1`（`draggingDown ? index : min(index+1, total-1)`），修复顶层对象拖到相邻项后落到底层的 z-order 错误 | ✅ 已修复 |
 
 构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 10 轮 — 其余 state / infrastructure
+
+**完成时间**：2026-06-11
+**审查范围**：`src/state/projectStore.ts` + `src/state/authStore.ts` + `src/infrastructure/projectService.ts` + `src/infrastructure/thumbnailCapture.ts` + `src/infrastructure/zipExport.ts`
+**审查方式**：Claude 自查 + Codex adversarial-review 交叉验证
+**整体结论**：⛔ needs-attention（3 处修复，3 处记录不修）
+
+### Findings
+
+#### [HIGH] `authStore.init()` 非幂等 + `onAuthStateChange` 订阅泄漏
+**文件**：`src/state/authStore.ts:40-47`
+**来源**：Claude LOW，Codex HIGH，双方确认
+
+`init()` 每次被调用都会重新注册 `onAuthStateChange` 监听器，但从不保存返回的 `subscription`。React StrictMode dev 环境 effect 执行两次，HMR 也会触发二次执行，导致重复监听器累积。订阅对象被丢弃，无法注销。
+
+#### [MEDIUM] `getSession()` 无 `.catch()` — 网络错误时 `loading` 永久卡 `true`
+**文件**：`src/state/authStore.ts:41-43`
+**来源**：Codex 发现，Claude 确认
+
+`getSession().then(...)` 无 `.catch()`，若 Supabase 网络请求失败，`loading` 永远不会设为 `false`，整个应用显示加载中。
+
+#### [HIGH] logout 后 `projectStore` 不清理
+**文件**：`src/state/authStore.ts`（logout handler），`src/state/projectStore.ts`
+**来源**：Codex HIGH，Claude 确认
+
+`signOut()` 后 `projectStore.currentProjectId` 保留前用户的 project ID，`saveStatus` 也不重置。虽然 navigate('/login') 卸载了编辑器，但 SIGNED_OUT 事件监听是更稳健的清理时机。
+
+#### [LOW / 记录不修] `logout()` 静默忽略 `signOut` 失败
+`await supabase.auth.signOut()` 的 error 被丢弃。低优先级：`onAuthStateChange` 会同步最终的 auth 状态，静默失败对用户体验影响有限。
+
+#### [MEDIUM / 记录不修] `projectService.ts` 所有 Supabase 调用无超时保护
+`listProjects()`、`updateProjectData()` 等调用可能在网络故障时无限挂起，UI 加载状态永不结束。需要为每个调用包装 `AbortSignal.timeout()`，改动量大，留作专项。
+
+#### [MEDIUM / 记录不修] `updateProjectData`/`renameProject` 并发写入冲突
+两个并发保存到同一 project 行时 last-write-wins，无版本字段或乐观锁。需 DB schema 变更，超出本轮范围。
+
+#### [PASS] thumbnailCapture / zipExport / projectStore 无问题
+`thumbnailCapture.ts`：全局 ref，无状态，无泄漏 ✅
+`zipExport.ts`：纯函数 CRC32 + ZIP，无资源泄漏 ✅
+`projectStore.ts`：22 行 Zustand store，setters 完备 ✅
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/state/authStore.ts` | 新增模块级 `_authSubscription` 守卫，`init()` 加幂等判断 `if (_authSubscription) return`，保存 `data.subscription` | ✅ 已修复 |
+| 2 | `src/state/authStore.ts` | `getSession().then(...)` 补 `.catch(() => set({ loading: false }))` | ✅ 已修复 |
+| 3 | `src/state/authStore.ts` | `onAuthStateChange` 回调新增 `SIGNED_OUT` 事件处理，清理 `projectStore.currentProjectId` 与 `saveStatus` | ✅ 已修复 |
+
+构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 11 轮 — Hooks 与键盘交互
+
+**完成时间**：2026-06-11
+**审查范围**：`src/hooks/useEditorKeyboard.ts` + `src/hooks/useBeforeUnload.ts` + `src/hooks/useNumberInputWheelEdit.ts`
+**审查方式**：Claude 自查 + Codex adversarial-review 交叉验证
+**整体结论**：⛔ needs-attention（2 处修复，2 处记录不修）
+
+### Findings
+
+#### [BUG] Ctrl+V 粘贴对象 `appearSegments` segment ID 与源对象碰撞
+**文件**：`src/hooks/useEditorKeyboard.ts:126-136`
+**来源**：Claude MEDIUM，Codex BUG，双方确认
+
+`JSON.parse(JSON.stringify(src))` 深拷贝时 `appearSegments[i].id` 原样复制，粘贴对象与源对象共享相同的 segment ID。当前无直接崩溃（`animationIds: []`），但后续对粘贴对象添加 clip 时 `segmentId` 会与源对象碰撞，导致查询混乱。
+
+#### [BUG] 方向键长按淹没 undo 栈（无 `e.repeat` 保护）
+**文件**：`src/hooks/useEditorKeyboard.ts:187-200`，`src/state/editorStore.ts`
+**来源**：Claude LOW，Codex BUG，双方确认
+
+每次 `keydown` 事件（包括自动重复）都调用 `moveMultipleSceneObjects`，该函数无条件调用 `pushHistory`。以 30 keydown/s 计，长按 2 秒即超过 50 条 undo 上限，彻底清空有意义的操作历史。
+
+#### [LOW / 记录不修] `isPreviewMode` 冗余 dep
+handler 通过 `isPreviewModeRef.current` 读值，`isPreviewMode` 出现在 dep array 只会导致无谓的 listener 重新注册，不影响正确性。
+
+#### [WARNING / 记录不修] `useNumberInputWheelEdit` `containerRef` dep 无法感知 `.current` 变化
+`containerRef` 对象引用稳定，React 不会因 `.current` 变化重触 effect。当前 `TimelinePanel` 用法安全（DOM 元素与组件共生命周期），若将来 ref 有条件重绑则会有监听器残留在旧元素。
+
+#### [PASS] useBeforeUnload 无问题 ✅
+条件短路 + 对称注销，完全正确。
+
+#### [PASS] 所有三个 hook 的监听注册/注销对称 ✅
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/hooks/useEditorKeyboard.ts` | Ctrl+V paste：对 `cloned.appearSegments` 逐条 `crypto.randomUUID()`，消除 segment ID 碰撞 | ✅ 已修复 |
+| 2 | `src/state/editorStore.ts` | 新增 `moveMultipleSceneObjectsSilent`：与 `moveMultipleSceneObjects` 逻辑相同但不调 `pushHistory` | ✅ 已修复 |
+| 3 | `src/hooks/useEditorKeyboard.ts` | 方向键 handler：`e.repeat` 时调 `moveMultipleSceneObjectsSilentRef`，首次按键调正常版，防止长按淹没 undo 栈 | ✅ 已修复 |
+
+构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 12 轮 — 页面层
+
+**完成时间**：2026-06-11
+**审查范围**：`src/App.tsx` + `src/components/ProtectedRoute.tsx` + `src/components/TooltipPortal.tsx` + `src/pages/editor/EditorPage.tsx` + `src/pages/projects/ProjectsPage.tsx` + `src/pages/projects/ProjectExportModal.tsx` + `src/pages/projects/ChangePasswordModal.tsx` + `src/pages/projects/DeleteAccountModal.tsx` + `src/pages/login/LoginPage.tsx` + `src/pages/login/ForgotPasswordPage.tsx` + `src/pages/login/ResetPasswordPage.tsx` + `src/pages/register/RegisterPage.tsx`
+**审查方式**：Claude 自查 + Codex adversarial-review 交叉验证
+**整体结论**：⛔ needs-attention（3 处修复，5 处记录不修）
+
+### Findings
+
+#### [MEDIUM] `ProjectExportModal` catch 路径缺 `setLoading(false)`
+**文件**：`src/pages/projects/ProjectExportModal.tsx:113-115`
+**来源**：Codex MEDIUM，Claude 确认
+
+`getProject` 失败时只调 `setLoadError`，未调 `setLoading(false)`，导致 `loading=true` 持久保留，状态不一致。虽然 `{!loadError && ...}` 门控使导出按钮不渲染（无直接 UX 问题），但状态应保持一致。
+
+#### [MEDIUM] `EditorPage` unmount 不重置 `isPreviewMode`
+**文件**：`src/pages/editor/EditorPage.tsx:70`
+**来源**：Codex MEDIUM，Claude 确认
+
+cleanup 只调 `setCurrentProjectId(null)`，未重置 `isPreviewMode`。用户在预览模式下从项目 A 切换到项目 B，新项目会直接进入预览模式（跳过编辑界面）。
+
+#### [MEDIUM] `ResetPasswordPage` 过期/无效 token 卡在加载
+**文件**：`src/pages/login/ResetPasswordPage.tsx:34-39`
+**来源**：Codex MEDIUM，Claude 确认
+
+页面等待 `PASSWORD_RECOVERY` 事件才渲染表单，若 token 过期 Supabase 会触发 `SIGNED_OUT` 而非 `PASSWORD_RECOVERY`，用户永久看到"正在验证重置链接..."。
+
+#### [LOW / 记录不修] `loadAll()` 无取消保护
+`useEffect(() => { loadAll(); }, [])` 无 cancellation token，unmount 期间 Supabase 返回后仍调 setState。React 18 静默处理，低风险。
+
+#### [MEDIUM / 记录不修] `ThumbnailCapture` inner async 未完全保护
+outer 1500ms 已有 `clearTimeout`，inner 8000ms timeout 和 `onDoneRef.current()` 调用未加 `cancelled` 守卫。实际触发概率极低（缩略图在网络正常时 <1s 完成）。
+
+#### [LOW / 记录不修] `TooltipPortal` RAF handle 未保存
+`requestAnimationFrame(() => setVisible(true))` handle 未保存，unmount 时无法取消。RAF 几毫秒内完成，竞态窗口极窄。
+
+#### [LOW / 记录不修] `ProjectsPage` setTimeout(0) focus 无 cleanup
+两个 `setTimeout(() => inputRef?.focus(), 0)` 无 clearTimeout cleanup。0ms timer，React 18 静默，无实际影响。
+
+#### [LOW / 记录不修] `listProjects` 无超时保护
+同 Round 10 记录，全局 Supabase 超时问题，需大规模重构，超出范围。
+
+#### [PASS] App.tsx 路由保护 ✅
+`/projects` 和 `/editor/:id` 均由 `ProtectedRoute` 保护，公开路由正确排除。
+
+#### [PASS] ProtectedRoute / ChangePasswordModal / DeleteAccountModal ✅
+认证状态机逻辑完整，submitting 均在 `finally` 重置。
+
+#### [PASS] ResetPasswordPage 订阅清理 ✅
+`onAuthStateChange` 有对应 `subscription.unsubscribe()`。
+
+#### [PASS] TooltipPortal 事件监听对称 ✅
+`mouseover/mouseout/mousemove` 均在 cleanup 中移除，timer 清理，MutationObserver disconnect。
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/pages/projects/ProjectExportModal.tsx` | catch 块补 `setLoading(false)`，消除加载失败后 `loading=true` 状态不一致 | ✅ 已修复 |
+| 2 | `src/pages/editor/EditorPage.tsx` | unmount cleanup 补 `setPreviewMode(false)`，防止跨项目切换时带入预览模式 | ✅ 已修复 |
+| 3 | `src/pages/login/ResetPasswordPage.tsx` | `onAuthStateChange` 加 `SIGNED_OUT` 分支，过期/无效 token 显示错误而非永久转圈 | ✅ 已修复 |
+
+构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
