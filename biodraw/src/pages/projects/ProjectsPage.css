@@ -455,6 +455,7 @@
 }
 
 .projects-bottom-bar .projects-sort-wrap > .projects-ghost-btn,
+.projects-bottom-bar > .projects-ghost-btn,
 .projects-bottom-bar .projects-danger-btn {
   width: 76px;
   justify-content: center;

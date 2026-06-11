@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, LayoutGrid, List, Search, X, ChevronDown, ChevronUp, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw, Star, Copy } from 'lucide-react';
+import { Upload, LayoutGrid, List, Search, X, ChevronDown, ChevronUp, Pencil, Trash2, FolderPlus, Check, Layers, Folder, Inbox, Minus, Eye, Download, Share2, FolderInput, RotateCcw, Star, Copy, Undo2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../state/authStore';
 import {
@@ -1386,12 +1386,11 @@ export default function ProjectsPage() {
               <>
                 <span className="projects-selection-count">已选 {selectedIds.size} 项</span>
                 <button className="projects-ghost-btn" onClick={handleRestoreSelected}>
-                  <RotateCcw size={13} />
-                  恢复 ({selectedIds.size})
+                  <Undo2 size={13} />
+                  恢复
                 </button>
                 <button className="projects-danger-btn" onClick={() => setBulkPermanentDeletePending(true)}>
-                  <Trash2 size={13} />
-                  永久删除 ({selectedIds.size})
+                  永久删除
                 </button>
               </>
             ) : (
