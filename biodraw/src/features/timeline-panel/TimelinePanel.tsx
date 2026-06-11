@@ -548,6 +548,7 @@ export function TimelinePanel() {
   const pause = useEditorStore((s) => s.pause);
   const addAnimationClip = useEditorStore((s) => s.addAnimationClip);
   const updateAnimationClip = useEditorStore((s) => s.updateAnimationClip);
+  const batchUpdateAnimationClips = useEditorStore((s) => s.batchUpdateAnimationClips);
   const removeAnimationClip = useEditorStore((s) => s.removeAnimationClip);
   const removeAnimationClips = useEditorStore((s) => s.removeAnimationClips);
   const setExpandedAnimationClipIds = useEditorStore((s) => s.setExpandedAnimationClipIds);
@@ -1416,6 +1417,7 @@ export function TimelinePanel() {
     const nextEasing = hasEasing ? batchEasingInput : null;
     ensurePausedForEdit();
     let maxEnd = globalDurationMs, lastId: string | null = null;
+    const clipPatches: Array<{ id: string; patch: Partial<AnimationClip> }> = [];
     for (const clip of selectedBatchClips) {
       const upd: Partial<AnimationClip> = {};
       const effectiveStart = nextStart !== null ? nextStart : clip.startTimeMs;
@@ -1437,9 +1439,10 @@ export function TimelinePanel() {
       if (nextEnabled !== null && clipEnabled !== nextEnabled) upd.enabled = nextEnabled;
       if (Object.keys(upd).length === 0) continue;
       maxEnd = Math.max(maxEnd, effectiveStart + effectiveDuration);
-      updateAnimationClip(clip.id, upd);
+      clipPatches.push({ id: clip.id, patch: upd });
       lastId = clip.id;
     }
+    if (clipPatches.length > 0) batchUpdateAnimationClips(clipPatches);
     if (maxEnd > globalDurationMs) setGlobalDurationMs(maxEnd + 1000);
     if (lastId) setFlashClipId(lastId);
   };
@@ -1470,19 +1473,22 @@ export function TimelinePanel() {
     if (nextStartById.size === 0) return;
     let maxEnd = globalDurationMs, lastMoved: string | null = null;
     const byId = new Map(selectedObjectClips.map((c) => [c.id, c]));
+    const clipPatches: Array<{ id: string; patch: Partial<AnimationClip> }> = [];
     nextStartById.forEach((next, id) => {
       const orig = byId.get(id);
       if (!orig || next === orig.startTimeMs) return;
-      updateAnimationClip(id, { startTimeMs: next });
+      clipPatches.push({ id, patch: { startTimeMs: next } });
       lastMoved = id;
       maxEnd = Math.max(maxEnd, next + Math.max(1, orig.durationMs));
     });
+    if (clipPatches.length > 0) batchUpdateAnimationClips(clipPatches);
     if (maxEnd > globalDurationMs) setGlobalDurationMs(maxEnd + 1000);
     if (lastMoved) setFlashClipId(lastMoved);
   };
 
   const sortClipsByStartTime = () => {
     if (segmentScopedClips.length < 2) return;
+    ensurePausedForEdit();
     const sorted = [...segmentScopedClips].sort((a, b) => a.startTimeMs - b.startTimeMs);
     reorderAnimationClips(sorted.map((c) => c.id));
   };

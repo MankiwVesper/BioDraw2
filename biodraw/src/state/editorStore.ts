@@ -127,6 +127,7 @@ interface EditorState {
 
   addAnimationClip: (clip: AnimationClip) => void;
   updateAnimationClip: (id: string, updates: Partial<AnimationClip>) => void;
+  batchUpdateAnimationClips: (updates: Array<{ id: string; patch: Partial<AnimationClip> }>) => void;
   removeAnimationClip: (id: string) => void;
   removeAnimationClips: (ids: string[]) => void;
   reorderAnimationClips: (orderedIds: string[]) => void;
@@ -985,6 +986,18 @@ export const useEditorStore = create<EditorState>()(
         const idx = state.animations.findIndex((a) => a.id === id);
         if (idx !== -1) {
           state.animations[idx] = { ...state.animations[idx], ...updates } as AnimationClip;
+        }
+      }),
+
+    batchUpdateAnimationClips: (updates) =>
+      set((state) => {
+        if (updates.length === 0) return;
+        pushHistory(state);
+        for (const { id, patch } of updates) {
+          const idx = state.animations.findIndex((a) => a.id === id);
+          if (idx !== -1) {
+            state.animations[idx] = { ...state.animations[idx], ...patch } as AnimationClip;
+          }
         }
       }),
 
