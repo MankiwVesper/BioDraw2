@@ -40,7 +40,10 @@ function useLayerDnD(
     e.preventDefault();
     if (dragIndexRef.current !== null) {
       const before = getHalf(e);
-      const toIndex = before ? index : Math.min(index + 1, total - 1);
+      // 向下拖动（source 在 target 上方）时不加 +1：
+      // source 移除后 target 行上移一格，"after target" 等同于插入到 target 的原始位置
+      const draggingDown = dragIndexRef.current < index;
+      const toIndex = before ? index : draggingDown ? index : Math.min(index + 1, total - 1);
       if (dragIndexRef.current !== toIndex) {
         onReorder(dragIndexRef.current, toIndex);
       }

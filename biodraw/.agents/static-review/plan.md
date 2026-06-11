@@ -213,7 +213,7 @@
 ---
 
 ### 第 9 轮 — 属性/材质/工具栏面板
-- **状态**：⬜ 待执行（第 8 轮完成后）
+- **状态**：✅ 已完成（结果见 results.md）
 - **范围**：`src/features/inspector-panel/InspectorPanel.tsx` + `src/features/inspector-panel/LayerPanel.tsx` + `src/features/materials-panel/MaterialsPanel.tsx` + `src/features/toolbar/ToolbarPanel.tsx`
 - **focus 约束**：
   - 属性修改是否都经过 pushHistory

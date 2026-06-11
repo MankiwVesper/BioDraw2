@@ -463,3 +463,49 @@ Claude 独立发现。`startClipDrag`/`startClipResizeStart`/`startClipResizeEnd
 | 2 | `src/features/canvas-panel/CanvasPanel.tsx` | `handleObjectDragStop(id, finalX, finalY)` 单拖走 `updateSceneObject`，组拖走 `batchUpdateSceneObjects` 一次提交所有对象 | ✅ 已修复 |
 
 构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
+
+---
+
+## 第 9 轮 — 属性/图层/素材/工具栏面板（2026-06-11）
+
+**范围**：`src/features/inspector-panel/InspectorPanel.tsx` + `src/features/inspector-panel/LayerPanel.tsx` + `src/features/materials-panel/MaterialsPanel.tsx` + `src/features/toolbar/ToolbarPanel.tsx`
+
+**审查方式**：Claude 自查 + Codex adversarial review，交叉验证后结论一致。
+
+### 确认正常
+
+- LayerPanel 重命名：本地 state 逐键更新，`onBlur`/Enter 提交时才调用 `updateSceneObject` ✅
+- LayerPanel 可见性切换：单次点击一次 `updateSceneObject` → 一次 pushHistory ✅
+- LayerPanel 锁定切换：`toggleObjectLock` 故意跳过 pushHistory（元操作）✅
+- MaterialsPanel：只是拖放来源，无 store 变更 ✅
+- ToolbarPanel 画布尺寸：用本地 state，`onBlur`/Enter 才调用 `setCanvasSize`（一次提交）✅
+- 所有 z-order 操作（`moveMultipleObjects*`、`reorderObject`）正确调用 pushHistory ✅
+
+### Findings
+
+#### [BUG] `moveObjectForward/Backward/ToFront/ToBack` 在条件检查前调用 `pushHistory`
+对象已在顶层时点"置顶"，`pushHistory` 先执行（产生 undo 条目），随后 `if` 不满足、state 不变，留下空 undo 记录。四个方法均有此问题。
+
+#### [BUG] LayerPanel 向下拖动顶层对象到相邻项后落到底层
+`before=false, idx=1` 时 `toLayerIdx = min(1+1, total-1) = total-1 = 2`（底层位置）。
+source 从顶层移除后，target 行上移，`+1` 导致过度偏移，C 落到最底层而非 B/A 之间。
+
+#### [MEDIUM / 记录不修] 属性输入框每次按键触发 `pushHistory`
+`updateBasicParamDraft` 对每个有效字符调用 `handleChange` → `updateSceneObject` → pushHistory。输入 "100" 产生 3 条 undo 记录。多选模式的 `applyW/applyH/applyRot` 同样每次 `onChange` 调 `batchUpdateSceneObjects`。颜色拾取器 `onChange` 也一样，拖动取色盘可产生数十条 undo 条目。
+
+**跳过原因**：需要增加 `updateSceneObjectSilent` / `batchUpdateSceneObjectsSilent` store action + 重构大量输入处理逻辑，改动量超出本轮范围，留作专项。
+
+#### [LOW / 记录不修] ToolbarPanel 画布背景色 `onChange` 频繁触发 `pushHistory`
+同上，color picker `onChange` 直接调 `setCanvasBgColor`，颜色拖动时连续写入 undo 栈。
+
+#### [LOW / 记录不修] ToolbarPanel 画布尺寸 Enter+blur 双触发
+某些浏览器按 Enter 后触发 blur，导致 `setCanvasSize` 被调用两次（同值），产生额外 undo 条目。影响有限（同值幂等，仅多一个 undo 步骤）。
+
+### 修复记录（2026-06-11）
+
+| # | 文件 | 修复内容 | 状态 |
+|---|---|---|---|
+| 1 | `src/state/editorStore.ts` | `moveObjectForward/Backward/ToFront/ToBack` 将 `pushHistory` 移入条件分支内，消除边界 no-op 的空 undo 条目 | ✅ 已修复 |
+| 2 | `src/features/inspector-panel/LayerPanel.tsx` | `useLayerDnD.onDrop` 向下拖动时不加 `+1`（`draggingDown ? index : min(index+1, total-1)`），修复顶层对象拖到相邻项后落到底层的 z-order 错误 | ✅ 已修复 |
+
+构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。

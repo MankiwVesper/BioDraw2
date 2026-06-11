@@ -650,9 +650,9 @@ export const useEditorStore = create<EditorState>()(
 
     moveObjectForward: (id) =>
       set((state) => {
-        pushHistory(state);
         const idx = state.objects.findIndex((o) => o.id === id);
         if (idx !== -1 && idx < state.objects.length - 1) {
+          pushHistory(state);
           const temp = state.objects[idx];
           state.objects[idx] = state.objects[idx + 1];
           state.objects[idx + 1] = temp;
@@ -661,9 +661,9 @@ export const useEditorStore = create<EditorState>()(
 
     moveObjectBackward: (id) =>
       set((state) => {
-        pushHistory(state);
         const idx = state.objects.findIndex((o) => o.id === id);
         if (idx > 0) {
+          pushHistory(state);
           const temp = state.objects[idx];
           state.objects[idx] = state.objects[idx - 1];
           state.objects[idx - 1] = temp;
@@ -672,9 +672,9 @@ export const useEditorStore = create<EditorState>()(
 
     moveObjectToFront: (id) =>
       set((state) => {
-        pushHistory(state);
         const idx = state.objects.findIndex((o) => o.id === id);
         if (idx !== -1 && idx < state.objects.length - 1) {
+          pushHistory(state);
           const [obj] = state.objects.splice(idx, 1);
           state.objects.push(obj);
         }
@@ -682,9 +682,9 @@ export const useEditorStore = create<EditorState>()(
 
     moveObjectToBack: (id) =>
       set((state) => {
-        pushHistory(state);
         const idx = state.objects.findIndex((o) => o.id === id);
         if (idx > 0) {
+          pushHistory(state);
           const [obj] = state.objects.splice(idx, 1);
           state.objects.unshift(obj);
         }
