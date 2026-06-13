@@ -1,7 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useEditorStore } from "../../state/editorStore";
+import type { AnimationClip, StateChangeClip } from "../../types";
 import { LayerPanel } from "./LayerPanel";
 import "./InspectorPanel.css";
+
+const svgModules = import.meta.glob<{ default: string }>('/src/assets/svgs/**/*.svg', { eager: true });
+const allSvgOptions = Object.entries(svgModules).map(([path, mod]) => {
+  const parts = path.split('/');
+  return { url: mod.default, name: parts[parts.length - 1].replace('.svg', ''), category: parts[4] || '未分类' };
+});
+const allSvgCategories = Array.from(new Set(allSvgOptions.map((o) => o.category))).sort();
 
 
 export function InspectorPanel() {
@@ -18,6 +26,11 @@ export function InspectorPanel() {
   >({});
   const basicParamCancelledRef = useRef<BasicParamField | null>(null);
   const [msParamDrafts, setMsParamDrafts] = useState<{ w?: string; h?: string; rot?: string }>({});
+  const [statePickerOpen, setStatePickerOpen] = useState(false);
+  const [statePickerCategory, setStatePickerCategory] = useState<string | null>(null);
+  const [stateSearchQuery, setStateSearchQuery] = useState('');
+  const [editingStateKey, setEditingStateKey] = useState<string | null>(null);
+  const [editingStateName, setEditingStateName] = useState('');
   const toggleSection = (key: string) =>
     setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -47,6 +60,9 @@ export function InspectorPanel() {
   const updateSceneObject = useEditorStore((state) => state.updateSceneObject);
   const updateSceneObjectSilent = useEditorStore((state) => state.updateSceneObjectSilent);
   const batchUpdateSceneObjectsSilent = useEditorStore((state) => state.batchUpdateSceneObjectsSilent);
+  const animations = useEditorStore((state) => state.animations);
+  const batchUpdateAnimationClips = useEditorStore((state) => state.batchUpdateAnimationClips);
+  const removeAnimationClips = useEditorStore((state) => state.removeAnimationClips);
 
   const moveObjectForward = useEditorStore((state) => state.moveObjectForward);
   const moveObjectBackward = useEditorStore(
@@ -2664,6 +2680,175 @@ export function InspectorPanel() {
                   </div>
                 )}
                 </div>)}
+              </div>
+            )}
+
+            {/* 对象状态 - 仅素材对象 */}
+            {selectedObj.type === 'material' && (
+              <div className="ip-property-group">
+                <h4
+                  className={`ip-group-title${collapsedSections["states"] ? " is-collapsed" : ""}`}
+                  onClick={() => toggleSection("states")}
+                >
+                  对象状态 {sectionChevron("states")}
+                </h4>
+                {!collapsedSections["states"] && (
+                  <div className="ip-property-body">
+                    {Object.entries(selectedObj.stateVariants || {}).length > 0 && (
+                    <div style={{ maxHeight: 120, overflowY: 'auto', overflowX: 'hidden', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', padding: '6px 8px', marginBottom: 6 }}>
+                    {Object.entries(selectedObj.stateVariants || {}).map(([key, url]) => (
+                        <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <img src={url} alt={key} style={{ width: 32, height: 32, objectFit: 'contain', border: '1px solid var(--border-color)', borderRadius: 4, background: '#fff' }} />
+                          {editingStateKey === key ? (
+                            <input
+                              autoFocus
+                              value={editingStateName}
+                              onChange={(e) => setEditingStateName(e.target.value)}
+                              onBlur={() => {
+                                const newKey = editingStateName.trim();
+                                const variants = selectedObj.stateVariants || {};
+                                if (newKey && newKey !== key && !(newKey in variants)) {
+                                  const newVariants: Record<string, string> = {};
+                                  for (const [k, v] of Object.entries(variants)) {
+                                    newVariants[k === key ? newKey : k] = v;
+                                  }
+                                  updateSceneObject(selectedObj.id, { stateVariants: newVariants });
+                                  const stateClipUpdates = animations
+                                    .filter((c): c is StateChangeClip =>
+                                      c.type === 'stateChange' &&
+                                      c.objectId === selectedObj.id &&
+                                      (c.payload.toStateKey === key || c.payload.fromStateKey === key)
+                                    )
+                                    .map((c) => ({
+                                      id: c.id,
+                                      patch: {
+                                        payload: {
+                                          ...c.payload,
+                                          ...(c.payload.toStateKey === key ? { toStateKey: newKey } : {}),
+                                          ...(c.payload.fromStateKey === key ? { fromStateKey: newKey } : {}),
+                                        },
+                                      } as Partial<AnimationClip>,
+                                    }));
+                                  batchUpdateAnimationClips(stateClipUpdates);
+                                }
+                                setEditingStateKey(null);
+                              }}
+                              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingStateKey(null); }}
+                              style={{ flex: 1, fontSize: 13, padding: '1px 4px', border: '1px solid var(--primary-color)', borderRadius: 'var(--radius)', outline: 'none' }}
+                            />
+                          ) : (
+                            <span
+                              title="点击编辑状态名称"
+                              onClick={() => { setEditingStateKey(key); setEditingStateName(key); }}
+                              style={{ flex: 1, fontSize: 13, cursor: 'text', borderRadius: 'var(--radius)', padding: '1px 4px' }}
+                            >{key}</span>
+                          )}
+                          <button
+                            onClick={() => {
+                              const v = { ...(selectedObj.stateVariants || {}) };
+                              delete v[key];
+                              updateSceneObject(selectedObj.id, { stateVariants: Object.keys(v).length ? v : undefined });
+                              const removedStateClipIds = animations
+                                .filter((c): c is StateChangeClip =>
+                                  c.type === 'stateChange' &&
+                                  c.objectId === selectedObj.id &&
+                                  c.payload.toStateKey === key
+                                )
+                                .map((c) => c.id);
+                              removeAnimationClips(removedStateClipIds);
+                            }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
+                          >×</button>
+                        </div>
+                      ))}
+                    </div>
+                    )}
+                    <div style={{ position: 'relative', marginTop: 6 }}>
+                      {(statePickerOpen || stateSearchQuery.trim()) && (() => {
+                        const q = stateSearchQuery.trim().toLowerCase();
+                        const visibleCats = q
+                          ? allSvgCategories.filter(cat => allSvgOptions.some(o => o.category === cat && o.name.toLowerCase().includes(q)))
+                          : allSvgCategories;
+                        const rightItems = (statePickerCategory === null && !q)
+                          ? []
+                          : allSvgOptions.filter(o =>
+                              (!statePickerCategory || o.category === statePickerCategory) &&
+                              (!q || o.name.toLowerCase().includes(q))
+                            );
+                        const addItem = (opt: { url: string; name: string }) => {
+                          const existingKeys = Object.keys(selectedObj.stateVariants || {});
+                          let key = opt.name; let suffix = 1;
+                          while (existingKeys.includes(key)) { key = opt.name + '_' + suffix++; }
+                          updateSceneObject(selectedObj.id, { stateVariants: { ...(selectedObj.stateVariants || {}), [key]: opt.url } });
+                          setStatePickerOpen(false); setStatePickerCategory(null); setStateSearchQuery('');
+                        };
+                        return (
+                          <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 4, zIndex: 20, background: 'var(--panel-bg)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', boxShadow: '0 -2px 8px rgba(0,0,0,0.08)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                            <div style={{ display: 'flex', height: 180 }}>
+                              {/* 左列：大类 */}
+                              <div style={{ width: '50%', borderRight: '1px solid var(--border-color)', overflowY: 'auto', overflowX: 'hidden', flexShrink: 0 }}>
+                                {visibleCats.length === 0
+                                  ? <div style={{ padding: '8px', fontSize: 12, color: 'var(--text-muted)' }}>无匹配</div>
+                                  : visibleCats.map(cat => (
+                                    <div
+                                      key={cat}
+                                      onClick={() => setStatePickerCategory(cat)}
+                                      style={{ padding: '6px 8px', fontSize: 12, cursor: 'pointer', background: statePickerCategory === cat ? 'var(--bg-secondary)' : '', fontWeight: statePickerCategory === cat ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                      onMouseEnter={e => {
+                                        if (statePickerCategory !== cat) e.currentTarget.style.background = 'var(--bg-secondary)';
+                                        const el = e.currentTarget;
+                                        if (el.scrollWidth > el.clientWidth) { el.setAttribute('data-tooltip', cat); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); }
+                                      }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = statePickerCategory === cat ? 'var(--bg-secondary)' : ''; e.currentTarget.removeAttribute('data-tooltip'); }}
+                                    >{cat}</div>
+                                  ))
+                                }
+                              </div>
+                              {/* 右列：元素 */}
+                              <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+                                {statePickerCategory === null && !q
+                                  ? <div style={{ padding: '8px', fontSize: 12, color: 'var(--text-muted)' }}>← 选择大类</div>
+                                  : rightItems.length === 0
+                                    ? <div style={{ padding: '8px', fontSize: 12, color: 'var(--text-muted)' }}>无匹配</div>
+                                    : rightItems.map(opt => (
+                                      <div
+                                        key={opt.url}
+                                        onClick={() => addItem(opt)}
+                                        style={{ padding: '5px 8px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-secondary)'; }}
+                                        onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                                      >
+                                        <img src={opt.url} alt={opt.name} style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }} />
+                                        <span
+                                          style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
+                                          onMouseEnter={e => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth) { el.setAttribute('data-tooltip', opt.name); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); } }}
+                                          onMouseLeave={e => e.currentTarget.removeAttribute('data-tooltip')}
+                                        >{opt.name}</span>
+                                      </div>
+                                    ))
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          style={{ flex: 1, fontSize: 12, padding: '4px 8px', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius)', cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)' }}
+                          onClick={() => { setStatePickerCategory(null); setStateSearchQuery(''); setStatePickerOpen(true); }}
+                        >+ 添加状态</button>
+                        <input
+                          type="text"
+                          placeholder="搜索元素…"
+                          value={stateSearchQuery}
+                          onChange={e => { setStateSearchQuery(e.target.value); setStatePickerOpen(false); if (!e.target.value.trim()) setStatePickerCategory(null); }}
+                          onFocus={() => setStatePickerOpen(false)}
+                          style={{ flex: 1, fontSize: 12, padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', background: 'var(--bg-primary)', color: 'var(--text-main)', outline: 'none', minWidth: 0 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

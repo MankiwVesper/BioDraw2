@@ -1,4 +1,4 @@
-import type { AnimationClip, EasingType, SceneObject } from '../types';
+import type { AnimationClip, EasingType, SceneObject, StateChangeClip } from '../types';
 
 const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 
@@ -266,13 +266,27 @@ export const buildAnimatedPreviewObjects = (
       if (currentTimeMs < startMs || currentTimeMs > endMs) continue;
     }
 
-    const clips = (clipsByObjectId.get(obj.id) || [])
+    const segmentClips = (clipsByObjectId.get(obj.id) || [])
+      .filter((clip) => !activeSegmentId || !clip.segmentId || clip.segmentId === activeSegmentId);
+
+    // Compute active stateKey: the last stateChange clip that has started by currentTimeMs
+    let resolvedStateKey = obj.stateKey;
+    const stateClips = segmentClips
+      .filter((clip): clip is StateChangeClip => clip.type === 'stateChange')
+      .sort((a, b) => a.startTimeMs - b.startTimeMs);
+    for (const clip of stateClips) {
+      if (currentTimeMs >= clip.startTimeMs) resolvedStateKey = clip.payload.toStateKey;
+    }
+
+    const clips = segmentClips
       .filter((clip) => clip.type !== 'stateChange')
-      .filter((clip) => !activeSegmentId || !clip.segmentId || clip.segmentId === activeSegmentId)
       .sort((a, b) => a.startTimeMs - b.startTimeMs);
 
+    const withState = (o: SceneObject) =>
+      resolvedStateKey !== obj.stateKey ? { ...o, stateKey: resolvedStateKey } : o;
+
     if (clips.length === 0) {
-      result.push(obj);
+      result.push(withState(obj));
       continue;
     }
 
@@ -284,7 +298,7 @@ export const buildAnimatedPreviewObjects = (
         next = applyClip(next, clip.startTimeMs + Math.max(1, clip.durationMs), clip);
       }
     }
-    result.push(next);
+    result.push(withState(next));
   }
   return result;
 };
