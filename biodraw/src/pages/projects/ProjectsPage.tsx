@@ -141,6 +141,7 @@ function ThumbnailCapture({
   onDoneRef.current = onDone;
 
   useEffect(() => {
+    let cancelled = false;
     const timer = setTimeout(async () => {
       const thumb = thumbnailCapture.current?.() ?? null;
       try {
@@ -153,9 +154,12 @@ function ThumbnailCapture({
       } catch {
         // best-effort: thumbnail failure doesn't block import
       }
-      onDoneRef.current();
+      if (!cancelled) onDoneRef.current();
     }, 1500);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
