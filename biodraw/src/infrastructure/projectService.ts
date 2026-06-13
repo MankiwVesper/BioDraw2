@@ -84,6 +84,16 @@ export async function moveProjects(projectIds: string[], groupId: string | null)
   if (error) throw error;
 }
 
+export async function getProjectVersion(id: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('version')
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  return (data as { version: number }).version;
+}
+
 export async function getProject(id: string): Promise<{ title: string; data: DocumentSnapshot; version: number }> {
   const { data, error } = await supabase
     .from('projects')

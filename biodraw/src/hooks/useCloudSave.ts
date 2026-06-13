@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useEditorStore } from '../state/editorStore';
 import { useProjectStore } from '../state/projectStore';
 import { serializeDocument } from '../infrastructure/documentSerializer';
-import { updateProjectData } from '../infrastructure/projectService';
+import { updateProjectData, getProjectVersion } from '../infrastructure/projectService';
 import { thumbnailCapture } from '../infrastructure/thumbnailCapture';
 
 const DEBOUNCE_MS = 5000;
@@ -64,6 +64,8 @@ export function useCloudSave(projectId: string) {
       } catch (err: unknown) {
         if (err instanceof Error && err.message === 'CONFLICT') {
           pendingSaveRef.current = false;
+          // 从服务器同步最新版本，下次保存用正确版本，避免持续冲突
+          getProjectVersion(projectId).then(setProjectVersion).catch(() => {});
         }
         setSaveStatus('error');
       }
