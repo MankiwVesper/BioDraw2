@@ -84,14 +84,14 @@ export async function moveProjects(projectIds: string[], groupId: string | null)
   if (error) throw error;
 }
 
-export async function getProject(id: string): Promise<{ title: string; data: DocumentSnapshot }> {
+export async function getProject(id: string): Promise<{ title: string; data: DocumentSnapshot; version: number }> {
   const { data, error } = await supabase
     .from('projects')
-    .select('title, data')
+    .select('title, data, version')
     .eq('id', id)
     .single();
   if (error) throw error;
-  return data as { title: string; data: DocumentSnapshot };
+  return data as { title: string; data: DocumentSnapshot; version: number };
 }
 
 export async function createProject(title: string, snapshot: DocumentSnapshot, groupId?: string | null): Promise<string> {
@@ -108,11 +108,25 @@ export async function createProject(title: string, snapshot: DocumentSnapshot, g
   return (data as { id: string }).id;
 }
 
-export async function updateProjectData(id: string, snapshot: DocumentSnapshot, thumbnail?: string | null): Promise<void> {
+export async function updateProjectData(
+  id: string,
+  snapshot: DocumentSnapshot,
+  thumbnail?: string | null,
+  currentVersion?: number,
+): Promise<number> {
   const payload: Record<string, unknown> = { data: snapshot, updated_at: new Date().toISOString() };
   if (thumbnail !== undefined) payload.thumbnail = thumbnail;
-  const { error } = await supabase.from('projects').update(payload).eq('id', id);
+  if (currentVersion !== undefined) payload.version = currentVersion + 1;
+
+  let query = supabase.from('projects').update(payload).eq('id', id);
+  if (currentVersion !== undefined) query = query.eq('version', currentVersion);
+
+  const { data, error } = await query.select('version');
   if (error) throw error;
+  if (currentVersion !== undefined && (!data || data.length === 0)) {
+    throw new Error('CONFLICT');
+  }
+  return ((data?.[0] as { version: number } | undefined)?.version) ?? (currentVersion ?? 0) + 1;
 }
 
 export async function renameProject(id: string, title: string): Promise<void> {

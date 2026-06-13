@@ -35,6 +35,7 @@ export default function EditorPage() {
   const advancePlayback     = useEditorStore((s) => s.advancePlayback);
 
   const setCurrentProjectId = useProjectStore((s) => s.setCurrentProjectId);
+  const setProjectVersion   = useProjectStore((s) => s.setProjectVersion);
   const setSaveStatus       = useProjectStore((s) => s.setSaveStatus);
 
   useEditorKeyboard();
@@ -54,9 +55,10 @@ export default function EditorPage() {
     setLoadError(null);
 
     getProject(projectId)
-      .then(({ title, data }) => {
+      .then(({ title, data, version }) => {
         if (cancelled) return;
         loadSnapshot(data);
+        setProjectVersion(version);
         setCurrentFileName(title + '.biodraw');
         if (searchParams.get('autoPreview') === '1') setPreviewMode(true);
         setLoading(false);

@@ -17,6 +17,7 @@ export function useCloudSave(projectId: string) {
   const markSaved        = useEditorStore((s) => s.markSaved);
   const setSaveStatus    = useProjectStore((s) => s.setSaveStatus);
   const setLastSavedAt   = useProjectStore((s) => s.setLastSavedAt);
+  const setProjectVersion = useProjectStore((s) => s.setProjectVersion);
 
   const isFirstRender   = useRef(true);
   const prevProjectIdRef = useRef(projectId);
@@ -41,6 +42,7 @@ export function useCloudSave(projectId: string) {
 
       const revision = editRevisionRef.current;
       const s = useEditorStore.getState();
+      const currentVersion = useProjectStore.getState().projectVersion;
       setSaveStatus('saving');
       try {
         const snapshot = serializeDocument({
@@ -52,7 +54,8 @@ export function useCloudSave(projectId: string) {
           canvasBgColor: s.canvasBgColor,
         });
         const thumbnail = thumbnailCapture.current?.() ?? null;
-        await updateProjectData(projectId, snapshot, thumbnail);
+        const newVersion = await updateProjectData(projectId, snapshot, thumbnail, currentVersion);
+        setProjectVersion(newVersion);
         if (editRevisionRef.current === revision) {
           setSaveStatus('saved');
           setLastSavedAt(new Date());
@@ -63,7 +66,7 @@ export function useCloudSave(projectId: string) {
       }
       isSavingRef.current = false;
     } while (pendingSaveRef.current);
-  }, [projectId, setSaveStatus, setLastSavedAt, markSaved]);
+  }, [projectId, setSaveStatus, setLastSavedAt, markSaved, setProjectVersion]);
 
   useEffect(() => {
     const projectChanged = projectId !== prevProjectIdRef.current;
