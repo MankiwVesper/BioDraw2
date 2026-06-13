@@ -948,12 +948,15 @@ export function CanvasPanel() {
     const ids = allObjs
       .filter((obj) => {
         if (obj.locked || !obj.visible) return false;
-        const w = obj.width * (obj.scaleX || 1);
-        const h = obj.height * (obj.scaleY || 1);
-        const objLeft  = obj.x - w / 2;
-        const objRight = obj.x + w / 2;
-        const objTop    = obj.y - h / 2;
-        const objBottom = obj.y + h / 2;
+        const hw = obj.width * (obj.scaleX || 1) / 2;
+        const hh = obj.height * (obj.scaleY || 1) / 2;
+        const rad = (obj.rotation || 0) * Math.PI / 180;
+        const cos = Math.abs(Math.cos(rad));
+        const sin = Math.abs(Math.sin(rad));
+        const objLeft  = obj.x - (cos * hw + sin * hh);
+        const objRight = obj.x + (cos * hw + sin * hh);
+        const objTop    = obj.y - (sin * hw + cos * hh);
+        const objBottom = obj.y + (sin * hw + cos * hh);
         return objLeft < rect.x + rect.w && objRight > rect.x &&
                objTop  < rect.y + rect.h && objBottom > rect.y;
       })
