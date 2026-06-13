@@ -99,8 +99,11 @@ interface EditorState {
   moveMultipleSceneObjects: (moves: Array<{ id: string; x: number; y: number }>) => void;
   moveMultipleSceneObjectsSilent: (moves: Array<{ id: string; x: number; y: number }>) => void;
   batchUpdateSceneObjects: (updates: Array<{ id: string; patch: Partial<SceneObject> }>) => void;
+  updateSceneObjectSilent: (id: string, updates: Partial<SceneObject>) => void;
+  batchUpdateSceneObjectsSilent: (updates: Array<{ id: string; patch: Partial<SceneObject> }>) => void;
   setCanvasSize: (width: number, height: number) => void;
   setCanvasBgColor: (color: string) => void;
+  setCanvasBgColorSilent: (color: string) => void;
   moveObjectForward: (id: string) => void;
   moveObjectBackward: (id: string) => void;
   moveObjectToFront: (id: string) => void;
@@ -645,6 +648,14 @@ export const useEditorStore = create<EditorState>()(
         const idx = state.objects.findIndex((o) => o.id === id);
         if (idx !== -1) {
           pushHistory(state);
+          state.objects[idx] = { ...state.objects[idx], ...updates };
+        }
+      }),
+
+    updateSceneObjectSilent: (id, updates) =>
+      set((state) => {
+        const idx = state.objects.findIndex((o) => o.id === id);
+        if (idx !== -1) {
           state.objects[idx] = { ...state.objects[idx], ...updates };
         }
       }),
@@ -1516,6 +1527,17 @@ export const useEditorStore = create<EditorState>()(
         });
       }),
 
+    batchUpdateSceneObjectsSilent: (updates) =>
+      set((state) => {
+        if (updates.length === 0) return;
+        const patchMap = new Map(updates.map((u) => [u.id, u.patch]));
+        state.objects = state.objects.map((o) => {
+          const patch = patchMap.get(o.id);
+          if (!patch || o.locked) return o;
+          return { ...o, ...patch };
+        });
+      }),
+
     duplicateObject: (id) =>
       set((state) => {
         const src = state.objects.find((o) => o.id === id);
@@ -1548,6 +1570,11 @@ export const useEditorStore = create<EditorState>()(
     setCanvasBgColor: (color) =>
       set((state) => {
         pushHistory(state);
+        state.canvasBgColor = color;
+      }),
+
+    setCanvasBgColorSilent: (color) =>
+      set((state) => {
         state.canvasBgColor = color;
       }),
 
