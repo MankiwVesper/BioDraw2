@@ -75,8 +75,10 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
     setLineDraftPoints(null);
   }
 
-  // 利用 use-image 方便地加载素材图片（SVG/PNG）
-  const url = sceneObject.type === 'material' ? (sceneObject.data?.url as string) : '';
+  // 利用 use-image 方便地加载素材图片（SVG/PNG）；stateKey 激活时替换为对应变体 URL
+  const url = sceneObject.type === 'material'
+    ? ((sceneObject.stateKey && sceneObject.stateVariants?.[sceneObject.stateKey]) || (sceneObject.data?.url as string))
+    : '';
   const [image] = useImage(url);
 
   const updateSceneObject  = useEditorStore(state => state.updateSceneObject);

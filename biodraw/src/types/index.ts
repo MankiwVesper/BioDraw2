@@ -149,6 +149,7 @@ export type SceneObject = {
 
   style?: SceneObjectStyle;
   stateKey?: string;
+  stateVariants?: Record<string, string>; // stateKey → SVG URL
 
   pathIds?: Id[];
   animationIds: Id[];

@@ -1109,7 +1109,7 @@
 .tl-type-scale       { background: #10b981; }
 .tl-type-rotate      { background: #f59e0b; }
 .tl-type-shake       { background: #ef4444; }
-.tl-type-stateChange { background: #6b7280; }
+.tl-type-stateChange { background: #8b5cf6; }
 
 /* 类型名 */
 .tl-clip-type-name {
@@ -1187,7 +1187,7 @@
   top: 0; bottom: 0;
   width: 2px;
   margin-left: -0.5px;
-  background: rgba(15, 23, 42, 0.4);
+  background: var(--primary-color);
   pointer-events: none;
   z-index: 2;
 }
@@ -1234,7 +1234,28 @@
 .tl-type-fill-scale         { background: rgba(16,  185, 129, 0.65); }
 .tl-type-fill-rotate        { background: rgba(245, 158, 11,  0.65); }
 .tl-type-fill-shake         { background: rgba(239, 68,  68,  0.65); }
-.tl-type-fill-stateChange   { background: rgba(107, 114, 128, 0.65); }
+.tl-type-fill-stateChange   { background: rgba(139, 92, 246, 0.65); }
+
+/* 状态切换触发标记：定位针样式（菱形头 + 竖线） */
+.tl-state-trigger {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: #8b5cf6;
+  cursor: ew-resize;
+  z-index: 3;
+}
+.tl-state-trigger::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(45deg);
+  width: 6px;
+  height: 6px;
+  background: #8b5cf6;
+  border-radius: 1px;
+}
 
 /* 片段起止时间编辑器（zoom row 左侧） */
 .tl-seg-time-editor {

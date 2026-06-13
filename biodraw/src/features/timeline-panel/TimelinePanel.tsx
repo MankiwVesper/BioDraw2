@@ -1271,7 +1271,7 @@ export function TimelinePanel() {
   };
 
   // ── 创建动画片段
-  const createClip = (type: 'move' | 'polylineMove' | 'moveAlongPath' | 'shake' | 'fade' | 'scale' | 'rotate') => {
+  const createClip = (type: 'move' | 'polylineMove' | 'moveAlongPath' | 'shake' | 'fade' | 'scale' | 'rotate' | 'stateChange') => {
     if (!selectedObject) return;
     ensurePausedForEdit();
     const seg = resolveSegmentForNewClip();
@@ -1305,9 +1305,13 @@ export function TimelinePanel() {
         clip = { ...base, type: 'scale', payload: { fromScaleX: src.scaleX, fromScaleY: src.scaleY, toScaleX: src.scaleX * 1.2, toScaleY: src.scaleY * 1.2 } };
         break;
       case 'rotate':
-      default:
         clip = { ...base, type: 'rotate', payload: { fromRotation: src.rotation, toRotation: src.rotation + 90 } };
         break;
+      default: {
+        const firstKey = Object.keys(selectedObject.stateVariants || {})[0] ?? '';
+        clip = { ...base, type: 'stateChange', durationMs: 1, payload: { toStateKey: firstKey } };
+        break;
+      }
     }
     addAnimationClip(clip);
     syncDurationIfNeeded(clip);
@@ -1861,6 +1865,20 @@ export function TimelinePanel() {
     const targetMs = Math.round(segLo + ratio * Math.max(1, segHi - segLo));
     const snap = getCursorSnapResult(targetMs);
     setCurrentTimeMs(snap.value);
+    setCursorSnapGuideMs(snap.snapped ? snap.value : null);
+  };
+
+  const setTriggerByTrackClick = (clipId: string, event: React.MouseEvent<HTMLDivElement>) => {
+    if (clipDragHappenedRef.current) { clipDragHappenedRef.current = false; return; }
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    ensurePausedForEdit();
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    const segLo = activeSegment?.startMs ?? 0;
+    const segHi = activeSegment?.endMs ?? globalDurationMs;
+    const targetMs = Math.round(segLo + ratio * Math.max(1, segHi - segLo));
+    const snap = getCursorSnapResult(targetMs);
+    updateAnimationClip(clipId, { startTimeMs: snap.value });
     setCursorSnapGuideMs(snap.snapped ? snap.value : null);
   };
 
@@ -2735,6 +2753,12 @@ export function TimelinePanel() {
                               {item.label}
                             </button>
                           ))}
+                          {selectedObject?.type === 'material' && Object.keys(selectedObject.stateVariants || {}).length > 0 && (
+                            <button className="tl-add-menu-item" onClick={() => { createClip('stateChange'); setShowAddMenu(false); }}>
+                              <span className="tl-type-dot tl-type-stateChange" />
+                              状态切换
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -3393,7 +3417,10 @@ export function TimelinePanel() {
                       <div className="tl-track-scroll" onClick={(e) => e.stopPropagation()}>
                         <div
                           className="tl-track"
-                          onClick={seekByTrackClick}
+                          onClick={clip.type === 'stateChange'
+                            ? (e) => setTriggerByTrackClick(clip.id, e)
+                            : seekByTrackClick
+                          }
                           ref={(node) => { if (node) clipTrackRefs.current.set(clip.id, node); else clipTrackRefs.current.delete(clip.id); }}
                         >
                           {showPlayhead && (
@@ -3402,6 +3429,14 @@ export function TimelinePanel() {
                           {showGuide && (
                             <div className={`tl-track-guide${isCursorSnapping ? ' is-cursor' : ''}`} style={{ left: guideLeft }} />
                           )}
+                          {clip.type === 'stateChange' ? (
+                            <div
+                              className={`tl-state-trigger${isDragging ? ' is-dragging' : ''}${isSnapping ? ' is-snapped' : ''}`}
+                              style={{ left: clipLeftPct, transform: 'translateX(-1px)' }}
+                              onMouseDown={(e) => startClipDrag(clip, e)}
+                              data-tooltip={`触发时刻 ${(effStart / 1000).toFixed(3)}s`}
+                            />
+                          ) : (
                           <div
                             className={`tl-track-fill tl-type-fill-${clip.type}${isDragging ? ' is-dragging' : ''}${isSnapping ? ' is-snapped' : ''}`}
                             style={{ left: clipLeftPct, width: clipWidthPct }}
@@ -3428,6 +3463,7 @@ export function TimelinePanel() {
                             <div className="tl-track-handle-l" onMouseDown={(e) => startClipResizeStart(clip, e)} onClick={(e) => e.stopPropagation()} data-tooltip="拖动以调整动画起点，时长不小于1s" />
                             <div className="tl-track-handle-r" onMouseDown={(e) => startClipResizeEnd(clip, e)} onClick={(e) => e.stopPropagation()} data-tooltip="拖动以调整动画终点，时长不小于1s" />
                           </div>
+                          )}
                         </div>
                       </div>
 
@@ -3436,7 +3472,10 @@ export function TimelinePanel() {
                         {isConflict && (
                           <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
                         )}
-                        <span className="tl-clip-dur" data-tooltip="动画片段时长">{(effDuration / 1000).toFixed(3)}s</span>
+                        {clip.type === 'stateChange'
+                          ? <span className="tl-clip-dur" data-tooltip="触发时刻">@{(effStart / 1000).toFixed(3)}s</span>
+                          : <span className="tl-clip-dur" data-tooltip="动画片段时长">{(effDuration / 1000).toFixed(3)}s</span>
+                        }
                         <div className="tl-clip-icon-group">
                           <label className="tl-clip-enable" onClick={(e) => e.stopPropagation()} data-tooltip={clip.enabled !== false ? '已启用（点击禁用）' : '已禁用（点击启用）'}>
                             <input
@@ -3447,7 +3486,7 @@ export function TimelinePanel() {
                           </label>
                           <button
                             className="tl-clip-del"
-                            data-tooltip="删除动画片段"
+                            data-tooltip={clip.type === 'stateChange' ? '删除状态切换' : '删除动画片段'}
                             onClick={(e) => { e.stopPropagation(); ensurePausedForEdit(); removeAnimationClip(clip.id); }}
                           >
                             ✕
@@ -3468,8 +3507,41 @@ export function TimelinePanel() {
                       </div>
                     </div>
 
+                    {/* ── 展开详情：状态切换专用卡片 */}
+                    {isExpanded && clip.type === 'stateChange' && (
+                      <div className="tl-clip-detail-scroll">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>切换到：</span>
+                          <select
+                            value={clip.payload.toStateKey}
+                            onChange={(e) => updateClipPayload(clip, { toStateKey: e.target.value })}
+                            style={{ fontSize: 12, padding: '3px 6px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', background: 'var(--bg-primary)', minWidth: 80 }}
+                          >
+                            {Object.keys(selectedObject?.stateVariants || {}).map((key) => (
+                              <option key={key} value={key}>{key}</option>
+                            ))}
+                            {!selectedObject?.stateVariants?.[clip.payload.toStateKey] && clip.payload.toStateKey && (
+                              <option value={clip.payload.toStateKey}>{clip.payload.toStateKey}（已删除）</option>
+                            )}
+                          </select>
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: 8 }}>触发时刻(ms)：</span>
+                          <input
+                            className="tl-input-sm tl-input-nospin"
+                            type="number" inputMode="numeric" min={0} max={99999} step={1}
+                            value={clipTimeDrafts[clip.id]?.startTimeMs ?? String(effStart)}
+                            onChange={(e) => updateClipTimeDraft(clip, 'startTimeMs', e.target.value)}
+                            onBlur={() => commitClipTimeDraft(clip, 'startTimeMs')}
+                            onKeyDown={(e) => handleClipTimeKeyDown(clip.id, 'startTimeMs', e)}
+                            onFocus={(e) => e.target.select()}
+                            style={{ width: 64 }}
+                          />
+                          <button className="tl-btn tl-btn-sm" style={{ marginLeft: 'auto' }} data-tooltip="跳到触发时刻" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(clip.startTimeMs); }}>跳到</button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* ── 展开详情：6列布局 */}
-                    {isExpanded && (
+                    {isExpanded && clip.type !== 'stateChange' && (
                       <div className="tl-clip-detail-scroll">
                       <div className="tl-clip-detail">
 
@@ -3682,9 +3754,6 @@ export function TimelinePanel() {
                               )}
                               {clip.type === 'moveAlongPath' && (
                                 <span className="tl-kf-empty">曲线移动通过编辑两个控制点调整轨迹形状，无需关键帧</span>
-                              )}
-                              {clip.type === 'stateChange' && (
-                                <span className="tl-kf-empty">状态切换是离散事件，没有中间过渡</span>
                               )}
                             </>
                           )}
