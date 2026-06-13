@@ -705,3 +705,89 @@ outer 1500ms 已有 `clearTimeout`，inner 8000ms timeout 和 `onDoneRef.current
 
 构建验证：`npm.cmd run check` → 0 errors，2 warnings（均为改动前已存在）。
 commit：`7b59c83`
+
+---
+
+## 专项修复轮次（2026-06-13）
+
+> 本轮为上下文续接会话，基于前12轮+补查的静态审查结果，逐项修复剩余问题。
+
+---
+
+### B1/B2 — 属性面板颜色拾取器 / 输入框 undo 栈污染
+
+**完成时间**：2026-06-13
+**文件**：`src/state/editorStore.ts`、`src/features/inspector-panel/InspectorPanel.tsx`、`src/features/toolbar/ToolbarPanel.tsx`
+
+**问题**：颜色拾取器 `onChange` 和基础参数输入框每次键入都调用 `pushHistory`，拖动取色盘可产生数十条无意义 undo 记录。
+
+**修复**：
+- `editorStore` 新增三个 silent action：`updateSceneObjectSilent`、`batchUpdateSceneObjectsSilent`、`setCanvasBgColorSilent`，与有历史版本逻辑相同但不调 `pushHistory`
+- `InspectorPanel`：所有颜色拾取器 `onChange` → silent，`onBlur` → 有历史版本；`updateBasicParamDraft` 改用 silent 实时预览，`commitBasicParamDraft` 在 blur/Enter 时提交历史
+- `ToolbarPanel`：画布背景色拾取器和 hex 输入框同样模式
+
+**验证**：Codex 审查通过。PR #53 合并到 main。commit：`41b0ec9`
+
+---
+
+### B3 — Supabase 调用无超时保护
+
+**完成时间**：2026-06-13
+**文件**：`src/infrastructure/supabaseClient.ts`
+
+**问题**：所有 Supabase HTTP 调用无超时，网络异常时请求无限挂起，UI 卡死。
+
+**修复**：在 `createClient` 的 `global.fetch` 注入自定义 `timeoutFetch`，统一为所有请求加 15 秒超时。使用 `AbortSignal.any()` 合并外部信号，保留调用方自身的取消能力。
+
+**验证**：Codex 审查通过（初版漏掉 AbortSignal 合并，Codex 指出后已修正）。PR #54 合并到 main。commit：`964cb53`
+
+---
+
+### B5 — 橡皮筋框选忽略旋转（AABB）
+
+**完成时间**：2026-06-13
+**文件**：`src/features/canvas-panel/CanvasPanel.tsx`
+
+**问题**：`handleStageMouseUp` 的框选命中判断用未旋转的 AABB（直接取 `w/2`、`h/2`），旋转后的对象命中区域不准确。
+
+**修复**：用标准 OBB→AABB 投影公式替换原计算：
+```
+aabbHalfW = |cosθ| · hw + |sinθ| · hh
+aabbHalfH = |sinθ| · hw + |cosθ| · hh
+```
+θ=0 时退化与原代码完全一致。
+
+**验证**：Codex 审查通过，公式正确。直接 push 到 main。commit：`5e7374c`
+
+---
+
+### ThumbnailCapture 卸载后仍调用 onDone
+
+**完成时间**：2026-06-13
+**文件**：`src/pages/projects/ProjectsPage.tsx`
+
+**问题**（Round 12 MEDIUM）：`useEffect` cleanup 只取消外层 1500ms timer，组件卸载后异步流仍会调用 `onDoneRef.current()` 操作父级已卸载的状态。
+
+**修复**：加 `cancelled` flag，cleanup 置位，`onDoneRef.current()` 调用前检查。
+
+**验证**：Codex 审查通过。直接 push 到 main。commit：`8437456`
+
+---
+
+### B4 — 并发保存竞争条件（乐观锁）
+
+**完成时间**：2026-06-13
+**文件**：`src/state/projectStore.ts`、`src/infrastructure/projectService.ts`、`src/pages/editor/EditorPage.tsx`、`src/hooks/useCloudSave.ts`、`src/pages/projects/ProjectsPage.tsx`
+**数据库**：`projects` 表新增 `version INTEGER NOT NULL DEFAULT 0`
+
+**问题**（Round 10 MEDIUM）：`updateProjectData` 无并发保护，多标签页同时保存时 last-write-wins，可能静默覆盖数据。
+
+**修复**（3 次提交，经 Codex 两轮审查迭代完善）：
+
+| 提交 | 内容 |
+|---|---|
+| `2b22556` | 主体：DB 加 version 列；`updateProjectData` 乐观锁；`getProject` 返回 version；`EditorPage` 存 version；`useCloudSave` 带版本保存并同步更新 |
+| `adbdcc9` | Codex 第一轮：CONFLICT 后清 pendingSaveRef 中断循环；新增 `updateProjectThumbnail` 隔离缩略图写入；`ThumbnailCapture` 和复制项目改用新函数 |
+| `48024d3` | Codex 第二轮：冲突后 fire-and-forget 拉取服务器最新 version，下次保存可自动恢复 |
+
+**Codex 最终审查结论**：整体实现正确，数据写入路径清晰隔离，无遗漏的未保护 data 写入路径。
