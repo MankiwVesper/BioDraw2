@@ -129,6 +129,14 @@ export async function updateProjectData(
   return ((data?.[0] as { version: number } | undefined)?.version) ?? (currentVersion ?? 0) + 1;
 }
 
+export async function updateProjectThumbnail(id: string, thumbnail: string): Promise<void> {
+  const { error } = await supabase
+    .from('projects')
+    .update({ thumbnail, updated_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
+}
+
 export async function renameProject(id: string, title: string): Promise<void> {
   const { error } = await supabase
     .from('projects')

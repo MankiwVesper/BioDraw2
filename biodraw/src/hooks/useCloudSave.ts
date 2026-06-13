@@ -61,7 +61,10 @@ export function useCloudSave(projectId: string) {
           setLastSavedAt(new Date());
           markSaved();
         }
-      } catch {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message === 'CONFLICT') {
+          pendingSaveRef.current = false;
+        }
         setSaveStatus('error');
       }
       isSavingRef.current = false;

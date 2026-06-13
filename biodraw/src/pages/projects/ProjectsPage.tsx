@@ -7,7 +7,7 @@ import {
   listProjects, listDeletedProjects, createProject, getProject,
   deleteProject, deleteProjects, restoreProject, restoreProjects,
   permanentDeleteProject, permanentDeleteProjects, emptyRecycleBin,
-  renameProject, updateProjectData, moveProject, moveProjects,
+  renameProject, updateProjectThumbnail, moveProject, moveProjects,
   listGroups, createGroup, renameGroup, deleteGroup,
   type ProjectRecord, type ProjectGroup,
 } from '../../infrastructure/projectService';
@@ -130,11 +130,9 @@ function formatRelativeTime(isoString: string): string {
 
 function ThumbnailCapture({
   projectId,
-  snapshot,
   onDone,
 }: {
   projectId: string;
-  snapshot: DocumentSnapshot;
   onDone: () => void;
 }) {
   const onDoneRef = useRef(onDone);
@@ -145,12 +143,14 @@ function ThumbnailCapture({
     const timer = setTimeout(async () => {
       const thumb = thumbnailCapture.current?.() ?? null;
       try {
-        await Promise.race([
-          updateProjectData(projectId, snapshot, thumb),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error('timeout')), 8000)
-          ),
-        ]);
+        if (thumb) {
+          await Promise.race([
+            updateProjectThumbnail(projectId, thumb),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('timeout')), 8000)
+            ),
+          ]);
+        }
       } catch {
         // best-effort: thumbnail failure doesn't block import
       }
@@ -817,7 +817,7 @@ export default function ProjectsPage() {
         ...prev,
       ]);
       if (project.thumbnail) {
-        updateProjectData(newId, data, project.thumbnail).catch(() => {});
+        updateProjectThumbnail(newId, project.thumbnail).catch(() => {});
       }
     } catch {
       alert('复制失败，请重试');
@@ -1522,7 +1522,6 @@ export default function ProjectsPage() {
       {thumbGenTarget && (
         <ThumbnailCapture
           projectId={thumbGenTarget.id}
-          snapshot={thumbGenTarget.snapshot}
           onDone={() => {
             setThumbGenTarget(null);
             setImportProgress(100);
