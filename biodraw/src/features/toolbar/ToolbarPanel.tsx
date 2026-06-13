@@ -41,6 +41,7 @@ export function ToolbarPanel({
   const canvasBgColor  = useEditorStore((s) => s.canvasBgColor);
   const setCanvasSize  = useEditorStore((s) => s.setCanvasSize);
   const setCanvasBgColor = useEditorStore((s) => s.setCanvasBgColor);
+  const setCanvasBgColorSilent = useEditorStore((s) => s.setCanvasBgColorSilent);
 
   const play      = useEditorStore((s) => s.play);
   const pause     = useEditorStore((s) => s.pause);
@@ -487,7 +488,8 @@ export function ToolbarPanel({
                   <input
                     type="color"
                     value={canvasBgColor}
-                    onChange={(e) => setCanvasBgColor(e.target.value)}
+                    onChange={(e) => setCanvasBgColorSilent(e.target.value)}
+                    onBlur={(e) => setCanvasBgColor(e.target.value)}
                     className="tb-canvas-color-picker"
                     data-tooltip="选取颜色"
                   />
@@ -497,9 +499,12 @@ export function ToolbarPanel({
                     value={localHexColor}
                     onChange={(e) => {
                       setLocalHexColor(e.target.value);
-                      if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setCanvasBgColor(e.target.value);
+                      if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setCanvasBgColorSilent(e.target.value);
                     }}
-                    onBlur={() => setLocalHexColor(canvasBgColor)}
+                    onBlur={(e) => {
+                      if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setCanvasBgColor(e.target.value);
+                      setLocalHexColor(canvasBgColor);
+                    }}
                     maxLength={7}
                     spellCheck={false}
                   />

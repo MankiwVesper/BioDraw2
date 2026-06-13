@@ -45,6 +45,8 @@ export function InspectorPanel() {
   const selectedIds = useEditorStore((state) => state.selectedIds);
   const objects = useEditorStore((state) => state.objects);
   const updateSceneObject = useEditorStore((state) => state.updateSceneObject);
+  const updateSceneObjectSilent = useEditorStore((state) => state.updateSceneObjectSilent);
+  const batchUpdateSceneObjectsSilent = useEditorStore((state) => state.batchUpdateSceneObjectsSilent);
 
   const moveObjectForward = useEditorStore((state) => state.moveObjectForward);
   const moveObjectBackward = useEditorStore(
@@ -577,6 +579,12 @@ export function InspectorPanel() {
                     patch: { style: { ...(o.style || {}), ...((o.type === 'text' || o.type === 'material') ? { fill: val } : { textColor: val }) } },
                   })));
                 };
+                const batchTextColorChangeSilent = (val: string) => {
+                  batchUpdateSceneObjectsSilent(selectedObjects.filter(o => !o.locked).map(o => ({
+                    id: o.id,
+                    patch: { style: { ...(o.style || {}), ...((o.type === 'text' || o.type === 'material') ? { fill: val } : { textColor: val }) } },
+                  })));
+                };
                 const batchStyleChange = (field: string, val: string | number) => {
                   batchUpdateSceneObjects(selectedObjects.filter(o => !o.locked).map(o => ({
                     id: o.id,
@@ -600,7 +608,8 @@ export function InspectorPanel() {
                             <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>文字颜色：</label>
                             <div className="ip-input-group" style={{ width: "45px" }}>
                               <input type="color" value={refTextColor}
-                                onChange={(e) => batchTextColorChange(e.target.value)}
+                                onChange={(e) => batchTextColorChangeSilent(e.target.value)}
+                                onBlur={(e) => batchTextColorChange(e.target.value)}
                                 style={{ width: "100%", height: "24px", padding: 0, cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius)", backgroundColor: "white" }}
                               />
                             </div>
@@ -668,7 +677,13 @@ export function InspectorPanel() {
                 const batchStroke = (val: string) => batchUpdateSceneObjects(
                   selectedObjects.filter(o => !o.locked && shapeTypes.includes(o.type)).map(o => ({ id: o.id, patch: { style: { ...(o.style || {}), stroke: val } } }))
                 );
+                const batchStrokeSilent = (val: string) => batchUpdateSceneObjectsSilent(
+                  selectedObjects.filter(o => !o.locked && shapeTypes.includes(o.type)).map(o => ({ id: o.id, patch: { style: { ...(o.style || {}), stroke: val } } }))
+                );
                 const batchFill = (val: string) => batchUpdateSceneObjects(
+                  selectedObjects.filter(o => !o.locked && fillTypes.includes(o.type)).map(o => ({ id: o.id, patch: { style: { ...(o.style || {}), fill: val } } }))
+                );
+                const batchFillSilent = (val: string) => batchUpdateSceneObjectsSilent(
                   selectedObjects.filter(o => !o.locked && fillTypes.includes(o.type)).map(o => ({ id: o.id, patch: { style: { ...(o.style || {}), fill: val } } }))
                 );
                 const batchStrokeWidth = (val: number) => batchUpdateSceneObjects(
@@ -691,7 +706,8 @@ export function InspectorPanel() {
                             <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "65px", flexShrink: 0 }}>描边颜色：</label>
                             <div className="ip-input-group" style={{ width: "45px" }}>
                               <input type="color" value={refForStroke.style?.stroke || '#000000'}
-                                onChange={(e) => batchStroke(e.target.value)}
+                                onChange={(e) => batchStrokeSilent(e.target.value)}
+                                onBlur={(e) => batchStroke(e.target.value)}
                                 style={{ width: "100%", height: "24px", padding: 0, cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius)", backgroundColor: "white" }}
                               />
                             </div>
@@ -701,7 +717,8 @@ export function InspectorPanel() {
                               <label style={{ marginBottom: 0, fontSize: "13px", whiteSpace: "nowrap", width: "40px", flexShrink: 0 }}>填充颜色：</label>
                               <div className="ip-input-group" style={{ width: "45px" }}>
                                 <input type="color" value={refForFill.style?.fill || '#000000'}
-                                  onChange={(e) => batchFill(e.target.value)}
+                                  onChange={(e) => batchFillSilent(e.target.value)}
+                                  onBlur={(e) => batchFill(e.target.value)}
                                   style={{ width: "100%", height: "24px", padding: 0, cursor: "pointer", border: "1px solid var(--border-color)", borderRadius: "var(--radius)", backgroundColor: "white" }}
                                 />
                               </div>
@@ -801,11 +818,22 @@ export function InspectorPanel() {
     setBasicParamDrafts((prev) => ({ ...prev, [field]: nextValue }));
     if (nextValue === "" || nextValue === "-") return;
 
+    // Silent update during typing — no history entry; commitBasicParamDraft pushes history on blur/Enter
     if (field === "width" || field === "height") {
-      handleDimensionChange(field, nextValue);
+      let num = parseFloat(nextValue);
+      if (isNaN(num) || num < 1) num = 1;
+      if (field === "width") {
+        const newScaleX = selectedObj.width ? num / selectedObj.width : 1;
+        updateSceneObjectSilent(selectedObj.id, { scaleX: newScaleX, ...(isRatioLocked ? { scaleY: newScaleX } : {}) });
+      } else {
+        const newScaleY = selectedObj.height ? num / selectedObj.height : 1;
+        updateSceneObjectSilent(selectedObj.id, { scaleY: newScaleY, ...(isRatioLocked ? { scaleX: newScaleY } : {}) });
+      }
       return;
     }
-    handleChange(field, nextValue);
+    let num = parseFloat(nextValue);
+    if (isNaN(num)) num = 0;
+    updateSceneObjectSilent(selectedObj.id, { [field]: num });
   };
 
   const clearBasicParamDraft = (field: BasicParamField) => {
@@ -870,10 +898,14 @@ export function InspectorPanel() {
   const handleStyleChange = (field: string, val: string | number) => {
     if (selectedObj.locked) return;
     updateSceneObject(selectedObj.id, {
-      style: {
-        ...(selectedObj.style || {}),
-        [field]: val,
-      },
+      style: { ...(selectedObj.style || {}), [field]: val },
+    });
+  };
+
+  const handleStyleChangeSilent = (field: string, val: string | number) => {
+    if (selectedObj.locked) return;
+    updateSceneObjectSilent(selectedObj.id, {
+      style: { ...(selectedObj.style || {}), [field]: val },
     });
   };
 
@@ -1989,10 +2021,14 @@ export function InspectorPanel() {
                           : selectedObj.style?.textColor || "#334155"
                       }
                       onChange={(e) => {
-                        if (
-                          selectedObj.type === "text" ||
-                          selectedObj.type === "material"
-                        ) {
+                        if (selectedObj.type === "text" || selectedObj.type === "material") {
+                          handleStyleChangeSilent("fill", e.target.value);
+                        } else {
+                          handleStyleChangeSilent("textColor", e.target.value);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        if (selectedObj.type === "text" || selectedObj.type === "material") {
                           handleStyleChange("fill", e.target.value);
                         } else {
                           handleStyleChange("textColor", e.target.value);
@@ -2314,9 +2350,8 @@ export function InspectorPanel() {
                       <input
                         type="color"
                         value={selectedObj.style?.stroke || "#000000"}
-                        onChange={(e) =>
-                          handleStyleChange("stroke", e.target.value)
-                        }
+                        onChange={(e) => handleStyleChangeSilent("stroke", e.target.value)}
+                        onBlur={(e) => handleStyleChange("stroke", e.target.value)}
                         style={{
                           width: "100%",
                           height: "24px",
@@ -2361,9 +2396,8 @@ export function InspectorPanel() {
                           <input
                             type="color"
                             value={selectedObj.style?.fill || "#000000"}
-                            onChange={(e) =>
-                              handleStyleChange("fill", e.target.value)
-                            }
+                            onChange={(e) => handleStyleChangeSilent("fill", e.target.value)}
+                            onBlur={(e) => handleStyleChange("fill", e.target.value)}
                             style={{
                               width: "100%",
                               height: "24px",
