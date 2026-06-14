@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
-import type { AnimationClip, AppearSegment, SceneObject } from '../../types';
+import type { AnimationClip, AppearSegment, SceneObject, StateChangeClip } from '../../types';
 import { KeyframeEditor } from './KeyframeEditor';
 import './TimelinePanel.css';
 
@@ -478,6 +478,7 @@ export function TimelinePanel() {
     boundLeftMs: number;
     boundRightMs: number;
   } | null>(null);
+  const [stepDragPreview, setStepDragPreview] = useState<{ clipId: string; stepIdx: number; atMs: number } | null>(null);
   const [dragState, setDragState] = useState<{
     clipId: string;
     mode: 'move' | 'resize-start' | 'resize-end';
@@ -1309,7 +1310,7 @@ export function TimelinePanel() {
         break;
       default: {
         const firstKey = Object.keys(selectedObject.stateVariants || {})[0] ?? '';
-        clip = { ...base, type: 'stateChange', durationMs: 1, payload: { toStateKey: firstKey } };
+        clip = { ...base, type: 'stateChange', durationMs: 1, payload: { steps: [{ atMs: timing.startTimeMs, toStateKey: firstKey }] } };
         break;
       }
     }
@@ -1868,19 +1869,6 @@ export function TimelinePanel() {
     setCursorSnapGuideMs(snap.snapped ? snap.value : null);
   };
 
-  const setTriggerByTrackClick = (clipId: string, event: React.MouseEvent<HTMLDivElement>) => {
-    if (clipDragHappenedRef.current) { clipDragHappenedRef.current = false; return; }
-    const rect = event.currentTarget.getBoundingClientRect();
-    if (rect.width <= 0) return;
-    ensurePausedForEdit();
-    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    const segLo = activeSegment?.startMs ?? 0;
-    const segHi = activeSegment?.endMs ?? globalDurationMs;
-    const targetMs = Math.round(segLo + ratio * Math.max(1, segHi - segLo));
-    const snap = getCursorSnapResult(targetMs);
-    updateAnimationClip(clipId, { startTimeMs: snap.value });
-    setCursorSnapGuideMs(snap.snapped ? snap.value : null);
-  };
 
   // 总时间轴 scrub：mousedown 起点定位 + 拖拽持续更新
   const startOverallScrub = (event: React.MouseEvent<HTMLDivElement>) => {
@@ -2005,6 +1993,55 @@ export function TimelinePanel() {
     ensurePausedForEdit();
     setDragState({ clipId: clip.id, mode: 'resize-end', offsetMs: pointerMs - (clip.startTimeMs + clip.durationMs), fixedEndMs: clip.startTimeMs + clip.durationMs, previewStartMs: clip.startTimeMs, previewDurationMs: clip.durationMs, snapGuideMs: null });
     event.preventDefault();
+  };
+
+  const startStepDrag = (clip: StateChangeClip, stepIdx: number, event: React.MouseEvent) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    event.preventDefault();
+    const trackEl = clipTrackRefs.current.get(clip.id);
+    if (!trackEl) return;
+    const rect = trackEl.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const seg = effectiveSegments.find((s) => s.id === clip.segmentId);
+    const segLo = seg?.startMs ?? 0;
+    const segHi = seg?.endMs ?? globalDurationMs;
+    const segRange = Math.max(1, segHi - segLo);
+    ensurePausedForEdit();
+    setStepDragPreview({ clipId: clip.id, stepIdx, atMs: clip.payload.steps[stepIdx].atMs });
+    const getAtMs = (clientX: number) => Math.round(segLo + Math.max(0, Math.min(1, (clientX - rect.left) / rect.width)) * segRange);
+    const onMove = (e: MouseEvent) => setStepDragPreview({ clipId: clip.id, stepIdx, atMs: getAtMs(e.clientX) });
+    const onUp = (e: MouseEvent) => {
+      const finalAtMs = getAtMs(e.clientX);
+      const newSteps = clip.payload.steps.map((s, i) => i === stepIdx ? { ...s, atMs: finalAtMs } : s);
+      const minMs = Math.min(...newSteps.map(s => s.atMs));
+      const maxMs = Math.max(...newSteps.map(s => s.atMs));
+      updateAnimationClip(clip.id, { payload: { steps: newSteps }, startTimeMs: minMs, durationMs: Math.max(1, maxMs - minMs) } as Partial<AnimationClip>);
+      setStepDragPreview(null);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const addStepByTrackClick = (clip: StateChangeClip, event: React.MouseEvent<HTMLDivElement>) => {
+    if (clipDragHappenedRef.current) { clipDragHappenedRef.current = false; return; }
+    const stateKeys = Object.keys(selectedObject?.stateVariants || {});
+    if (stateKeys.length === 0) return;
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const seg = effectiveSegments.find((s) => s.id === clip.segmentId);
+    const segLo = seg?.startMs ?? 0;
+    const segHi = seg?.endMs ?? globalDurationMs;
+    const atMs = Math.round(segLo + Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * Math.max(1, segHi - segLo));
+    const usedKeys = clip.payload.steps.map(s => s.toStateKey);
+    const nextKey = stateKeys.find(k => !usedKeys.includes(k)) ?? stateKeys[0];
+    const newSteps = [...clip.payload.steps, { atMs, toStateKey: nextKey }];
+    const minMs = Math.min(...newSteps.map(s => s.atMs));
+    const maxMs = Math.max(...newSteps.map(s => s.atMs));
+    ensurePausedForEdit();
+    updateAnimationClip(clip.id, { payload: { steps: newSteps }, startTimeMs: minMs, durationMs: Math.max(1, maxMs - minMs) } as Partial<AnimationClip>);
   };
 
   // ── 副作用
@@ -3427,7 +3464,7 @@ export function TimelinePanel() {
                         <div
                           className="tl-track"
                           onClick={clip.type === 'stateChange'
-                            ? (e) => setTriggerByTrackClick(clip.id, e)
+                            ? (e) => addStepByTrackClick(clip, e)
                             : seekByTrackClick
                           }
                           ref={(node) => { if (node) clipTrackRefs.current.set(clip.id, node); else clipTrackRefs.current.delete(clip.id); }}
@@ -3439,12 +3476,21 @@ export function TimelinePanel() {
                             <div className={`tl-track-guide${isCursorSnapping ? ' is-cursor' : ''}`} style={{ left: guideLeft }} />
                           )}
                           {clip.type === 'stateChange' ? (
-                            <div
-                              className={`tl-state-trigger${isDragging ? ' is-dragging' : ''}${isSnapping ? ' is-snapped' : ''}`}
-                              style={{ left: clipLeftPct, transform: 'translateX(-1px)' }}
-                              onMouseDown={(e) => startClipDrag(clip, e)}
-                              data-tooltip={`触发时刻 ${(effStart / 1000).toFixed(3)}s`}
-                            />
+                            <>
+                              {clip.payload.steps.map((step, stepIdx) => {
+                                const previewAtMs = stepDragPreview?.clipId === clip.id && stepDragPreview.stepIdx === stepIdx ? stepDragPreview.atMs : step.atMs;
+                                const stepLeftPct = `${((previewAtMs - segLo) / segRange) * 100}%`;
+                                return (
+                                  <div
+                                    key={stepIdx}
+                                    className={`tl-state-trigger${stepDragPreview?.clipId === clip.id && stepDragPreview.stepIdx === stepIdx ? ' is-dragging' : ''}`}
+                                    style={{ left: stepLeftPct, transform: 'translateX(-1px)' }}
+                                    onMouseDown={(e) => startStepDrag(clip, stepIdx, e)}
+                                    data-tooltip={`步骤${stepIdx + 1}：→「${step.toStateKey}」 @ ${(previewAtMs / 1000).toFixed(3)}s`}
+                                  />
+                                );
+                              })}
+                            </>
                           ) : (
                           <div
                             className={`tl-track-fill tl-type-fill-${clip.type}${isDragging ? ' is-dragging' : ''}${isSnapping ? ' is-snapped' : ''}`}
@@ -3482,7 +3528,7 @@ export function TimelinePanel() {
                           <span className="tl-conflict-tag" data-tooltip={`冲突域：${conflictDomains.map(getConflictDomainLabel).join(' / ')}`}>!</span>
                         )}
                         {clip.type === 'stateChange'
-                          ? <span className="tl-clip-dur" data-tooltip="触发时刻">@{(effStart / 1000).toFixed(3)}s</span>
+                          ? <span className="tl-clip-dur" data-tooltip="触发点数量">{clip.payload.steps.length}步</span>
                           : <span className="tl-clip-dur" data-tooltip="动画片段时长">{(effDuration / 1000).toFixed(3)}s</span>
                         }
                         <div className="tl-clip-icon-group">
@@ -3516,35 +3562,114 @@ export function TimelinePanel() {
                       </div>
                     </div>
 
-                    {/* ── 展开详情：状态切换专用卡片 */}
+                    {/* ── 展开详情：状态切换专用卡片（多步骤） */}
                     {isExpanded && clip.type === 'stateChange' && (
                       <div className="tl-clip-detail-scroll">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>切换到：</span>
-                          <select
-                            value={clip.payload.toStateKey}
-                            onChange={(e) => updateClipPayload(clip, { toStateKey: e.target.value })}
-                            style={{ fontSize: 12, padding: '3px 6px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', background: 'var(--bg-primary)', minWidth: 80 }}
-                          >
-                            {Object.keys(selectedObject?.stateVariants || {}).map((key) => (
-                              <option key={key} value={key}>{key}</option>
+                        <div style={{ padding: '10px 16px 12px' }}>
+
+                          {/* 列标题 */}
+                          <div style={{ display: 'grid', gridTemplateColumns: '20px 1fr 88px 56px', columnGap: 8, paddingBottom: 6, borderBottom: '1px solid var(--border-color)', marginBottom: 2 }}>
+                            <span />
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)', paddingLeft: 6 }}>状态</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>触发时刻(ms)</span>
+                            <span />
+                          </div>
+
+                          {/* 步骤行 */}
+                          {[...clip.payload.steps]
+                            .map((step, idx) => ({ step, idx }))
+                            .sort((a, b) => a.step.atMs - b.step.atMs)
+                            .map(({ step, idx: stepIdx }, displayIdx) => (
+                              <div key={stepIdx} style={{ display: 'grid', gridTemplateColumns: '20px 1fr 88px 56px', columnGap: 8, alignItems: 'center', marginTop: 8 }}>
+
+                                {/* 序号 */}
+                                <span style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'right' }}>{displayIdx + 1}</span>
+
+                                {/* 状态下拉 */}
+                                <select
+                                  value={step.toStateKey}
+                                  onChange={(e) => {
+                                    ensurePausedForEdit();
+                                    const newSteps = clip.payload.steps.map((s, i) => i === stepIdx ? { ...s, toStateKey: e.target.value } : s);
+                                    updateAnimationClip(clip.id, { payload: { steps: newSteps } } as Partial<AnimationClip>);
+                                  }}
+                                  style={{ fontSize: 12, padding: '3px 4px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', background: 'var(--bg-primary)', color: 'var(--text-main)', width: '100%', minWidth: 0 }}
+                                >
+                                  {Object.keys(selectedObject?.stateVariants || {}).map((key) => (
+                                    <option key={key} value={key}>{key}</option>
+                                  ))}
+                                  {!selectedObject?.stateVariants?.[step.toStateKey] && step.toStateKey && (
+                                    <option value={step.toStateKey}>{step.toStateKey}（已删除）</option>
+                                  )}
+                                </select>
+
+                                {/* 触发时刻 */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <input
+                                    className="tl-input-sm tl-input-nospin"
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={0}
+                                    max={99999}
+                                    step={1}
+                                    value={step.atMs}
+                                    onChange={(e) => {
+                                      const newAtMs = Math.max(0, parseInt(e.target.value, 10) || 0);
+                                      const newSteps = clip.payload.steps.map((s, i) => i === stepIdx ? { ...s, atMs: newAtMs } : s);
+                                      const minMs = Math.min(...newSteps.map(s => s.atMs));
+                                      const maxMs = Math.max(...newSteps.map(s => s.atMs));
+                                      ensurePausedForEdit();
+                                      updateAnimationClip(clip.id, { payload: { steps: newSteps }, startTimeMs: minMs, durationMs: Math.max(1, maxMs - minMs) } as Partial<AnimationClip>);
+                                    }}
+                                    onFocus={(e) => e.target.select()}
+                                    style={{ flex: 1, minWidth: 0 }}
+                                  />
+                                  <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>ms</span>
+                                </div>
+
+                                {/* 操作 */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                                  <button className="tl-btn tl-btn-sm" data-tooltip="跳到触发时刻" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(step.atMs); }}>跳</button>
+                                  {clip.payload.steps.length > 1 ? (
+                                    <button
+                                      className="tl-btn tl-btn-sm"
+                                      data-tooltip="删除此触发点"
+                                      style={{ color: 'var(--text-muted)' }}
+                                      onClick={() => {
+                                        const newSteps = clip.payload.steps.filter((_, i) => i !== stepIdx);
+                                        const minMs = Math.min(...newSteps.map(s => s.atMs));
+                                        const maxMs = Math.max(...newSteps.map(s => s.atMs));
+                                        ensurePausedForEdit();
+                                        updateAnimationClip(clip.id, { payload: { steps: newSteps }, startTimeMs: minMs, durationMs: Math.max(1, maxMs - minMs) } as Partial<AnimationClip>);
+                                      }}
+                                    >✕</button>
+                                  ) : (
+                                    <span style={{ display: 'inline-block', width: 28 }} />
+                                  )}
+                                </div>
+                              </div>
                             ))}
-                            {!selectedObject?.stateVariants?.[clip.payload.toStateKey] && clip.payload.toStateKey && (
-                              <option value={clip.payload.toStateKey}>{clip.payload.toStateKey}（已删除）</option>
-                            )}
-                          </select>
-                          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', marginLeft: 8 }}>触发时刻(ms)：</span>
-                          <input
-                            className="tl-input-sm tl-input-nospin"
-                            type="number" inputMode="numeric" min={0} max={99999} step={1}
-                            value={clipTimeDrafts[clip.id]?.startTimeMs ?? String(effStart)}
-                            onChange={(e) => updateClipTimeDraft(clip, 'startTimeMs', e.target.value)}
-                            onBlur={() => commitClipTimeDraft(clip, 'startTimeMs')}
-                            onKeyDown={(e) => handleClipTimeKeyDown(clip.id, 'startTimeMs', e)}
-                            onFocus={(e) => e.target.select()}
-                            style={{ width: 64 }}
-                          />
-                          <button className="tl-btn tl-btn-sm" style={{ marginLeft: 'auto' }} data-tooltip="跳到触发时刻" onClick={() => { ensurePausedForEdit(); setCurrentTimeMs(clip.startTimeMs); }}>跳到</button>
+
+                          {/* 添加触发点 */}
+                          <button
+                            className="tl-step-add-btn"
+                            onClick={() => {
+                              const stateKeys = Object.keys(selectedObject?.stateVariants || {});
+                              if (stateKeys.length === 0) return;
+                              const usedKeys = clip.payload.steps.map(s => s.toStateKey);
+                              const nextKey = stateKeys.find(k => !usedKeys.includes(k)) ?? stateKeys[0];
+                              const sortedSteps = [...clip.payload.steps].sort((a, b) => a.atMs - b.atMs);
+                              const lastStep = sortedSteps[sortedSteps.length - 1];
+                              const segEnd = activeSegment?.endMs ?? globalDurationMs;
+                              const newAtMs = lastStep ? Math.min(segEnd, lastStep.atMs + 1000) : clip.startTimeMs;
+                              const newSteps = [...clip.payload.steps, { atMs: newAtMs, toStateKey: nextKey }];
+                              const minMs = Math.min(...newSteps.map(s => s.atMs));
+                              const maxMs = Math.max(...newSteps.map(s => s.atMs));
+                              ensurePausedForEdit();
+                              updateAnimationClip(clip.id, { payload: { steps: newSteps }, startTimeMs: minMs, durationMs: Math.max(1, maxMs - minMs) } as Partial<AnimationClip>);
+                            }}
+                          >+ 添加触发点</button>
+
                         </div>
                       </div>
                     )}

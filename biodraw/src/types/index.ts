@@ -310,8 +310,7 @@ export type ShakeClip = AnimationClipBase & {
 export type StateChangeClip = AnimationClipBase & {
   type: 'stateChange';
   payload: {
-    fromStateKey?: string;
-    toStateKey: string;
+    steps: Array<{ atMs: number; toStateKey: string }>;
   };
 };
 

@@ -2820,15 +2820,13 @@ export function InspectorPanel() {
                                             .filter((c): c is StateChangeClip =>
                                               c.type === 'stateChange' &&
                                               c.objectId === selectedObj.id &&
-                                              (c.payload.toStateKey === key || c.payload.fromStateKey === key)
+                                              c.payload.steps.some(s => s.toStateKey === key)
                                             )
                                             .map((c) => ({
                                               id: c.id,
                                               patch: {
                                                 payload: {
-                                                  ...c.payload,
-                                                  ...(c.payload.toStateKey === key ? { toStateKey: newKey } : {}),
-                                                  ...(c.payload.fromStateKey === key ? { fromStateKey: newKey } : {}),
+                                                  steps: c.payload.steps.map(s => s.toStateKey === key ? { ...s, toStateKey: newKey } : s),
                                                 },
                                               } as Partial<AnimationClip>,
                                             }));
@@ -2851,14 +2849,23 @@ export function InspectorPanel() {
                                       const v = { ...(selectedObj.stateVariants || {}) };
                                       delete v[key];
                                       updateSceneObject(selectedObj.id, { stateVariants: Object.keys(v).length ? v : undefined });
-                                      const removedStateClipIds = animations
-                                        .filter((c): c is StateChangeClip =>
-                                          c.type === 'stateChange' &&
-                                          c.objectId === selectedObj.id &&
-                                          (c.payload.toStateKey === key || c.payload.fromStateKey === key)
-                                        )
-                                        .map((c) => c.id);
-                                      removeAnimationClips(removedStateClipIds);
+                                      const stateClipsForObj = animations.filter((c): c is StateChangeClip =>
+                                        c.type === 'stateChange' && c.objectId === selectedObj.id
+                                      );
+                                      const clipsToRemove: string[] = [];
+                                      const clipsToUpdate: Array<{ id: string; patch: Partial<AnimationClip> }> = [];
+                                      for (const c of stateClipsForObj) {
+                                        const newSteps = c.payload.steps.filter(s => s.toStateKey !== key);
+                                        if (newSteps.length === 0) {
+                                          clipsToRemove.push(c.id);
+                                        } else if (newSteps.length !== c.payload.steps.length) {
+                                          const minMs = Math.min(...newSteps.map(s => s.atMs));
+                                          const maxMs = Math.max(...newSteps.map(s => s.atMs));
+                                          clipsToUpdate.push({ id: c.id, patch: { payload: { steps: newSteps }, startTimeMs: minMs, durationMs: Math.max(1, maxMs - minMs) } as Partial<AnimationClip> });
+                                        }
+                                      }
+                                      if (clipsToRemove.length > 0) removeAnimationClips(clipsToRemove);
+                                      if (clipsToUpdate.length > 0) batchUpdateAnimationClips(clipsToUpdate);
                                     }}
                                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
                                   >×</button>
