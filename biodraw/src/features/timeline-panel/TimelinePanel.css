@@ -112,7 +112,7 @@
 .tl-overall-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-main);
   white-space: nowrap;
   flex-shrink: 0;
   width: 62px;
@@ -516,10 +516,12 @@
 }
 
 .tl-element-name {
+  display: block;
   font-size: 12px;
   font-weight: 600;
   color: var(--text-main);
-  width: 62px;
+  width: 5em;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

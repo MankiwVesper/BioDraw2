@@ -291,10 +291,12 @@ const APPLY_ANIMATION_FLASH_DURATION_MS = 3000;
 function TruncatedTooltipText({
   text,
   tooltip,
+  className,
   style,
 }: {
   text: string;
   tooltip: string;
+  className?: string;
   style?: CSSProperties;
 }) {
   const textRef = useRef<HTMLSpanElement>(null);
@@ -320,6 +322,7 @@ function TruncatedTooltipText({
   return (
     <span
       ref={textRef}
+      className={className}
       data-tooltip={isTruncated ? tooltip : undefined}
       style={style}
     >
@@ -598,6 +601,10 @@ export function TimelinePanel() {
         ? animations.filter((c) => c.objectId === selectedObject.id)
         : [],
     [animations, selectedObject],
+  );
+  const batchEditableObjectClips = useMemo(
+    () => selectedObjectClips.filter((c) => c.type !== 'stateChange'),
+    [selectedObjectClips],
   );
 
   // 同类型动画的显示标签（有多个同类型时加序号，如"移动1"/"移动2"）
@@ -887,8 +894,8 @@ export function TimelinePanel() {
   }, [selectedObject, effectiveSegments, animations]);
 
   const selectedBatchClips = useMemo(
-    () => selectedObjectClips.filter((c) => batchSelectedClipIdSet.has(c.id)),
-    [selectedObjectClips, batchSelectedClipIdSet],
+    () => batchEditableObjectClips.filter((c) => batchSelectedClipIdSet.has(c.id)),
+    [batchEditableObjectClips, batchSelectedClipIdSet],
   );
 
   // 选中的批量 clip 中有不属于当前选中段的动画时，禁止统一设置开始时刻
@@ -943,6 +950,10 @@ export function TimelinePanel() {
     const segId = selectedSegmentIds[0];
     return displayObjectClips.filter((c) => c.segmentId === segId);
   }, [displayObjectClips, selectedSegmentIds]);
+  const segmentScopedBatchEditableClips = useMemo(
+    () => segmentScopedClips.filter((c) => c.type !== 'stateChange'),
+    [segmentScopedClips],
+  );
 
   const canOpenApplyAnimationDialog =
     selectedIds.length === 1
@@ -2068,11 +2079,11 @@ export function TimelinePanel() {
   useEffect(() => {
     setBatchSelectedClipIds((prev) => {
       if (prev.length === 0) return prev;
-      const valid = new Set(selectedObjectClips.map((c) => c.id));
+      const valid = new Set(batchEditableObjectClips.map((c) => c.id));
       const filtered = prev.filter((id) => valid.has(id));
       return filtered.length === prev.length ? prev : filtered;
     });
-  }, [selectedObjectClips]);
+  }, [batchEditableObjectClips]);
 
   useEffect(() => {
     if (!cursorSnapGuideMs) return;
@@ -2865,9 +2876,11 @@ export function TimelinePanel() {
           <div className="tl-element-zoom-row">
 
             {/* 左列：元素名称 */}
-            <span className="tl-overall-label" data-tooltip={selectedObject.name || selectedObject.id}>
-              {selectedObject.name || '未命名对象'}
-            </span>
+            <TruncatedTooltipText
+              className="tl-element-name"
+              text={selectedObject.name || '未命名对象'}
+              tooltip={selectedObject.name || selectedObject.id}
+            />
 
             {/* 中+右列合并：冲突修复 / 动画排序 / 批量修改 / 复制动画 同一 flex 行，保证垂直对齐 */}
             <div className="tl-zoom-row-all-actions">
@@ -3017,11 +3030,11 @@ export function TimelinePanel() {
                 <button
                   className={`tl-btn${showBatchPanel ? ' is-active' : ''}`}
                   onClick={() => setShowBatchPanel((p) => !p)}
-                  disabled={selectedSegmentIds.length !== 1 || segmentScopedClips.length < 2}
+                  disabled={selectedSegmentIds.length !== 1 || segmentScopedBatchEditableClips.length < 2}
                   data-tooltip={
                     selectedSegmentIds.length === 0 ? '请先选中一个时间片段' :
                     selectedSegmentIds.length > 1 ? '选中多片段时不可用，请只选中一个' :
-                    segmentScopedClips.length < 2 ? '至少需要2个动画片段才需要批量修改' :
+                    segmentScopedBatchEditableClips.length < 2 ? '至少需要2个普通动画片段才需要批量修改' :
                     '批量修改当前片段内的动画'
                   }
                 >
@@ -3039,12 +3052,12 @@ export function TimelinePanel() {
                     {/* ── 左列：全选/清空 + 片段列表 ── */}
                     <div style={{ width: 108, flexShrink: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                       <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginBottom: 4 }}>
-                        <button className="tl-btn tl-btn-sm" style={{ flex: 1 }} onClick={() => setBatchSelectedClipIds(selectedObjectClips.map((c) => c.id))}>全选</button>
+                        <button className="tl-btn tl-btn-sm" style={{ flex: 1 }} onClick={() => setBatchSelectedClipIds(batchEditableObjectClips.map((c) => c.id))}>全选</button>
                         <button className="tl-btn tl-btn-sm" style={{ flex: 1 }} onClick={() => setBatchSelectedClipIds([])}>清空</button>
                       </div>
                       <div style={{ borderTop: '1px solid var(--border-color)', flexShrink: 0, marginBottom: 4 }} />
                       <div className="tl-batch-clip-list" style={{ flex: 1, maxHeight: 'none', minHeight: 0 }}>
-                        {selectedObjectClips.map((clip) => {
+                        {batchEditableObjectClips.map((clip) => {
                           const isSel = batchSelectedClipIdSet.has(clip.id);
                           return (
                             <div
