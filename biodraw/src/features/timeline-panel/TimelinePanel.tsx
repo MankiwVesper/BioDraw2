@@ -3501,19 +3501,30 @@ export function TimelinePanel() {
                           )}
                           {clip.type === 'stateChange' ? (
                             <>
-                              {clip.payload.steps.map((step, stepIdx) => {
-                                const previewAtMs = stepDragPreview?.clipId === clip.id && stepDragPreview.stepIdx === stepIdx ? stepDragPreview.atMs : step.atMs;
-                                const stepLeftPct = `${((previewAtMs - segLo) / segRange) * 100}%`;
-                                return (
-                                  <div
-                                    key={stepIdx}
-                                    className={`tl-state-trigger${stepDragPreview?.clipId === clip.id && stepDragPreview.stepIdx === stepIdx ? ' is-dragging' : ''}`}
-                                    style={{ left: stepLeftPct, transform: 'translateX(-1px)' }}
-                                    onMouseDown={(e) => startStepDrag(clip, stepIdx, e)}
-                                    data-tooltip={`步骤${stepIdx + 1}：→「${step.toStateKey}」 @ ${(previewAtMs / 1000).toFixed(3)}s`}
-                                  />
-                                );
-                              })}
+                              {(() => {
+                                const stepOrderMap = new Map<number, number>();
+                                clip.payload.steps
+                                  .map((step, idx) => ({
+                                    idx,
+                                    atMs: stepDragPreview?.clipId === clip.id && stepDragPreview.stepIdx === idx ? stepDragPreview.atMs : step.atMs,
+                                  }))
+                                  .sort((a, b) => a.atMs - b.atMs || a.idx - b.idx)
+                                  .forEach(({ idx }, displayIdx) => stepOrderMap.set(idx, displayIdx + 1));
+                                return clip.payload.steps.map((step, stepIdx) => {
+                                  const previewAtMs = stepDragPreview?.clipId === clip.id && stepDragPreview.stepIdx === stepIdx ? stepDragPreview.atMs : step.atMs;
+                                  const stepLeftPct = `${((previewAtMs - segLo) / segRange) * 100}%`;
+                                  const displayStepNumber = stepOrderMap.get(stepIdx) ?? stepIdx + 1;
+                                  return (
+                                    <div
+                                      key={stepIdx}
+                                      className={`tl-state-trigger${stepDragPreview?.clipId === clip.id && stepDragPreview.stepIdx === stepIdx ? ' is-dragging' : ''}`}
+                                      style={{ left: stepLeftPct, transform: 'translateX(-1px)' }}
+                                      onMouseDown={(e) => startStepDrag(clip, stepIdx, e)}
+                                      data-tooltip={`状态切换${displayStepNumber}：${step.toStateKey} @ ${(previewAtMs / 1000).toFixed(3)}s`}
+                                    />
+                                  );
+                                });
+                              })()}
                             </>
                           ) : (
                           <div

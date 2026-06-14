@@ -11,6 +11,36 @@ const allSvgOptions = Object.entries(svgModules).map(([path, mod]) => {
 });
 const allSvgCategories = Array.from(new Set(allSvgOptions.map((o) => o.category))).sort();
 
+const STATE_NAME_MAX_UNITS = 14;
+const getStateNameUnitWidth = (char: string) => {
+  const codePoint = char.codePointAt(0) ?? 0;
+  return codePoint <= 0x7f ? 1 : 2;
+};
+const trimStateNameToUnits = (name: string, maxUnits: number) => {
+  let usedUnits = 0;
+  let result = '';
+  for (const char of Array.from(name.trim())) {
+    const charUnits = getStateNameUnitWidth(char);
+    if (usedUnits + charUnits > maxUnits) break;
+    result += char;
+    usedUnits += charUnits;
+  }
+  return result;
+};
+const trimStateName = (name: string) => trimStateNameToUnits(name, STATE_NAME_MAX_UNITS);
+const buildUniqueStateName = (name: string, existingKeys: string[]) => {
+  const base = trimStateName(name) || '状态';
+  if (!existingKeys.includes(base)) return base;
+  let suffix = 1;
+  while (true) {
+    const suffixText = `_${suffix}`;
+    const basePart = trimStateNameToUnits(base, STATE_NAME_MAX_UNITS - suffixText.length) || '状';
+    const candidate = `${basePart}${suffixText}`;
+    if (!existingKeys.includes(candidate)) return candidate;
+    suffix += 1;
+  }
+};
+
 
 export function InspectorPanel() {
   type BasicParamField = "x" | "y" | "width" | "height" | "rotation";
@@ -2736,8 +2766,7 @@ export function InspectorPanel() {
                             );
                         const addItem = (opt: { url: string; name: string }) => {
                           const existingKeys = Object.keys(selectedObj.stateVariants || {});
-                          let key = opt.name; let suffix = 1;
-                          while (existingKeys.includes(key)) { key = opt.name + '_' + suffix++; }
+                          const key = buildUniqueStateName(opt.name, existingKeys);
                           updateSceneObject(selectedObj.id, { stateVariants: { ...(selectedObj.stateVariants || {}), [key]: opt.url } });
                           setStatePickerOpen(false); setStatePickerCategory(null); setStateSearchQuery('');
                         };
@@ -2812,9 +2841,10 @@ export function InspectorPanel() {
                                     <input
                                       autoFocus
                                       value={editingStateName}
-                                      onChange={(e) => setEditingStateName(e.target.value)}
+                                      maxLength={STATE_NAME_MAX_UNITS}
+                                      onChange={(e) => setEditingStateName(trimStateName(e.target.value))}
                                       onBlur={() => {
-                                        const newKey = editingStateName.trim();
+                                        const newKey = trimStateName(editingStateName);
                                         const variants = selectedObj.stateVariants || {};
                                         if (newKey && newKey !== key && !(newKey in variants)) {
                                           const newVariants: Record<string, string> = {};
@@ -2845,7 +2875,7 @@ export function InspectorPanel() {
                                     />
                                   ) : (
                                     <span
-                                      title="点击编辑状态名称"
+                                      data-tooltip="点击编辑状态名称"
                                       onClick={() => { setEditingStateKey(key); setEditingStateName(key); }}
                                       style={{ flex: 1, fontSize: 12, cursor: 'text', borderRadius: 'var(--radius)', padding: '1px 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
                                     >{key}</span>
