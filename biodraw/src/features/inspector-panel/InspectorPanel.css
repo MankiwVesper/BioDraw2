@@ -4,6 +4,7 @@
   border-left: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  color: var(--text-main);
 }
 
 .ip-inspector-content {
@@ -86,7 +87,12 @@
 
 .ip-property-field label {
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-main);
+}
+
+.ip-inspector-panel input::placeholder {
+  color: var(--text-main);
+  opacity: 0.7;
 }
 
 .ip-input-group {

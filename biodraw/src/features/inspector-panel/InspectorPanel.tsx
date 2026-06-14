@@ -367,7 +367,7 @@ export function InspectorPanel() {
                             />
                           </div>
                           <button
-                            style={{ background: "none", border: "none", cursor: "pointer", padding: "0", width: "28px", flexShrink: 0, fontSize: "1rem", display: "flex", justifyContent: "center", alignItems: "center", color: isRatioLocked ? "var(--primary-color)" : "var(--text-muted)" }}
+                            style={{ background: "none", border: "none", cursor: "pointer", padding: "0", width: "28px", flexShrink: 0, fontSize: "1rem", display: "flex", justifyContent: "center", alignItems: "center", color: isRatioLocked ? "var(--primary-color)" : "var(--text-main)" }}
                             onClick={() => setIsRatioLocked(!isRatioLocked)}
                             data-tooltip={isRatioLocked ? "解锁宽高比" : "锁定宽高比"}
                           >
@@ -448,7 +448,7 @@ export function InspectorPanel() {
                       style={{
                         flex: 1, height: 24, borderRadius: 6, cursor: allSameGroup ? "not-allowed" : "pointer", fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
-                        color: "var(--text-muted)", opacity: allSameGroup ? 0.4 : 1,
+                        color: "var(--text-main)", opacity: allSameGroup ? 0.4 : 1,
                       }}
                     >
                       组合
@@ -461,7 +461,7 @@ export function InspectorPanel() {
                         flex: 1, height: 24, borderRadius: 6, cursor: allSameGroup ? "pointer" : "not-allowed", fontSize: 13,
                         border: allSameGroup ? "1px solid var(--primary-color)" : "1px solid var(--border-color)",
                         background: allSameGroup ? "rgba(59,130,246,0.08)" : "transparent",
-                        color: allSameGroup ? "var(--primary-color)" : "var(--text-muted)",
+                        color: allSameGroup ? "var(--primary-color)" : "var(--text-main)",
                         opacity: allSameGroup ? 1 : 0.4,
                       }}
                     >
@@ -490,7 +490,7 @@ export function InspectorPanel() {
                       style={{
                         flex: 1, height: 24, borderRadius: 6, fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
-                        color: "var(--text-muted)", cursor: "pointer",
+                        color: "var(--text-main)", cursor: "pointer",
                       }}
                     >
                       纵轴对称
@@ -501,7 +501,7 @@ export function InspectorPanel() {
                       style={{
                         flex: 1, height: 24, borderRadius: 6, fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
-                        color: "var(--text-muted)", cursor: "pointer",
+                        color: "var(--text-main)", cursor: "pointer",
                       }}
                     >
                       横轴对称
@@ -512,7 +512,7 @@ export function InspectorPanel() {
                       style={{
                         flex: 1, height: 24, borderRadius: 6, fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
-                        color: "var(--text-muted)", cursor: "pointer",
+                        color: "var(--text-main)", cursor: "pointer",
                       }}
                     >
                       中心对称
@@ -525,7 +525,7 @@ export function InspectorPanel() {
                       style={{
                         flex: '0 0 calc((100% - 8px) / 3)', height: 24, borderRadius: 6, fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
-                        color: "var(--text-muted)", cursor: "pointer",
+                        color: "var(--text-main)", cursor: "pointer",
                       }}
                     >
                       水平翻转
@@ -536,7 +536,7 @@ export function InspectorPanel() {
                       style={{
                         flex: '0 0 calc((100% - 8px) / 3)', height: 24, borderRadius: 6, fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
-                        color: "var(--text-muted)", cursor: "pointer",
+                        color: "var(--text-main)", cursor: "pointer",
                       }}
                     >
                       垂直翻转
@@ -706,7 +706,7 @@ export function InspectorPanel() {
                                 { id: "right", icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="9" y1="12" x2="21" y2="12"/><line x1="6" y1="18" x2="21" y2="18"/></svg> },
                               ].map((btn) => (
                                 <button key={btn.id} onClick={() => batchStyleChange("textAlign", btn.id)}
-                                  style={{ flex: 1, height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", backgroundColor: (refObj.style?.textAlign || "center") === btn.id ? "white" : "transparent", color: (refObj.style?.textAlign || "center") === btn.id ? "var(--primary-color)" : "var(--text-muted)", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s" }}
+                                  style={{ flex: 1, height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", backgroundColor: (refObj.style?.textAlign || "center") === btn.id ? "white" : "transparent", color: (refObj.style?.textAlign || "center") === btn.id ? "var(--primary-color)" : "var(--text-main)", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s" }}
                                 >{btn.icon}</button>
                               ))}
                             </div>
@@ -719,7 +719,7 @@ export function InspectorPanel() {
                             <div style={{ display: "flex", flex: 1, gap: "1px", backgroundColor: "rgba(0,0,0,0.05)", padding: "2px", borderRadius: "6px", border: "1px solid var(--border-color)" }}>
                               {[{ id: "horizontal", label: "横排" }, { id: "vertical", label: "纵排" }].map((btn) => (
                                 <button key={btn.id} onClick={() => batchStyleChange("textDirection", btn.id)}
-                                  style={{ flex: 1, height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", backgroundColor: (refObj.style?.textDirection || "horizontal") === btn.id ? "white" : "transparent", color: (refObj.style?.textDirection || "horizontal") === btn.id ? "var(--primary-color)" : "var(--text-muted)", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s", fontSize: "13px" }}
+                                  style={{ flex: 1, height: "20px", display: "flex", alignItems: "center", justifyContent: "center", border: "none", backgroundColor: (refObj.style?.textDirection || "horizontal") === btn.id ? "white" : "transparent", color: (refObj.style?.textDirection || "horizontal") === btn.id ? "var(--primary-color)" : "var(--text-main)", borderRadius: "6px", cursor: "pointer", transition: "all 0.2s", fontSize: "13px" }}
                                 >{btn.label}</button>
                               ))}
                             </div>
@@ -1442,7 +1442,7 @@ export function InspectorPanel() {
                       alignItems: "center",
                       color: isRatioLocked
                         ? "var(--primary-color)"
-                        : "var(--text-muted)",
+                        : "var(--text-main)",
                     }}
                     onClick={() => setIsRatioLocked(!isRatioLocked)}
                     data-tooltip={isRatioLocked ? "解锁宽高比" : "锁定宽高比"}
@@ -1719,7 +1719,7 @@ export function InspectorPanel() {
                     height: 24,
                     border: `1px solid ${selectedObj.locked ? "var(--primary-color)" : "var(--border-color)"}`,
                     background: selectedObj.locked ? "rgba(59,130,246,0.08)" : "transparent",
-                    color: selectedObj.locked ? "var(--primary-color)" : "var(--text-muted)",
+                    color: selectedObj.locked ? "var(--primary-color)" : "var(--text-main)",
                     borderRadius: 6,
                     cursor: "pointer",
                     fontSize: 13,
@@ -1736,7 +1736,7 @@ export function InspectorPanel() {
                     height: 24,
                     border: "1px solid var(--border-color)",
                     background: "transparent",
-                    color: "var(--text-muted)",
+                    color: "var(--text-main)",
                     borderRadius: 6,
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     fontSize: 13,
@@ -1782,7 +1782,7 @@ export function InspectorPanel() {
                   style={{
                     flex: 1, height: 24, borderRadius: 6, fontSize: 13,
                     border: "1px solid var(--border-color)", background: "transparent",
-                    color: "var(--text-muted)",
+                    color: "var(--text-main)",
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     opacity: selectedObj.locked ? 0.4 : 1,
                   }}
@@ -1796,7 +1796,7 @@ export function InspectorPanel() {
                   style={{
                     flex: 1, height: 24, borderRadius: 6, fontSize: 13,
                     border: "1px solid var(--border-color)", background: "transparent",
-                    color: "var(--text-muted)",
+                    color: "var(--text-main)",
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     opacity: selectedObj.locked ? 0.4 : 1,
                   }}
@@ -1810,7 +1810,7 @@ export function InspectorPanel() {
                   style={{
                     flex: 1, height: 24, borderRadius: 6, fontSize: 13,
                     border: "1px solid var(--border-color)", background: "transparent",
-                    color: "var(--text-muted)",
+                    color: "var(--text-main)",
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     opacity: selectedObj.locked ? 0.4 : 1,
                   }}
@@ -1826,7 +1826,7 @@ export function InspectorPanel() {
                   style={{
                     flex: '0 0 calc((100% - 8px) / 3)', height: 24, borderRadius: 6, fontSize: 13,
                     border: "1px solid var(--border-color)", background: "transparent",
-                    color: "var(--text-muted)",
+                    color: "var(--text-main)",
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     opacity: selectedObj.locked ? 0.4 : 1,
                   }}
@@ -1840,7 +1840,7 @@ export function InspectorPanel() {
                   style={{
                     flex: '0 0 calc((100% - 8px) / 3)', height: 24, borderRadius: 6, fontSize: 13,
                     border: "1px solid var(--border-color)", background: "transparent",
-                    color: "var(--text-muted)",
+                    color: "var(--text-main)",
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     opacity: selectedObj.locked ? 0.4 : 1,
                   }}
@@ -2284,7 +2284,7 @@ export function InspectorPanel() {
                             (selectedObj.style?.textAlign || "center") ===
                             btn.id
                               ? "var(--primary-color)"
-                              : "var(--text-muted)",
+                              : "var(--text-main)",
                           borderRadius: "6px",
                           cursor: "pointer",
                           transition: "all 0.2s",
@@ -2363,7 +2363,7 @@ export function InspectorPanel() {
                             (selectedObj.style?.textDirection ||
                               "horizontal") === btn.id
                               ? "var(--primary-color)"
-                              : "var(--text-muted)",
+                              : "var(--text-main)",
                           borderRadius: "6px",
                           cursor: "pointer",
                           transition: "all 0.2s",
@@ -2670,7 +2670,7 @@ export function InspectorPanel() {
                         flexShrink: 0,
                         display: "flex",
                         alignItems: "center",
-                        color: "var(--text-muted)",
+                        color: "var(--text-main)",
                       }}
                     >
                       <span
@@ -2712,7 +2712,7 @@ export function InspectorPanel() {
                         flexShrink: 0,
                         display: "flex",
                         alignItems: "center",
-                        color: "var(--text-muted)",
+                        color: "var(--text-main)",
                       }}
                     >
                       <span
@@ -2831,7 +2831,7 @@ export function InspectorPanel() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ height: 100, overflowY: 'hidden', overflowX: 'hidden', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {Object.entries(selectedObj.stateVariants || {}).length === 0 ? (
-                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 11, textAlign: 'center', lineHeight: 1.5 }}>
+                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-main)', fontSize: 11, textAlign: 'center', lineHeight: 1.5 }}>
                                 点击「+ 添加」<br/>添加状态变体
                               </div>
                             ) : Object.entries(selectedObj.stateVariants || {}).map(([key, url]) => (
@@ -2903,7 +2903,7 @@ export function InspectorPanel() {
                                       if (clipsToRemove.length > 0) removeAnimationClips(clipsToRemove);
                                       if (clipsToUpdate.length > 0) batchUpdateAnimationClips(clipsToUpdate);
                                     }}
-                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: 14, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
                                   >×</button>
                                 </div>
                               ))}
@@ -2923,7 +2923,7 @@ export function InspectorPanel() {
                                 data-tooltip={atMax ? '最多添加 4 个状态' : undefined}
                                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 6px 0 17px', border: '1px solid var(--border-color)', borderRadius: 6, background: 'var(--bg-primary)', width: '100%', boxSizing: 'border-box', height: 24, opacity: atMax ? 0.45 : 1, cursor: atMax ? 'not-allowed' : 'default', flexShrink: 0 }}
                               >
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-main)', flexShrink: 0 }}>
                                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                                 </svg>
                                 <input
@@ -2936,7 +2936,7 @@ export function InspectorPanel() {
                                 />
                               </div>
                               <button
-                                style={{ height: 24, fontSize: 13, padding: '0 6px', border: '1px solid var(--border-color)', borderRadius: 6, cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}
+                                style={{ height: 24, fontSize: 13, padding: '0 6px', border: '1px solid var(--border-color)', borderRadius: 6, cursor: 'pointer', background: 'transparent', color: 'var(--text-main)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}
                                 onClick={() => { setStatePickerOpen(false); setStateSearchQuery(''); setStatePickerCategory(null); }}
                               >
                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -2977,7 +2977,7 @@ function InspectorTabHeader({
       ? "2px solid var(--primary-color)"
       : "2px solid transparent",
     background: "transparent",
-    color: active ? "var(--primary-color)" : "var(--text-muted)",
+    color: active ? "var(--primary-color)" : "var(--text-main)",
     fontSize: 16,
     fontWeight: active ? 600 : 400,
     cursor: "pointer",
