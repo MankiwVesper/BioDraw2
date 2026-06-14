@@ -32,13 +32,13 @@
 }
 
 .ip-property-group:not(:last-child) {
-  padding-bottom: 4px;
+  padding-bottom: 6px;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .ip-group-title {
-  margin: 0 0 6px 0;
+  margin: 0 0 7px 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-main);

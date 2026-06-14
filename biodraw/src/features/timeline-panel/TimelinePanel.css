@@ -1034,6 +1034,11 @@
   border-color: var(--primary-color);
 }
 
+/* 状态切换展开时放开溢出裁切，避免象限内下拉菜单被卡片底边遮挡 */
+.tl-clip.is-state-expanded {
+  overflow: visible;
+}
+
 .tl-clip.is-flash {
   animation: tlFlash 1.2s ease-out;
 }
@@ -1259,24 +1264,33 @@
 
 /* 状态切换：添加触发点按钮 */
 .tl-step-add-btn {
-  width: 100%;
   height: 26px;
-  margin-top: 10px;
+  margin-top: 8px;
+  padding: 0 10px;
   font-size: 12px;
-  border: 1px dashed var(--border-color);
+  font-weight: 500;
+  border: 1px solid var(--primary-color);
   border-radius: var(--radius);
-  background: transparent;
-  color: var(--text-muted);
+  background: color-mix(in srgb, var(--primary-color) 6%, transparent);
+  color: var(--primary-color);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  transition: border-color 0.15s, color 0.15s;
+  transition: background 0.15s, border-color 0.15s;
 }
 .tl-step-add-btn:hover {
-  border-color: var(--primary-color);
-  color: var(--primary-color);
+  background: color-mix(in srgb, var(--primary-color) 14%, transparent);
+}
+.tl-step-add-btn.is-disabled {
+  border-color: var(--border-color);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+.tl-step-add-btn.is-disabled:hover {
+  background: transparent;
 }
 
 /* 片段起止时间编辑器（zoom row 左侧） */

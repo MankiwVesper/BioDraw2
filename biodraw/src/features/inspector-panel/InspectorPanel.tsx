@@ -2751,14 +2751,16 @@ export function InspectorPanel() {
                                   : visibleCats.map(cat => (
                                     <div
                                       key={cat}
+                                      ref={el => {
+                                        if (!el) return;
+                                        // 文字被省略号截断时才挂 tooltip，渲染时就位，避免悬停时再派发 mouseover 造成递归
+                                        if (el.scrollWidth > el.clientWidth) el.setAttribute('data-tooltip', cat);
+                                        else el.removeAttribute('data-tooltip');
+                                      }}
                                       onClick={() => setStatePickerCategory(cat)}
                                       style={{ padding: '6px 8px', fontSize: 12, cursor: 'pointer', background: statePickerCategory === cat ? 'var(--bg-secondary)' : '', fontWeight: statePickerCategory === cat ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                                      onMouseEnter={e => {
-                                        if (statePickerCategory !== cat) e.currentTarget.style.background = 'var(--bg-secondary)';
-                                        const el = e.currentTarget;
-                                        if (el.scrollWidth > el.clientWidth) { el.setAttribute('data-tooltip', cat); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); }
-                                      }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = statePickerCategory === cat ? 'var(--bg-secondary)' : ''; e.currentTarget.removeAttribute('data-tooltip'); }}
+                                      onMouseEnter={e => { if (statePickerCategory !== cat) e.currentTarget.style.background = 'var(--bg-secondary)'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = statePickerCategory === cat ? 'var(--bg-secondary)' : ''; }}
                                     >{cat}</div>
                                   ))
                                 }
@@ -2779,9 +2781,13 @@ export function InspectorPanel() {
                                       >
                                         <img src={opt.url} alt={opt.name} style={{ width: 20, height: 20, objectFit: 'contain', flexShrink: 0 }} />
                                         <span
+                                          ref={el => {
+                                            if (!el) return;
+                                            // 同上：截断才挂 tooltip，渲染时就位，避免悬停递归
+                                            if (el.scrollWidth > el.clientWidth) el.setAttribute('data-tooltip', opt.name);
+                                            else el.removeAttribute('data-tooltip');
+                                          }}
                                           style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
-                                          onMouseEnter={e => { const el = e.currentTarget; if (el.scrollWidth > el.clientWidth) { el.setAttribute('data-tooltip', opt.name); el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })); } }}
-                                          onMouseLeave={e => e.currentTarget.removeAttribute('data-tooltip')}
                                         >{opt.name}</span>
                                       </div>
                                     ))
@@ -2794,7 +2800,7 @@ export function InspectorPanel() {
                       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                         {/* 左列：状态列表 */}
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ height: 124, overflowY: 'hidden', overflowX: 'hidden', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ height: 100, overflowY: 'hidden', overflowX: 'hidden', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {Object.entries(selectedObj.stateVariants || {}).length === 0 ? (
                               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 11, textAlign: 'center', lineHeight: 1.5 }}>
                                 点击「+ 添加」<br/>添加状态变体
@@ -2874,17 +2880,17 @@ export function InspectorPanel() {
                           </div>
                         </div>
                         {/* 右列：添加状态 + 搜索 + 取消 */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, width: 76 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flexShrink: 0, width: 76, height: 100 }}>
                           {(() => {
-                            const atMax = Object.keys(selectedObj.stateVariants || {}).length >= 5;
+                            const atMax = Object.keys(selectedObj.stateVariants || {}).length >= 4;
                             return (<>
                               <button
-                                data-tooltip={atMax ? '最多添加 5 个状态' : undefined}
+                                data-tooltip={atMax ? '最多添加 4 个状态' : undefined}
                                 style={{ height: 24, fontSize: 13, padding: '0 6px', border: 'none', borderRadius: 6, cursor: atMax ? 'not-allowed' : 'pointer', background: 'var(--primary-color)', color: '#fff', width: '100%', whiteSpace: 'nowrap', opacity: atMax ? 0.45 : 1, flexShrink: 0 }}
                                 onClick={() => { if (atMax) return; setStatePickerCategory(null); setStateSearchQuery(''); setStatePickerOpen(true); }}
                               >+ 添加</button>
                               <div
-                                data-tooltip={atMax ? '最多添加 5 个状态' : undefined}
+                                data-tooltip={atMax ? '最多添加 4 个状态' : undefined}
                                 style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 6px 0 17px', border: '1px solid var(--border-color)', borderRadius: 6, background: 'var(--bg-primary)', width: '100%', boxSizing: 'border-box', height: 24, opacity: atMax ? 0.45 : 1, cursor: atMax ? 'not-allowed' : 'default', flexShrink: 0 }}
                               >
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
