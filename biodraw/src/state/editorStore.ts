@@ -1170,11 +1170,19 @@ export const useEditorStore = create<EditorState>()(
         if (!obj || !obj.appearSegments) return;
         const idSet = new Set(segmentIds);
         pushHistory(state);
-        obj.appearSegments = obj.appearSegments.filter((s) => !idSet.has(s.id));
-        // 连带删除归属这些段的动画片段
+        const removedSegments = obj.appearSegments.filter((s) => idSet.has(s.id));
+        const remainingSegments = obj.appearSegments.filter((s) => !idSet.has(s.id));
+        obj.appearSegments = remainingSegments;
+        const remainingSegmentIds = new Set(remainingSegments.map((s) => s.id));
+        // 连带删除归属这些段的动画片段；兼容旧数据中没有 segmentId 的动画。
         const removedClipIds = new Set(
           state.animations
-            .filter((a) => a.objectId === objectId && a.segmentId !== undefined && idSet.has(a.segmentId))
+            .filter((a) => {
+              if (a.objectId !== objectId) return false;
+              if (remainingSegments.length === 0) return true;
+              if (a.segmentId !== undefined) return idSet.has(a.segmentId) || !remainingSegmentIds.has(a.segmentId);
+              return removedSegments.some((seg) => a.startTimeMs >= seg.startMs && a.startTimeMs <= seg.endMs);
+            })
             .map((a) => a.id),
         );
         if (removedClipIds.size > 0) {

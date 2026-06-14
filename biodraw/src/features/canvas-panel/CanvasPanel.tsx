@@ -1458,14 +1458,14 @@ export function CanvasPanel() {
         <button
           onClick={() => { setStageScale(1); setStagePos({ x: 0, y: 0 }); }}
           data-tooltip="重置到 100% (Ctrl+0)"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: isPreviewMode ? '14px' : '12px', minWidth: isPreviewMode ? '50px' : '44px', textAlign: 'center', padding: '0 4px' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: isPreviewMode ? '14px' : '12px', minWidth: isPreviewMode ? '50px' : '44px', textAlign: 'center', padding: '0 4px' }}
         >
           {Math.round(stageScale * 100)}%
         </button>
         <button
           onClick={fitCanvas}
           data-tooltip="适应画布 (Ctrl+Shift+F)"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: isPreviewMode ? '13px' : '11px', padding: '0 4px' }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: isPreviewMode ? '13px' : '11px', padding: '0 4px' }}
         >
           适配
         </button>

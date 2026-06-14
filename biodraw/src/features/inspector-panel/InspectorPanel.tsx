@@ -449,8 +449,14 @@ export function InspectorPanel() {
                         flex: 1, height: 24, borderRadius: 6, cursor: allSameGroup ? "not-allowed" : "pointer", fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
                         color: "var(--text-main)", opacity: allSameGroup ? 0.4 : 1,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                       }}
                     >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <rect x="7" y="7" width="4.5" height="4.5" rx="0.8"/>
+                        <rect x="12.5" y="12.5" width="4.5" height="4.5" rx="0.8"/>
+                      </svg>
                       组合
                     </button>
                     <button
@@ -463,8 +469,17 @@ export function InspectorPanel() {
                         background: allSameGroup ? "rgba(59,130,246,0.08)" : "transparent",
                         color: allSameGroup ? "var(--primary-color)" : "var(--text-main)",
                         opacity: allSameGroup ? 1 : 0.4,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                       }}
                     >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <path d="M3 8V5a2 2 0 0 1 2-2h3"/>
+                        <path d="M16 3h3a2 2 0 0 1 2 2v3"/>
+                        <path d="M21 16v3a2 2 0 0 1-2 2h-3"/>
+                        <path d="M8 21H5a2 2 0 0 1-2-2v-3"/>
+                        <rect x="7" y="7" width="4.5" height="4.5" rx="0.8"/>
+                        <rect x="12.5" y="12.5" width="4.5" height="4.5" rx="0.8"/>
+                      </svg>
                       解组
                     </button>
                     <button

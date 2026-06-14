@@ -842,10 +842,30 @@ export function TimelinePanel() {
     setDistPopup({ timeMs, x: rect.left + rect.width / 2, y: rect.top });
   }, [cancelHideDistPopup]);
 
+  const validDistributionClips = useMemo(() => {
+    return animations.filter((clip) => {
+      const obj = objects.find((o) => o.id === clip.objectId);
+      if (!obj) return false;
+
+      if (obj.appearSegments) {
+        if (obj.appearSegments.length === 0) return false;
+        if (clip.segmentId) {
+          const seg = obj.appearSegments.find((s) => s.id === clip.segmentId);
+          return !!seg && clip.startTimeMs >= seg.startMs && clip.startTimeMs <= seg.endMs;
+        }
+        return obj.appearSegments.some((seg) => clip.startTimeMs >= seg.startMs && clip.startTimeMs <= seg.endMs);
+      }
+
+      const startMs = obj.appearStartMs ?? 0;
+      const endMs = obj.appearEndMs ?? globalDurationMs;
+      return clip.startTimeMs >= startMs && clip.startTimeMs <= endMs;
+    });
+  }, [animations, objects, globalDurationMs]);
+
   const distMarkers = useMemo(() => {
     const safeT = Math.max(1, globalDurationMs);
     const groups = new Map<number, Map<string, { name: string; clipCount: number }>>();
-    animations.forEach((clip) => {
+    validDistributionClips.forEach((clip) => {
       const obj = objects.find((o) => o.id === clip.objectId);
       if (!obj) return;
       const t = clip.startTimeMs;
@@ -867,7 +887,7 @@ export function TimelinePanel() {
           color: DIST_COLORS[idx % DIST_COLORS.length],
         };
       });
-  }, [animations, objects, globalDurationMs]);
+  }, [validDistributionClips, objects, globalDurationMs]);
 
   const countText = useMemo(() => {
     if (distMarkers.length === 0) return '';
@@ -885,13 +905,13 @@ export function TimelinePanel() {
     if (!seg) return;
     setSelectedSegmentIds([seg.id]);
     const targetClip = jump.clipId
-      ? animations.find((c) => c.id === jump.clipId)
-      : animations.find((c) => c.objectId === selectedObject.id && c.segmentId === seg.id && c.startTimeMs === jump.timeMs);
+      ? validDistributionClips.find((c) => c.id === jump.clipId)
+      : validDistributionClips.find((c) => c.objectId === selectedObject.id && c.segmentId === seg.id && c.startTimeMs === jump.timeMs);
     if (targetClip) {
       setExpandedClipIds((prev) => new Set(prev).add(targetClip.id));
       setScrollToClipId(targetClip.id);
     }
-  }, [selectedObject, effectiveSegments, animations]);
+  }, [selectedObject, effectiveSegments, validDistributionClips]);
 
   const selectedBatchClips = useMemo(
     () => batchEditableObjectClips.filter((c) => batchSelectedClipIdSet.has(c.id)),
@@ -2507,7 +2527,7 @@ export function TimelinePanel() {
           >
             <div className="tl-dist-popup-time">{(m.timeMs / 1000).toFixed(2)}s</div>
             {m.elements.map((el) => {
-              const elClips = animations.filter(
+              const elClips = validDistributionClips.filter(
                 (c) => c.objectId === el.id && c.startTimeMs === m.timeMs,
               );
               const handleJump = (clipId?: string) => {
@@ -2516,8 +2536,8 @@ export function TimelinePanel() {
                   if (seg) {
                     setSelectedSegmentIds([seg.id]);
                     const target = clipId
-                      ? animations.find((c) => c.id === clipId)
-                      : animations.find((c) => c.objectId === el.id && c.segmentId === seg.id && c.startTimeMs === m.timeMs);
+                      ? validDistributionClips.find((c) => c.id === clipId)
+                      : validDistributionClips.find((c) => c.objectId === el.id && c.segmentId === seg.id && c.startTimeMs === m.timeMs);
                     if (target) {
                       setExpandedClipIds((prev) => new Set(prev).add(target.id));
                       setScrollToClipId(target.id);
@@ -2532,7 +2552,11 @@ export function TimelinePanel() {
               return (
                 <div key={el.id}>
                   <div className="tl-dist-popup-item" onClick={() => handleJump()}>
-                    <span>{el.name}</span>
+                    <TruncatedTooltipText
+                      className="tl-dist-popup-name"
+                      text={el.name}
+                      tooltip={el.name}
+                    />
                     <span className="tl-dist-popup-clip-count">{el.clipCount} 个动画</span>
                   </div>
                   {elClips.map((clip) => (
@@ -2892,6 +2916,7 @@ export function TimelinePanel() {
                     className="tl-seg-time-input tl-input-nospin"
                     type="text"
                     inputMode="decimal"
+                    data-tooltip="可编辑片段的起止时间"
                     value={segLabelStart}
                     onChange={(e) => updateSegLabelDraft('start', e.target.value)}
                     onWheel={(e) => {
@@ -2916,6 +2941,7 @@ export function TimelinePanel() {
                     className="tl-seg-time-input tl-input-nospin"
                     type="text"
                     inputMode="decimal"
+                    data-tooltip="可编辑片段的起止时间"
                     value={segLabelEnd}
                     onChange={(e) => updateSegLabelDraft('end', e.target.value)}
                     onWheel={(e) => {
