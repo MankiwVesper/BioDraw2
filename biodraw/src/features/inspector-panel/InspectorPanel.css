@@ -10,7 +10,7 @@
   flex: 1;
   overflow-y: auto;
   scrollbar-gutter: stable;
-  padding: 12px 12px 12px 16px;
+  padding: 6px 12px 6px 16px;
 }
 
 .ip-empty-state {
@@ -28,17 +28,17 @@
 }
 
 .ip-property-group {
-  margin-bottom: 16px;
-}
-
-.ip-property-group:not(:last-child) {
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color);
   margin-bottom: 8px;
 }
 
+.ip-property-group:not(:last-child) {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 4px;
+}
+
 .ip-group-title {
-  margin: 0 0 10px 0;
+  margin: 0 0 6px 0;
   font-size: 14px;
   font-weight: 600;
   color: var(--text-main);
@@ -74,7 +74,7 @@
 .ip-property-row {
   display: flex;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .ip-property-field {

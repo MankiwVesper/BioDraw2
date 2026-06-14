@@ -430,8 +430,13 @@ export function InspectorPanel() {
                       style={{
                         flex: 1, height: 24, borderRadius: 6, cursor: "pointer", fontSize: 13,
                         border: "1px solid rgba(239,68,68,0.4)", background: "transparent", color: "#ef4444",
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                       }}
                     >
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                      </svg>
                       删除
                     </button>
                   </div>
@@ -475,7 +480,7 @@ export function InspectorPanel() {
                       data-tooltip="以画布垂直中线为轴水平翻转所有选中对象"
                       onClick={() => flipMultipleSceneObjects(selectedIds, 'x')}
                       style={{
-                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                        flex: '0 0 calc((100% - 8px) / 3)', height: 24, borderRadius: 6, fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
                         color: "var(--text-muted)", cursor: "pointer",
                       }}
@@ -486,7 +491,7 @@ export function InspectorPanel() {
                       data-tooltip="以画布水平中线为轴垂直翻转所有选中对象"
                       onClick={() => flipMultipleSceneObjects(selectedIds, 'y')}
                       style={{
-                        flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                        flex: '0 0 calc((100% - 8px) / 3)', height: 24, borderRadius: 6, fontSize: 13,
                         border: "1px solid var(--border-color)", background: "transparent",
                         color: "var(--text-muted)", cursor: "pointer",
                       }}
@@ -1693,8 +1698,13 @@ export function InspectorPanel() {
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     fontSize: 13,
                     opacity: selectedObj.locked ? 0.4 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                   }}
                 >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                  </svg>
                   复制
                 </button>
                 <button
@@ -1711,8 +1721,13 @@ export function InspectorPanel() {
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     fontSize: 13,
                     opacity: selectedObj.locked ? 0.4 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                   }}
                 >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  </svg>
                   删除
                 </button>
               </div>
@@ -1766,7 +1781,7 @@ export function InspectorPanel() {
                   disabled={!!selectedObj.locked}
                   onClick={() => flipSceneObject(selectedObj.id, 'x')}
                   style={{
-                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                    flex: '0 0 calc((100% - 8px) / 3)', height: 24, borderRadius: 6, fontSize: 13,
                     border: "1px solid var(--border-color)", background: "transparent",
                     color: "var(--text-muted)",
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
@@ -1780,7 +1795,7 @@ export function InspectorPanel() {
                   disabled={!!selectedObj.locked}
                   onClick={() => flipSceneObject(selectedObj.id, 'y')}
                   style={{
-                    flex: 1, height: 24, borderRadius: 6, fontSize: 13,
+                    flex: '0 0 calc((100% - 8px) / 3)', height: 24, borderRadius: 6, fontSize: 13,
                     border: "1px solid var(--border-color)", background: "transparent",
                     color: "var(--text-muted)",
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
@@ -2694,76 +2709,7 @@ export function InspectorPanel() {
                 </h4>
                 {!collapsedSections["states"] && (
                   <div className="ip-property-body">
-                    {Object.entries(selectedObj.stateVariants || {}).length > 0 && (
-                    <div style={{ maxHeight: 120, overflowY: 'auto', overflowX: 'hidden', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', padding: '6px 8px', marginBottom: 6 }}>
-                    {Object.entries(selectedObj.stateVariants || {}).map(([key, url]) => (
-                        <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                          <img src={url} alt={key} style={{ width: 32, height: 32, objectFit: 'contain', border: '1px solid var(--border-color)', borderRadius: 4, background: '#fff' }} />
-                          {editingStateKey === key ? (
-                            <input
-                              autoFocus
-                              value={editingStateName}
-                              onChange={(e) => setEditingStateName(e.target.value)}
-                              onBlur={() => {
-                                const newKey = editingStateName.trim();
-                                const variants = selectedObj.stateVariants || {};
-                                if (newKey && newKey !== key && !(newKey in variants)) {
-                                  const newVariants: Record<string, string> = {};
-                                  for (const [k, v] of Object.entries(variants)) {
-                                    newVariants[k === key ? newKey : k] = v;
-                                  }
-                                  updateSceneObject(selectedObj.id, { stateVariants: newVariants });
-                                  const stateClipUpdates = animations
-                                    .filter((c): c is StateChangeClip =>
-                                      c.type === 'stateChange' &&
-                                      c.objectId === selectedObj.id &&
-                                      (c.payload.toStateKey === key || c.payload.fromStateKey === key)
-                                    )
-                                    .map((c) => ({
-                                      id: c.id,
-                                      patch: {
-                                        payload: {
-                                          ...c.payload,
-                                          ...(c.payload.toStateKey === key ? { toStateKey: newKey } : {}),
-                                          ...(c.payload.fromStateKey === key ? { fromStateKey: newKey } : {}),
-                                        },
-                                      } as Partial<AnimationClip>,
-                                    }));
-                                  batchUpdateAnimationClips(stateClipUpdates);
-                                }
-                                setEditingStateKey(null);
-                              }}
-                              onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingStateKey(null); }}
-                              style={{ flex: 1, fontSize: 13, padding: '1px 4px', border: '1px solid var(--primary-color)', borderRadius: 'var(--radius)', outline: 'none' }}
-                            />
-                          ) : (
-                            <span
-                              title="点击编辑状态名称"
-                              onClick={() => { setEditingStateKey(key); setEditingStateName(key); }}
-                              style={{ flex: 1, fontSize: 13, cursor: 'text', borderRadius: 'var(--radius)', padding: '1px 4px' }}
-                            >{key}</span>
-                          )}
-                          <button
-                            onClick={() => {
-                              const v = { ...(selectedObj.stateVariants || {}) };
-                              delete v[key];
-                              updateSceneObject(selectedObj.id, { stateVariants: Object.keys(v).length ? v : undefined });
-                              const removedStateClipIds = animations
-                                .filter((c): c is StateChangeClip =>
-                                  c.type === 'stateChange' &&
-                                  c.objectId === selectedObj.id &&
-                                  c.payload.toStateKey === key
-                                )
-                                .map((c) => c.id);
-                              removeAnimationClips(removedStateClipIds);
-                            }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 16, padding: '0 4px', lineHeight: 1 }}
-                          >×</button>
-                        </div>
-                      ))}
-                    </div>
-                    )}
-                    <div style={{ position: 'relative', marginTop: 6 }}>
+                    <div style={{ position: 'relative' }}>
                       {(statePickerOpen || stateSearchQuery.trim()) && (() => {
                         const q = stateSearchQuery.trim().toLowerCase();
                         const visibleCats = q
@@ -2832,19 +2778,119 @@ export function InspectorPanel() {
                           </div>
                         );
                       })()}
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          style={{ flex: 1, fontSize: 12, padding: '4px 8px', border: '1px dashed var(--border-color)', borderRadius: 'var(--radius)', cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)' }}
-                          onClick={() => { setStatePickerCategory(null); setStateSearchQuery(''); setStatePickerOpen(true); }}
-                        >+ 添加状态</button>
-                        <input
-                          type="text"
-                          placeholder="搜索元素…"
-                          value={stateSearchQuery}
-                          onChange={e => { setStateSearchQuery(e.target.value); setStatePickerOpen(false); if (!e.target.value.trim()) setStatePickerCategory(null); }}
-                          onFocus={() => setStatePickerOpen(false)}
-                          style={{ flex: 1, fontSize: 12, padding: '4px 8px', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', background: 'var(--bg-primary)', color: 'var(--text-main)', outline: 'none', minWidth: 0 }}
-                        />
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                        {/* 左列：状态列表 */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ height: 124, overflowY: 'hidden', overflowX: 'hidden', border: '1px solid var(--border-color)', borderRadius: 'var(--radius)', padding: '4px 6px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                            {Object.entries(selectedObj.stateVariants || {}).length === 0 ? (
+                              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 11, textAlign: 'center', lineHeight: 1.5 }}>
+                                点击「+ 添加」<br/>添加状态变体
+                              </div>
+                            ) : Object.entries(selectedObj.stateVariants || {}).map(([key, url]) => (
+                                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <img src={url} alt={key} style={{ width: 20, height: 20, boxSizing: 'border-box', objectFit: 'contain', border: '1px solid var(--border-color)', borderRadius: 2, background: '#fff', flexShrink: 0 }} />
+                                  {editingStateKey === key ? (
+                                    <input
+                                      autoFocus
+                                      value={editingStateName}
+                                      onChange={(e) => setEditingStateName(e.target.value)}
+                                      onBlur={() => {
+                                        const newKey = editingStateName.trim();
+                                        const variants = selectedObj.stateVariants || {};
+                                        if (newKey && newKey !== key && !(newKey in variants)) {
+                                          const newVariants: Record<string, string> = {};
+                                          for (const [k, v] of Object.entries(variants)) {
+                                            newVariants[k === key ? newKey : k] = v;
+                                          }
+                                          updateSceneObject(selectedObj.id, { stateVariants: newVariants });
+                                          const stateClipUpdates = animations
+                                            .filter((c): c is StateChangeClip =>
+                                              c.type === 'stateChange' &&
+                                              c.objectId === selectedObj.id &&
+                                              (c.payload.toStateKey === key || c.payload.fromStateKey === key)
+                                            )
+                                            .map((c) => ({
+                                              id: c.id,
+                                              patch: {
+                                                payload: {
+                                                  ...c.payload,
+                                                  ...(c.payload.toStateKey === key ? { toStateKey: newKey } : {}),
+                                                  ...(c.payload.fromStateKey === key ? { fromStateKey: newKey } : {}),
+                                                },
+                                              } as Partial<AnimationClip>,
+                                            }));
+                                          batchUpdateAnimationClips(stateClipUpdates);
+                                        }
+                                        setEditingStateKey(null);
+                                      }}
+                                      onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); if (e.key === 'Escape') setEditingStateKey(null); }}
+                                      style={{ flex: 1, fontSize: 12, padding: '1px 4px', border: '1px solid var(--primary-color)', borderRadius: 'var(--radius)', outline: 'none', minWidth: 0 }}
+                                    />
+                                  ) : (
+                                    <span
+                                      title="点击编辑状态名称"
+                                      onClick={() => { setEditingStateKey(key); setEditingStateName(key); }}
+                                      style={{ flex: 1, fontSize: 12, cursor: 'text', borderRadius: 'var(--radius)', padding: '1px 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}
+                                    >{key}</span>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      const v = { ...(selectedObj.stateVariants || {}) };
+                                      delete v[key];
+                                      updateSceneObject(selectedObj.id, { stateVariants: Object.keys(v).length ? v : undefined });
+                                      const removedStateClipIds = animations
+                                        .filter((c): c is StateChangeClip =>
+                                          c.type === 'stateChange' &&
+                                          c.objectId === selectedObj.id &&
+                                          c.payload.toStateKey === key
+                                        )
+                                        .map((c) => c.id);
+                                      removeAnimationClips(removedStateClipIds);
+                                    }}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14, padding: '0 2px', lineHeight: 1, flexShrink: 0 }}
+                                  >×</button>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                        {/* 右列：添加状态 + 搜索 + 取消 */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flexShrink: 0, width: 76 }}>
+                          {(() => {
+                            const atMax = Object.keys(selectedObj.stateVariants || {}).length >= 5;
+                            return (<>
+                              <button
+                                data-tooltip={atMax ? '最多添加 5 个状态' : undefined}
+                                style={{ height: 24, fontSize: 13, padding: '0 6px', border: 'none', borderRadius: 6, cursor: atMax ? 'not-allowed' : 'pointer', background: 'var(--primary-color)', color: '#fff', width: '100%', whiteSpace: 'nowrap', opacity: atMax ? 0.45 : 1, flexShrink: 0 }}
+                                onClick={() => { if (atMax) return; setStatePickerCategory(null); setStateSearchQuery(''); setStatePickerOpen(true); }}
+                              >+ 添加</button>
+                              <div
+                                data-tooltip={atMax ? '最多添加 5 个状态' : undefined}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 6px 0 17px', border: '1px solid var(--border-color)', borderRadius: 6, background: 'var(--bg-primary)', width: '100%', boxSizing: 'border-box', height: 24, opacity: atMax ? 0.45 : 1, cursor: atMax ? 'not-allowed' : 'default', flexShrink: 0 }}
+                              >
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+                                  <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                                </svg>
+                                <input
+                                  type="text"
+                                  placeholder="搜索"
+                                  value={stateSearchQuery}
+                                  onChange={e => { if (atMax) return; setStateSearchQuery(e.target.value); setStatePickerOpen(false); if (!e.target.value.trim()) setStatePickerCategory(null); }}
+                                  onFocus={() => { if (atMax) return; setStatePickerOpen(false); }}
+                                  style={{ fontSize: 13, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-main)', flex: 1, minWidth: 0, padding: 0, cursor: atMax ? 'not-allowed' : 'text', pointerEvents: atMax ? 'none' : undefined }}
+                                />
+                              </div>
+                              <button
+                                style={{ height: 24, fontSize: 13, padding: '0 6px', border: '1px solid var(--border-color)', borderRadius: 6, cursor: 'pointer', background: 'transparent', color: 'var(--text-muted)', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, flexShrink: 0 }}
+                                onClick={() => { setStatePickerOpen(false); setStateSearchQuery(''); setStatePickerCategory(null); }}
+                              >
+                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                                </svg>
+                                取消
+                              </button>
+                            </>);
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </div>
