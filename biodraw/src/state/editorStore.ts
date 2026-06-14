@@ -1581,7 +1581,13 @@ export const useEditorStore = create<EditorState>()(
     loadSnapshot: (snapshot) =>
       set((state) => {
         state.objects = snapshot.objects;
-        state.animations = snapshot.animations;
+        // Migrate legacy stateChange clips: { toStateKey } → { steps: [{ atMs, toStateKey }] }
+        state.animations = snapshot.animations.map((clip) => {
+          if (clip.type !== 'stateChange') return clip;
+          const p = clip.payload as Record<string, unknown>;
+          if (Array.isArray(p.steps)) return clip;
+          return { ...clip, payload: { steps: [{ atMs: clip.startTimeMs, toStateKey: (p.toStateKey as string) ?? '' }] } };
+        }) as AnimationClip[];
         state.globalDurationMs = snapshot.globalDurationMs;
         state.canvasWidth = snapshot.canvasWidth ?? 1280;
         state.canvasHeight = snapshot.canvasHeight ?? 720;

@@ -269,15 +269,15 @@ export const buildAnimatedPreviewObjects = (
     const segmentClips = (clipsByObjectId.get(obj.id) || [])
       .filter((clip) => !activeSegmentId || !clip.segmentId || clip.segmentId === activeSegmentId);
 
-    // Compute active stateKey: the last stateChange clip that has started by currentTimeMs.
-    // Start from undefined so objects show their default SVG before any stateChange fires,
-    // even if obj.stateKey carries a value from a previous playback.
+    // Compute active stateKey: walk all steps in all stateChange clips sorted by atMs,
+    // apply those that have fired by currentTimeMs.
     let resolvedStateKey: string | undefined = undefined;
-    const stateClips = segmentClips
-      .filter((clip): clip is StateChangeClip => clip.type === 'stateChange')
-      .sort((a, b) => a.startTimeMs - b.startTimeMs);
+    const stateClips = segmentClips.filter((clip): clip is StateChangeClip => clip.type === 'stateChange');
     for (const clip of stateClips) {
-      if (currentTimeMs >= clip.startTimeMs) resolvedStateKey = clip.payload.toStateKey;
+      const sortedSteps = [...clip.payload.steps].sort((a, b) => a.atMs - b.atMs);
+      for (const step of sortedSteps) {
+        if (currentTimeMs >= step.atMs) resolvedStateKey = step.toStateKey;
+      }
     }
 
     const clips = segmentClips

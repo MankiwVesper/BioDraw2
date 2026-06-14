@@ -1257,6 +1257,28 @@
   border-radius: 1px;
 }
 
+/* 状态切换：添加触发点按钮 */
+.tl-step-add-btn {
+  width: 100%;
+  height: 26px;
+  margin-top: 10px;
+  font-size: 12px;
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  transition: border-color 0.15s, color 0.15s;
+}
+.tl-step-add-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
 /* 片段起止时间编辑器（zoom row 左侧） */
 .tl-seg-time-editor {
   display: inline-flex;
