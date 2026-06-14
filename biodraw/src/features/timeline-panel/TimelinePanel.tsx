@@ -2753,12 +2753,21 @@ export function TimelinePanel() {
                               {item.label}
                             </button>
                           ))}
-                          {selectedObject?.type === 'material' && Object.keys(selectedObject.stateVariants || {}).length > 0 && (
-                            <button className="tl-add-menu-item" onClick={() => { createClip('stateChange'); setShowAddMenu(false); }}>
-                              <span className="tl-type-dot tl-type-stateChange" />
-                              状态切换
-                            </button>
-                          )}
+                          {selectedObject?.type === 'material' && (() => {
+                            const hasStates = Object.keys(selectedObject.stateVariants || {}).length > 0;
+                            return (
+                              <button
+                                className="tl-add-menu-item"
+                                disabled={!hasStates}
+                                data-tooltip={!hasStates ? '请先在右侧「对象状态」中添加状态变体' : undefined}
+                                onClick={() => { if (!hasStates) return; createClip('stateChange'); setShowAddMenu(false); }}
+                                style={!hasStates ? { opacity: 0.4, cursor: 'not-allowed' } : undefined}
+                              >
+                                <span className="tl-type-dot tl-type-stateChange" />
+                                状态切换
+                              </button>
+                            );
+                          })()}
                         </div>
                       </div>
                     )}
