@@ -31,6 +31,19 @@ export function InspectorPanel() {
   const [stateSearchQuery, setStateSearchQuery] = useState('');
   const [editingStateKey, setEditingStateKey] = useState<string | null>(null);
   const [editingStateName, setEditingStateName] = useState('');
+  const statePickerContainerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!statePickerOpen && !stateSearchQuery.trim()) return;
+    const handleMouseDown = (e: MouseEvent) => {
+      if (statePickerContainerRef.current && !statePickerContainerRef.current.contains(e.target as Node)) {
+        setStatePickerOpen(false);
+        setStateSearchQuery('');
+        setStatePickerCategory(null);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [statePickerOpen, stateSearchQuery]);
   const toggleSection = (key: string) =>
     setCollapsedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -2709,7 +2722,7 @@ export function InspectorPanel() {
                 </h4>
                 {!collapsedSections["states"] && (
                   <div className="ip-property-body">
-                    <div style={{ position: 'relative' }}>
+                    <div ref={statePickerContainerRef} style={{ position: 'relative' }}>
                       {(statePickerOpen || stateSearchQuery.trim()) && (() => {
                         const q = stateSearchQuery.trim().toLowerCase();
                         const visibleCats = q
@@ -2842,7 +2855,7 @@ export function InspectorPanel() {
                                         .filter((c): c is StateChangeClip =>
                                           c.type === 'stateChange' &&
                                           c.objectId === selectedObj.id &&
-                                          c.payload.toStateKey === key
+                                          (c.payload.toStateKey === key || c.payload.fromStateKey === key)
                                         )
                                         .map((c) => c.id);
                                       removeAnimationClips(removedStateClipIds);
