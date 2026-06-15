@@ -1300,7 +1300,7 @@ export function InspectorPanel() {
                 基础参数
                 {sectionChevron("params")}
               </h4>
-              {!collapsedSections["params"] && (<>
+              {!collapsedSections["params"] && (<div style={selectedObj.locked ? { pointerEvents: 'none', opacity: 0.5 } : undefined}>
 
               <div
                 className="ip-property-field"
@@ -1712,7 +1712,7 @@ export function InspectorPanel() {
                   </button>
                 </div>
               </div>
-              </>)}
+              </div>)}
             </div>
 
             {/* 基础操作 */}
@@ -2766,7 +2766,7 @@ export function InspectorPanel() {
                   对象状态 {sectionChevron("states")}
                 </h4>
                 {!collapsedSections["states"] && (
-                  <div className="ip-property-body">
+                  <div className="ip-property-body" style={selectedObj.locked ? { pointerEvents: 'none', opacity: 0.5 } : undefined}>
                     <div ref={statePickerContainerRef} style={{ position: 'relative' }}>
                       {(statePickerOpen || stateSearchQuery.trim()) && (() => {
                         const q = stateSearchQuery.trim().toLowerCase();
