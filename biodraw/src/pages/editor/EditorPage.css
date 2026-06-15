@@ -47,3 +47,45 @@
   flex-direction: column;
   min-width: 0;
 }
+
+/* ── 面板收起 / 展开过渡（左右侧栏宽度、底部时间轴高度）────────── */
+/* 面板始终挂载，靠 slot 的尺寸过渡实现丝滑收展；内部面板尺寸固定、被裁切而非挤压 */
+.editor-side-slot {
+  flex-shrink: 0;
+  width: 280px;
+  display: flex;
+  overflow: hidden;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.editor-side-slot > * {
+  flex: 0 0 280px;
+}
+
+.editor-side-slot.is-collapsed {
+  width: 0;
+}
+
+.editor-bottom-slot {
+  flex-shrink: 0;
+  height: 340px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: height 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.editor-bottom-slot > * {
+  flex: 0 0 340px;
+}
+
+.editor-bottom-slot.is-collapsed {
+  height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editor-side-slot,
+  .editor-bottom-slot {
+    transition: none;
+  }
+}

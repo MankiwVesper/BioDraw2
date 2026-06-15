@@ -138,12 +138,24 @@ export default function EditorPage() {
         />
       )}
       <div className="editor-main">
-        {!isPreviewMode && showMaterials && <MaterialsPanel />}
+        {!isPreviewMode && (
+          <div className={`editor-side-slot${showMaterials ? '' : ' is-collapsed'}`}>
+            <MaterialsPanel />
+          </div>
+        )}
         <div className="editor-center">
           <CanvasPanel />
-          {!isPreviewMode && showTimeline && <TimelinePanel />}
+          {!isPreviewMode && (
+            <div className={`editor-bottom-slot${showTimeline ? '' : ' is-collapsed'}`}>
+              <TimelinePanel />
+            </div>
+          )}
         </div>
-        {!isPreviewMode && showInspector && <InspectorPanel />}
+        {!isPreviewMode && (
+          <div className={`editor-side-slot${showInspector ? '' : ' is-collapsed'}`}>
+            <InspectorPanel />
+          </div>
+        )}
       </div>
     </div>
   );
