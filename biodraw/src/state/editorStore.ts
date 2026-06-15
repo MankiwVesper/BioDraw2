@@ -96,6 +96,7 @@ interface EditorState {
   toggleSelectObject: (id: string) => void;
   selectAllObjects: () => void;
   duplicateObject: (id: string) => void;
+  duplicateObjects: (ids: string[]) => void;
   moveMultipleSceneObjects: (moves: Array<{ id: string; x: number; y: number }>) => void;
   moveMultipleSceneObjectsSilent: (moves: Array<{ id: string; x: number; y: number }>) => void;
   batchUpdateSceneObjects: (updates: Array<{ id: string; patch: Partial<SceneObject> }>) => void;
@@ -859,50 +860,72 @@ export const useEditorStore = create<EditorState>()(
         });
       }),
 
+    // 整组作为一个图层上移一层：跨过紧邻上方的"整个图层"（若障碍是组则跨过整组）；非连续选区会被收拢
     moveMultipleObjectsForward: (ids) =>
       set((state) => {
         if (ids.length === 0) return;
         const idSet = new Set(ids);
-        const indices = state.objects
-          .map((o, i) => (idSet.has(o.id) ? i : -1))
-          .filter((i) => i >= 0)
-          .sort((a, b) => b - a);
-        if (indices.length === 0) return;
-        const canMove = indices.some(
-          (idx) => idx < state.objects.length - 1 && !idSet.has(state.objects[idx + 1].id),
-        );
-        if (!canMove) return;
+        const members = state.objects.filter((o) => idSet.has(o.id));
+        if (members.length === 0) return;
+        let maxIdx = -1;
+        state.objects.forEach((o, i) => {
+          if (idSet.has(o.id) && i > maxIdx) maxIdx = i;
+        });
+        // 顶部成员已在最上层 → 无法再上移
+        if (maxIdx >= state.objects.length - 1) return;
         pushHistory(state);
-        for (const idx of indices) {
-          if (idx < state.objects.length - 1 && !idSet.has(state.objects[idx + 1].id)) {
-            const temp = state.objects[idx];
-            state.objects[idx] = state.objects[idx + 1];
-            state.objects[idx + 1] = temp;
-          }
-        }
+        // 紧邻上方的非成员及其所属"图层"：成组则整组算一层，否则就它自己一层
+        const obstacle = state.objects[maxIdx + 1];
+        const obstacleLayer = obstacle.groupId
+          ? new Set(
+              state.objects
+                .filter((o) => o.groupId === obstacle.groupId && !idSet.has(o.id))
+                .map((o) => o.id),
+            )
+          : new Set([obstacle.id]);
+        const nonMembers = state.objects.filter((o) => !idSet.has(o.id));
+        // 插入到该障碍图层"顶部"之上
+        let obstacleTopIdx = -1;
+        nonMembers.forEach((o, i) => {
+          if (obstacleLayer.has(o.id)) obstacleTopIdx = i;
+        });
+        nonMembers.splice(obstacleTopIdx + 1, 0, ...members);
+        state.objects = nonMembers;
       }),
 
+    // 整组作为一个图层下移一层：跨过紧邻下方的"整个图层"（若障碍是组则跨过整组）；非连续选区会被收拢
     moveMultipleObjectsBackward: (ids) =>
       set((state) => {
         if (ids.length === 0) return;
         const idSet = new Set(ids);
-        const indices = state.objects
-          .map((o, i) => (idSet.has(o.id) ? i : -1))
-          .filter((i) => i >= 0)
-          .sort((a, b) => a - b);
-        if (indices.length === 0) return;
-        const canMove = indices.some(
-          (idx) => idx > 0 && !idSet.has(state.objects[idx - 1].id),
-        );
-        if (!canMove) return;
+        const members = state.objects.filter((o) => idSet.has(o.id));
+        if (members.length === 0) return;
+        let minIdx = Infinity;
+        state.objects.forEach((o, i) => {
+          if (idSet.has(o.id) && i < minIdx) minIdx = i;
+        });
+        // 底部成员已在最底层 → 无法再下移
+        if (minIdx <= 0) return;
         pushHistory(state);
-        for (const idx of indices) {
-          if (idx > 0 && !idSet.has(state.objects[idx - 1].id)) {
-            const temp = state.objects[idx];
-            state.objects[idx] = state.objects[idx - 1];
-            state.objects[idx - 1] = temp;
+        const obstacle = state.objects[minIdx - 1];
+        const obstacleLayer = obstacle.groupId
+          ? new Set(
+              state.objects
+                .filter((o) => o.groupId === obstacle.groupId && !idSet.has(o.id))
+                .map((o) => o.id),
+            )
+          : new Set([obstacle.id]);
+        const nonMembers = state.objects.filter((o) => !idSet.has(o.id));
+        // 插入到该障碍图层"底部"之下
+        let obstacleBottomIdx = nonMembers.length;
+        for (let i = 0; i < nonMembers.length; i++) {
+          if (obstacleLayer.has(nonMembers[i].id)) {
+            obstacleBottomIdx = i;
+            break;
           }
         }
+        nonMembers.splice(obstacleBottomIdx, 0, ...members);
+        state.objects = nonMembers;
       }),
 
     reorderObject: (id, toObjIndex) =>
@@ -931,11 +954,37 @@ export const useEditorStore = create<EditorState>()(
     groupObjects: (ids) =>
       set((state) => {
         if (ids.length < 2) return;
+        const idSet = new Set(ids);
+        // 最高层成员的原始索引：组合后整组将收拢到此 z 位置
+        let maxMemberIdx = -1;
+        for (let i = 0; i < state.objects.length; i++) {
+          if (idSet.has(state.objects[i].id)) maxMemberIdx = i;
+        }
+        if (maxMemberIdx === -1) return;
         pushHistory(state);
         const groupId = crypto.randomUUID();
-        state.objects = state.objects.map((o) =>
-          ids.includes(o.id) ? { ...o, groupId } : o,
+        // 被选中成员原本所属的旧组（组合后用于清理被拆散的孤儿组）
+        const affectedOldGroupIds = new Set(
+          state.objects
+            .filter((o) => idSet.has(o.id) && o.groupId)
+            .map((o) => o.groupId as string),
         );
+        // 成员按当前相对顺序收拢，并打上同一 groupId
+        const members = state.objects
+          .filter((o) => idSet.has(o.id))
+          .map((o) => ({ ...o, groupId }));
+        const nonMembers = state.objects.filter((o) => !idSet.has(o.id));
+        // 插入点 = 最高层成员下方的非成员数量，使整组顶部对齐原最高层成员位置
+        const insertAt = state.objects
+          .slice(0, maxMemberIdx)
+          .filter((o) => !idSet.has(o.id)).length;
+        nonMembers.splice(insertAt, 0, ...members);
+        state.objects = nonMembers;
+        // 旧组若被拆得只剩单个成员，解除其分组（单元素组无意义）
+        for (const oldGid of affectedOldGroupIds) {
+          const remaining = state.objects.filter((o) => o.groupId === oldGid);
+          if (remaining.length === 1) remaining[0].groupId = undefined;
+        }
       }),
 
     ungroupObjects: (groupId) =>
@@ -1566,6 +1615,40 @@ export const useEditorStore = create<EditorState>()(
         };
         state.objects.push(newObj);
         state.selectedIds = [newObj.id];
+      }),
+
+    duplicateObjects: (ids) =>
+      set((state) => {
+        const idSet = new Set(ids);
+        // 按当前 z-order 取出源对象，保证副本相对顺序、连续性一致
+        const srcs = state.objects.filter((o) => idSet.has(o.id));
+        if (srcs.length === 0) return;
+        pushHistory(state);
+        // 旧 groupId → 新 groupId：同一旧组的副本共享一个新组（复制组得到新组）
+        const groupIdMap = new Map<string, string>();
+        const newIds: string[] = [];
+        for (const src of srcs) {
+          let newGroupId: string | undefined;
+          if (src.groupId) {
+            if (!groupIdMap.has(src.groupId)) groupIdMap.set(src.groupId, crypto.randomUUID());
+            newGroupId = groupIdMap.get(src.groupId);
+          }
+          const newObj: SceneObject = {
+            ...cloneDeep(src),
+            id: crypto.randomUUID(),
+            x: src.x + 20,
+            y: src.y + 20,
+            animationIds: [],
+            groupId: newGroupId,
+            appearSegments: (src.appearSegments ?? []).map((s) => ({
+              ...s,
+              id: crypto.randomUUID(),
+            })),
+          };
+          state.objects.push(newObj);
+          newIds.push(newObj.id);
+        }
+        state.selectedIds = newIds;
       }),
 
     setCanvasSize: (width, height) =>

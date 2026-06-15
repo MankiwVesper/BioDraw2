@@ -91,7 +91,7 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       trRef.current.nodes([shapeRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected, isEditingText, sceneObject.locked, sceneObject.type]);
+  }, [isSelected, isGroupSelected, isEditingText, sceneObject.locked, sceneObject.type]);
 
   useEffect(() => {
     if (!isApplyFlash) {

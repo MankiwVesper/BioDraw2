@@ -14,7 +14,7 @@ export function useEditorKeyboard() {
   const addSceneObject           = useEditorStore((s) => s.addSceneObject);
   const selectObject             = useEditorStore((s) => s.selectObject);
   const selectAllObjects         = useEditorStore((s) => s.selectAllObjects);
-  const duplicateObject          = useEditorStore((s) => s.duplicateObject);
+  const duplicateObjects         = useEditorStore((s) => s.duplicateObjects);
   const groupObjects             = useEditorStore((s) => s.groupObjects);
   const ungroupObjects           = useEditorStore((s) => s.ungroupObjects);
   const exitGroupEditing         = useEditorStore((s) => s.exitGroupEditing);
@@ -125,15 +125,22 @@ export function useEditorKeyboard() {
       // Ctrl+V：粘贴（每个偏移 +20px）
       if (ctrl && e.key === 'v' && clipboard.length > 0) {
         e.preventDefault();
+        // 旧 groupId → 新 groupId：同组对象粘贴后仍是一个（新）组
+        const groupIdMap = new Map<string, string>();
         clipboard.forEach((src) => {
           const cloned = JSON.parse(JSON.stringify(src)) as SceneObject;
+          let newGroupId: string | undefined;
+          if (src.groupId) {
+            if (!groupIdMap.has(src.groupId)) groupIdMap.set(src.groupId, crypto.randomUUID());
+            newGroupId = groupIdMap.get(src.groupId);
+          }
           const newObj: SceneObject = {
             ...cloned,
             id: crypto.randomUUID(),
             x: src.x + 20,
             y: src.y + 20,
             animationIds: [],
-            groupId: undefined,
+            groupId: newGroupId,
             appearSegments: cloned.appearSegments?.map((seg) => ({ ...seg, id: crypto.randomUUID() })),
           };
           addSceneObject(newObj);
@@ -141,11 +148,11 @@ export function useEditorKeyboard() {
         return;
       }
 
-      // Ctrl+D：就地复制所有选中对象（组内编辑时禁用）
+      // Ctrl+D：就地复制所有选中对象（组内编辑时禁用）；复制整组得到新组
       if (ctrl && e.key === 'd' && selectedAll.length > 0) {
         if (useEditorStore.getState().groupEditingId) return;
         e.preventDefault();
-        selectedAll.forEach((id) => duplicateObject(id));
+        duplicateObjects(selectedAll);
         return;
       }
 
@@ -215,7 +222,7 @@ export function useEditorKeyboard() {
     return () => window.removeEventListener('keydown', handler);
   }, [
     removeSceneObjects, addSceneObject, selectObject,
-    selectAllObjects, duplicateObject, groupObjects, ungroupObjects, exitGroupEditing,
+    selectAllObjects, duplicateObjects, groupObjects, ungroupObjects, exitGroupEditing,
     play, pause, undo, redo, markSaved, setPreviewMode, isPreviewMode,
     setCanvasDrawingMode,
   ]);
