@@ -11,7 +11,7 @@ export function useEditorKeyboard() {
   const objects                  = useEditorStore((s) => s.objects);
   const playbackStatus           = useEditorStore((s) => s.playbackStatus);
   const removeSceneObjects       = useEditorStore((s) => s.removeSceneObjects);
-  const addSceneObject           = useEditorStore((s) => s.addSceneObject);
+  const addSceneObjects          = useEditorStore((s) => s.addSceneObjects);
   const selectObject             = useEditorStore((s) => s.selectObject);
   const selectAllObjects         = useEditorStore((s) => s.selectAllObjects);
   const duplicateObjects         = useEditorStore((s) => s.duplicateObjects);
@@ -65,6 +65,8 @@ export function useEditorKeyboard() {
 
       const selectedAll = selectedIdsRef.current;
       const ctrl = e.ctrlKey || e.metaKey;
+      // 统一按小写字母比较，避免 CapsLock / 大写时快捷键失效
+      const lk = e.key.toLowerCase();
 
       // Space：播放 / 暂停
       if (e.key === ' ') {
@@ -93,28 +95,28 @@ export function useEditorKeyboard() {
       }
 
       // Ctrl+A：全选
-      if (ctrl && e.key === 'a') {
+      if (ctrl && lk === 'a') {
         e.preventDefault();
         selectAllObjects();
         return;
       }
 
       // Ctrl+Z：撤销
-      if (ctrl && !e.shiftKey && e.key === 'z') {
+      if (ctrl && !e.shiftKey && lk === 'z') {
         e.preventDefault();
         undo();
         return;
       }
 
       // Ctrl+Shift+Z / Ctrl+Y：重做
-      if ((ctrl && e.shiftKey && e.key.toLowerCase() === 'z') || (ctrl && e.key === 'y')) {
+      if ((ctrl && e.shiftKey && lk === 'z') || (ctrl && lk === 'y')) {
         e.preventDefault();
         redo();
         return;
       }
 
       // Ctrl+C：复制所有选中对象（组内编辑时禁用）
-      if (ctrl && e.key === 'c' && selectedAll.length > 0) {
+      if (ctrl && lk === 'c' && selectedAll.length > 0) {
         if (useEditorStore.getState().groupEditingId) return;
         clipboard = objectsRef.current
           .filter((o) => selectedAll.includes(o.id))
@@ -123,18 +125,19 @@ export function useEditorKeyboard() {
       }
 
       // Ctrl+V：粘贴（每个偏移 +20px）
-      if (ctrl && e.key === 'v' && clipboard.length > 0) {
+      if (ctrl && lk === 'v' && clipboard.length > 0) {
         e.preventDefault();
         // 旧 groupId → 新 groupId：同组对象粘贴后仍是一个（新）组
         const groupIdMap = new Map<string, string>();
-        clipboard.forEach((src) => {
+        // 一次性批量加入，保证整次粘贴是单条历史记录（可一步 Undo）
+        const pasted = clipboard.map((src) => {
           const cloned = JSON.parse(JSON.stringify(src)) as SceneObject;
           let newGroupId: string | undefined;
           if (src.groupId) {
             if (!groupIdMap.has(src.groupId)) groupIdMap.set(src.groupId, crypto.randomUUID());
             newGroupId = groupIdMap.get(src.groupId);
           }
-          const newObj: SceneObject = {
+          return {
             ...cloned,
             id: crypto.randomUUID(),
             x: src.x + 20,
@@ -142,14 +145,14 @@ export function useEditorKeyboard() {
             animationIds: [],
             groupId: newGroupId,
             appearSegments: cloned.appearSegments?.map((seg) => ({ ...seg, id: crypto.randomUUID() })),
-          };
-          addSceneObject(newObj);
+          } satisfies SceneObject;
         });
+        addSceneObjects(pasted);
         return;
       }
 
       // Ctrl+D：就地复制所有选中对象（组内编辑时禁用）；复制整组得到新组
-      if (ctrl && e.key === 'd' && selectedAll.length > 0) {
+      if (ctrl && lk === 'd' && selectedAll.length > 0) {
         if (useEditorStore.getState().groupEditingId) return;
         e.preventDefault();
         duplicateObjects(selectedAll);
@@ -157,14 +160,14 @@ export function useEditorKeyboard() {
       }
 
       // Ctrl+G：组合选中对象（≥2个）
-      if (ctrl && !e.shiftKey && e.key === 'g' && selectedAll.length >= 2) {
+      if (ctrl && !e.shiftKey && lk === 'g' && selectedAll.length >= 2) {
         e.preventDefault();
         groupObjects(selectedAll);
         return;
       }
 
       // Ctrl+Shift+G：取消组合
-      if (ctrl && e.shiftKey && e.key.toLowerCase() === 'g' && selectedAll.length > 0) {
+      if (ctrl && e.shiftKey && lk === 'g' && selectedAll.length > 0) {
         e.preventDefault();
         const obj = objectsRef.current.find((o) => selectedAll.includes(o.id) && o.groupId);
         if (obj?.groupId) ungroupObjects(obj.groupId);
@@ -172,7 +175,7 @@ export function useEditorKeyboard() {
       }
 
       // Ctrl+S：保存文档
-      if (ctrl && e.key === 's') {
+      if (ctrl && lk === 's') {
         e.preventDefault();
         const state = useEditorStore.getState();
         downloadDocument({
@@ -188,7 +191,7 @@ export function useEditorKeyboard() {
       }
 
       // F 键：切换全屏预览模式（进入时自动播放）
-      if (e.key === 'f' && !ctrl) {
+      if (lk === 'f' && !ctrl) {
         e.preventDefault();
         const entering = !isPreviewModeRef.current;
         setPreviewMode(entering);
@@ -221,7 +224,7 @@ export function useEditorKeyboard() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [
-    removeSceneObjects, addSceneObject, selectObject,
+    removeSceneObjects, addSceneObjects, selectObject,
     selectAllObjects, duplicateObjects, groupObjects, ungroupObjects, exitGroupEditing,
     play, pause, undo, redo, markSaved, setPreviewMode, isPreviewMode,
     setCanvasDrawingMode,

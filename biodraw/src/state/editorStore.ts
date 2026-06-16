@@ -89,6 +89,7 @@ interface EditorState {
   }) => void;
 
   addSceneObject: (obj: SceneObject) => void;
+  addSceneObjects: (objs: SceneObject[]) => void;
   updateSceneObject: (id: string, updates: Partial<SceneObject>) => void;
   removeSceneObject: (id: string) => void;
   removeSceneObjects: (ids: string[]) => void;
@@ -600,6 +601,26 @@ export const useEditorStore = create<EditorState>()(
         }
         state.objects.push(next);
         state.selectedIds = [next.id];
+      }),
+
+    addSceneObjects: (objs) =>
+      set((state) => {
+        if (objs.length === 0) return;
+        pushHistory(state);
+        const newIds: string[] = [];
+        for (const obj of objs) {
+          const next: SceneObject = { ...obj };
+          if (!next.appearSegments || next.appearSegments.length === 0) {
+            next.appearSegments = [{
+              id: crypto.randomUUID(),
+              startMs: 0,
+              endMs: state.globalDurationMs,
+            }];
+          }
+          state.objects.push(next);
+          newIds.push(next.id);
+        }
+        state.selectedIds = newIds;
       }),
 
     removeSceneObject: (id) =>
@@ -1685,6 +1706,9 @@ export const useEditorStore = create<EditorState>()(
         state.canvasBgColor = snapshot.canvasBgColor ?? '#ffffff';
         state.selectedIds = [];
         state.applyAnimationFlashObjectIds = [];
+        state.groupEditingId = null;
+        state.previewClipId = null;
+        state.isPreviewMode = false;
         state.past = [];
         state.future = [];
         state.currentTimeMs = 0;

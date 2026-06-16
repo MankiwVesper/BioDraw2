@@ -269,15 +269,17 @@ export const buildAnimatedPreviewObjects = (
     const segmentClips = (clipsByObjectId.get(obj.id) || [])
       .filter((clip) => !activeSegmentId || !clip.segmentId || clip.segmentId === activeSegmentId);
 
-    // Compute active stateKey: walk all steps in all stateChange clips sorted by atMs,
-    // apply those that have fired by currentTimeMs.
+    // Compute active stateKey: merge steps from ALL stateChange clips and sort
+    // globally by atMs, then apply those that have fired by currentTimeMs.
+    // (Merging across clips—rather than per-clip—keeps the result correct even
+    // when a segment ends up with more than one stateChange clip.)
     let resolvedStateKey: string | undefined = undefined;
-    const stateClips = segmentClips.filter((clip): clip is StateChangeClip => clip.type === 'stateChange');
-    for (const clip of stateClips) {
-      const sortedSteps = [...clip.payload.steps].sort((a, b) => a.atMs - b.atMs);
-      for (const step of sortedSteps) {
-        if (currentTimeMs >= step.atMs) resolvedStateKey = step.toStateKey;
-      }
+    const stateSteps = segmentClips
+      .filter((clip): clip is StateChangeClip => clip.type === 'stateChange')
+      .flatMap((clip) => clip.payload.steps)
+      .sort((a, b) => a.atMs - b.atMs);
+    for (const step of stateSteps) {
+      if (currentTimeMs >= step.atMs) resolvedStateKey = step.toStateKey;
     }
 
     const clips = segmentClips
