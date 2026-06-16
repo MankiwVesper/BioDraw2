@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useEditorStore } from '../state/editorStore';
 import { downloadDocument } from '../infrastructure/documentSerializer';
+import { cloneDeep } from '../utils/clone';
 import type { SceneObject } from '../types';
 
 // 模块级剪贴板，跨渲染保持（支持多选）
@@ -120,7 +121,7 @@ export function useEditorKeyboard() {
         if (useEditorStore.getState().groupEditingId) return;
         clipboard = objectsRef.current
           .filter((o) => selectedAll.includes(o.id))
-          .map((o) => JSON.parse(JSON.stringify(o)));
+          .map((o) => cloneDeep(o));
         return;
       }
 
@@ -131,7 +132,7 @@ export function useEditorKeyboard() {
         const groupIdMap = new Map<string, string>();
         // 一次性批量加入，保证整次粘贴是单条历史记录（可一步 Undo）
         const pasted = clipboard.map((src) => {
-          const cloned = JSON.parse(JSON.stringify(src)) as SceneObject;
+          const cloned = cloneDeep(src);
           let newGroupId: string | undefined;
           if (src.groupId) {
             if (!groupIdMap.has(src.groupId)) groupIdMap.set(src.groupId, crypto.randomUUID());

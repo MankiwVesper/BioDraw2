@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { clamp01 } from '../../animation/easing';
 import type {
   AnimationClip,
   FadeClip,
@@ -42,7 +43,6 @@ interface KeyframeEditorProps {
 
 const MAX_KEYFRAMES = 4;
 
-const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 const clampPercent = (n: number) => Math.max(0, Math.min(100, n));
 
 const sortAndSanitize = <T extends { at: number }>(kfs: T[]): T[] => {

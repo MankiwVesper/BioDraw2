@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { clamp01, parseCubicBezier } from '../../animation/easing';
+import { cloneDeep } from '../../utils/clone';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
 import type { AnimationClip, AppearSegment, SceneObject, StateChangeClip } from '../../types';
 import { KeyframeEditor } from './KeyframeEditor';
@@ -1407,7 +1408,7 @@ export function TimelinePanel() {
 
   const duplicateClip = (clip: AnimationClip) => {
     ensurePausedForEdit();
-    const dup = JSON.parse(JSON.stringify(clip)) as AnimationClip;
+    const dup = cloneDeep(clip);
     dup.id = crypto.randomUUID();
     dup.startTimeMs = clip.startTimeMs + clip.durationMs;
     // 复制需仍归属同一段，并把时间夹到段范围内

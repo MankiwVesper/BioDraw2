@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { AnimationClip, AppearSegment, SceneObject } from '../types';
+import { cloneDeep } from '../utils/clone';
 
 const MAX_HISTORY = 50;
 
@@ -219,8 +220,6 @@ const generateFileName = () => {
   const ts = `${now.getFullYear()}${p(now.getMonth() + 1)}${p(now.getDate())}${p(now.getHours())}${p(now.getMinutes())}${p(now.getSeconds())}`;
   return `biodraw_${ts}.biodraw`;
 };
-
-const cloneDeep = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
 const toSnapshot = (state: EditorState): EditorSnapshot => ({
   objects: cloneDeep(state.objects),

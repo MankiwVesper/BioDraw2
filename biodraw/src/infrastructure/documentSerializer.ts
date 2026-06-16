@@ -1,4 +1,5 @@
 import type { AnimationClip, SceneObject } from '../types';
+import { cloneDeep } from '../utils/clone';
 
 const STORAGE_KEY = 'biodraw_autosave';
 const FILE_VERSION = 1;
@@ -27,8 +28,8 @@ export function serializeDocument(state: SerializableState): DocumentSnapshot {
   return {
     version: FILE_VERSION,
     savedAt: new Date().toISOString(),
-    objects: JSON.parse(JSON.stringify(state.objects)),
-    animations: JSON.parse(JSON.stringify(state.animations)),
+    objects: cloneDeep(state.objects),
+    animations: cloneDeep(state.animations),
     globalDurationMs: state.globalDurationMs,
     canvasWidth: state.canvasWidth,
     canvasHeight: state.canvasHeight,
