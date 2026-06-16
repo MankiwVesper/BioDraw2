@@ -2,6 +2,7 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState }
 import { createPortal } from 'react-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
+import { clamp01, parseCubicBezier } from '../../animation/easing';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
 import type { AnimationClip, AppearSegment, SceneObject, StateChangeClip } from '../../types';
 import { KeyframeEditor } from './KeyframeEditor';
@@ -14,7 +15,6 @@ const clampPositive = (value: number, fallback: number) => {
   return Math.max(1, value);
 };
 
-const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
 const clampBezierY = (value: number) => Math.max(-2, Math.min(2, value));
 const SNAP_DISTANCE_PX = 8;
 const CONFLICT_DOMAIN_ORDER = ['position', 'opacity', 'scale', 'rotation', 'state'];
@@ -79,15 +79,9 @@ const parseEasingControlPoints = (easing?: AnimationClip['easing']) => {
   const raw = easing || 'linear';
   const preset = findPresetByValue(raw);
   if (preset) return { points: [...preset.points] as [number, number, number, number] };
-  const matched = /^cubic-bezier\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)$/i.exec(raw);
-  if (matched) {
-    const x1 = clamp01(parseFloat(matched[1]));
-    const y1 = parseFloat(matched[2]);
-    const x2 = clamp01(parseFloat(matched[3]));
-    const y2 = parseFloat(matched[4]);
-    if (![x1, y1, x2, y2].some((v) => Number.isNaN(v))) {
-      return { points: [x1, y1, x2, y2] as [number, number, number, number] };
-    }
+  const bezier = parseCubicBezier(raw);
+  if (bezier) {
+    return { points: [bezier.x1, bezier.y1, bezier.x2, bezier.y2] as [number, number, number, number] };
   }
   return { points: [0, 0, 1, 1] as [number, number, number, number] };
 };

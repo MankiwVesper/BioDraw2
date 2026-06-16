@@ -1,18 +1,5 @@
 import type { AnimationClip, EasingType, SceneObject, StateChangeClip } from '../types';
-
-const clamp01 = (value: number) => Math.max(0, Math.min(1, value));
-
-const parseCubicBezierEasing = (easing?: EasingType) => {
-  if (!easing || !easing.startsWith('cubic-bezier(')) return null;
-  const matched = /^cubic-bezier\(\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*,\s*(-?\d*\.?\d+)\s*\)$/i.exec(easing);
-  if (!matched) return null;
-  const x1 = clamp01(parseFloat(matched[1]));
-  const y1 = parseFloat(matched[2]);
-  const x2 = clamp01(parseFloat(matched[3]));
-  const y2 = parseFloat(matched[4]);
-  if ([x1, y1, x2, y2].some((value) => Number.isNaN(value))) return null;
-  return { x1, y1, x2, y2 };
-};
+import { clamp01, parseCubicBezier } from './easing';
 
 const cubicBezierAt = (t: number, p1: number, p2: number) => {
   const oneMinusT = 1 - t;
@@ -44,7 +31,7 @@ const resolveCubicBezier = (p0: number, c1: number, c2: number, p1: number, t: n
 
 const applyEasing = (t: number, easing: EasingType = 'linear') => {
   const x = clamp01(t);
-  const cubicBezier = parseCubicBezierEasing(easing);
+  const cubicBezier = parseCubicBezier(easing);
   if (cubicBezier) {
     return solveCubicBezierY(x, cubicBezier.x1, cubicBezier.y1, cubicBezier.x2, cubicBezier.y2);
   }
