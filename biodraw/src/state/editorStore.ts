@@ -1786,6 +1786,8 @@ export const useEditorStore = create<EditorState>()(
         state.playbackStatus = 'stopped';
         state.selectedIds = [];
         state.applyAnimationFlashObjectIds = [];
+        // 撤销使文档相对上次保存发生了变化，应标记为未保存
+        state.hasUnsavedChanges = true;
       }),
 
     redo: () =>
@@ -1803,6 +1805,8 @@ export const useEditorStore = create<EditorState>()(
         state.playbackStatus = 'stopped';
         state.selectedIds = [];
         state.applyAnimationFlashObjectIds = [];
+        // 重做同样使文档相对上次保存发生了变化，应标记为未保存
+        state.hasUnsavedChanges = true;
       }),
   })),
 );

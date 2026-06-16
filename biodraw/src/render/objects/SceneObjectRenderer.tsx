@@ -91,7 +91,10 @@ export const SceneObjectRenderer = React.memo(function SceneObjectRenderer({ sce
       trRef.current.nodes([shapeRef.current]);
       trRef.current.getLayer()?.batchDraw();
     }
-  }, [isSelected, isGroupSelected, isEditingText, sceneObject.locked, sceneObject.type]);
+    // 依赖需覆盖 Transformer 渲染条件用到的全部门控值：渲染条件用的是
+    // (isEditingText ?? isEditing)，故 isEditing 也要在内，避免 isEditingText 为
+    // undefined 时 isEditing 翻转却不重新挂载节点。
+  }, [isSelected, isGroupSelected, isEditingText, isEditing, sceneObject.locked, sceneObject.type]);
 
   useEffect(() => {
     if (!isApplyFlash) {
