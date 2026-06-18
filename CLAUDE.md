@@ -39,7 +39,7 @@ pages / features
       ↓
     state          (src/state/editorStore.ts)
       ↓
-   domain          (src/types, src/domain — pure, no React/Konva/DOM)
+   domain          (pure logic — src/types, src/animation, src/utils; no React/Konva/DOM)
       ↓
 infrastructure     (src/infrastructure — serializer, video encoder)
 
@@ -73,7 +73,7 @@ render             (src/render — bridges domain↔Konva; depends on both domai
 
 **`src/infrastructure/documentSerializer.ts`** — Save/load `.biodraw` files (JSON), localStorage autosave. File format version is `FILE_VERSION = 1`.
 
-**`src/domain/clipFactory.ts`** — Pure factory for creating default `AnimationClip` instances per type.
+**Pure logic location** — There is no `src/domain/` directory; framework-free logic lives in `src/animation/` (`engine.ts` evaluates animations, `easing.ts` parses/solves easing) and `src/utils/` (`clone.ts`). Default `AnimationClip` instances are currently created by `createClip` inside `src/features/timeline-panel/TimelinePanel.tsx` — a known layering smell (clip construction lives in the UI), not yet extracted to a pure factory.
 
 ### Panel structure (`src/features/`)
 
@@ -105,7 +105,7 @@ Changes to these require browser regression testing (see `AGENTS.md` for Playwri
 ## Coding conventions
 
 - Implementation order for new features: **types → domain pure logic → state → render → feature UI → styles**
-- React components stay thin — business rules belong in `domain` or pure functions, not inside components
+- React components stay thin — business rules belong in pure functions (e.g. `src/animation`, `src/utils`), not inside components
 - Do not embed pathData algorithms or animation math directly in React components
 - Variable names reflect domain meaning: `selectedObjectIds`, `currentTimeMs`, `materialCatalog` — not generic names like `data`, `item`, `temp`
 - Commit messages in Chinese
