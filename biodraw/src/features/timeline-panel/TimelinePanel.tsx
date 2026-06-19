@@ -15,6 +15,7 @@ import {
   CURVE_VB,
 } from '../../animation/easing';
 import { buildClip, buildPresetClips } from '../../animation/clipFactory';
+import { getConflictDomain, sortConflictDomains, CONFLICT_DOMAIN_ORDER } from '../../animation/conflictDomain';
 import { cloneDeep } from '../../utils/clone';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
 import type { AnimationClip, AppearSegment, SceneObject, StateChangeClip } from '../../types';
@@ -29,7 +30,6 @@ const clampPositive = (value: number, fallback: number) => {
 };
 
 const SNAP_DISTANCE_PX = 8;
-const CONFLICT_DOMAIN_ORDER = ['position', 'opacity', 'scale', 'rotation', 'state'];
 
 const EASING_PRESET_OPTIONS = [
   { value: 'linear', label: '线性' },
@@ -183,17 +183,6 @@ function EasingCurve({ ex1, ey1, ex2, ey2, onDrag }: EasingCurveProps) {
   );
 }
 
-const getConflictDomain = (clipType: AnimationClip['type']) => {
-  switch (clipType) {
-    case 'move': case 'moveAlongPath': case 'polylineMove': case 'shake': return 'position';
-    case 'fade': return 'opacity';
-    case 'scale': return 'scale';
-    case 'rotate': return 'rotation';
-    case 'stateChange': return 'state';
-    default: return clipType;
-  }
-};
-
 const getConflictDomainLabel = (domain: string) => {
   switch (domain) {
     case 'position': return '位置';
@@ -204,12 +193,6 @@ const getConflictDomainLabel = (domain: string) => {
     default: return domain;
   }
 };
-
-const sortConflictDomains = (domains: string[]) =>
-  [...domains].sort((a, b) => {
-    const ai = CONFLICT_DOMAIN_ORDER.indexOf(a), bi = CONFLICT_DOMAIN_ORDER.indexOf(b);
-    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
-  });
 
 type ApplyTargetStatus = 'reuse-exact' | 'reuse-containing' | 'create' | 'conflict' | 'animation-conflict' | 'locked';
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { AnimationClip, AppearSegment, SceneObject } from '../types';
 import { cloneDeep } from '../utils/clone';
+import { getConflictDomain } from '../animation/conflictDomain';
 
 const MAX_HISTORY = 50;
 
@@ -342,26 +343,6 @@ const canApplyToTargetSegment = (
   );
 };
 
-const getApplyConflictDomain = (clipType: AnimationClip['type']) => {
-  switch (clipType) {
-    case 'move':
-    case 'moveAlongPath':
-    case 'polylineMove':
-    case 'shake':
-      return 'position';
-    case 'fade':
-      return 'opacity';
-    case 'scale':
-      return 'scale';
-    case 'rotate':
-      return 'rotation';
-    case 'stateChange':
-      return 'state';
-    default:
-      return clipType;
-  }
-};
-
 const getReusableTargetSegmentForApply = (
   obj: SceneObject,
   sourceSegment: AppearSegment,
@@ -383,12 +364,12 @@ const hasAnimationDomainConflict = (
   sourceClips: AnimationClip[],
   allClips: AnimationClip[],
 ) => {
-  const sourceDomains = new Set(sourceClips.map((clip) => getApplyConflictDomain(clip.type)));
+  const sourceDomains = new Set(sourceClips.map((clip) => getConflictDomain(clip.type)));
   return allClips.some((clip) => {
     if (clip.objectId !== targetObj.id) return false;
     const isSameSegment = clip.segmentId === targetSegment.id
       || (targetSegment.id === '__virtual__' && clip.segmentId === undefined);
-    return isSameSegment && sourceDomains.has(getApplyConflictDomain(clip.type));
+    return isSameSegment && sourceDomains.has(getConflictDomain(clip.type));
   });
 };
 
