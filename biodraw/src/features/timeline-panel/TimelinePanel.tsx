@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
 import { clamp01, parseCubicBezier } from '../../animation/easing';
+import { buildClip, buildPresetClips } from '../../animation/clipFactory';
 import { cloneDeep } from '../../utils/clone';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
 import type { AnimationClip, AppearSegment, SceneObject, StateChangeClip } from '../../types';
@@ -1309,41 +1310,15 @@ export function TimelinePanel() {
     if (!seg) return;
     const src = selectedObjectAtCurrentTime || selectedObject;
     const timing = clampClipTimingToSegment(seg, currentTimeMs, 1000);
-    const base = {
-      id: crypto.randomUUID(), objectId: selectedObject.id, type,
-      startTimeMs: timing.startTimeMs, durationMs: timing.durationMs,
-      easing: 'linear' as const, enabled: true,
+    const clip = buildClip({
+      type,
+      src,
+      objectId: selectedObject.id,
       segmentId: seg.id,
-    };
-    let clip: AnimationClip;
-    switch (type) {
-      case 'move':
-        clip = { ...base, type: 'move', payload: { fromX: src.x, fromY: src.y, toX: src.x + 120, toY: src.y + 80 } };
-        break;
-      case 'polylineMove':
-        clip = { ...base, type: 'polylineMove', payload: { fromX: src.x, fromY: src.y, midX: src.x + 60, midY: src.y - 80, toX: src.x + 120, toY: src.y } };
-        break;
-      case 'moveAlongPath':
-        clip = { ...base, type: 'moveAlongPath', payload: { fromX: src.x, fromY: src.y, control1X: src.x + 40, control1Y: src.y - 120, control2X: src.x + 120, control2Y: src.y - 80, toX: src.x + 160, toY: src.y } };
-        break;
-      case 'shake':
-        clip = { ...base, type: 'shake', payload: { baseX: src.x, baseY: src.y, amplitudeX: 16, amplitudeY: 8, frequency: 6, decay: 1 } };
-        break;
-      case 'fade':
-        clip = { ...base, type: 'fade', payload: { fromOpacity: src.opacity, toOpacity: Math.max(0.1, src.opacity * 0.4) } };
-        break;
-      case 'scale':
-        clip = { ...base, type: 'scale', payload: { fromScaleX: src.scaleX, fromScaleY: src.scaleY, toScaleX: src.scaleX * 1.2, toScaleY: src.scaleY * 1.2 } };
-        break;
-      case 'rotate':
-        clip = { ...base, type: 'rotate', payload: { fromRotation: src.rotation, toRotation: src.rotation + 90 } };
-        break;
-      default: {
-        const firstKey = Object.keys(selectedObject.stateVariants || {})[0] ?? '';
-        clip = { ...base, type: 'stateChange', durationMs: 1, payload: { steps: [{ atMs: timing.startTimeMs, toStateKey: firstKey }] } };
-        break;
-      }
-    }
+      timing,
+      createId: () => crypto.randomUUID(),
+      stateKeys: Object.keys(selectedObject.stateVariants || {}),
+    });
     addAnimationClip(clip);
     syncDurationIfNeeded(clip);
     setFlashClipId(clip.id);
@@ -1357,44 +1332,13 @@ export function TimelinePanel() {
     const seg = resolveSegmentForNewClip();
     if (!seg) return;
     const src = selectedObjectAtCurrentTime || selectedObject;
-    const created: AnimationClip[] = [];
-    if (template === 'fadeIn') {
-      created.push({ id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 700, easing: 'ease-out', enabled: true, payload: { fromOpacity: 0, toOpacity: clamp01(src.opacity) } });
-    }
-    if (template === 'bounceIn') {
-      created.push(
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'scale', startTimeMs: currentTimeMs, durationMs: 900, easing: 'cubic-bezier(0.2,0.9,0.2,1)', enabled: true, payload: { fromScaleX: src.scaleX * 0.45, fromScaleY: src.scaleY * 0.45, toScaleX: src.scaleX, toScaleY: src.scaleY, keyframes: [{ at: 0.55, scaleX: src.scaleX * 1.12, scaleY: src.scaleY * 1.12 }, { at: 0.78, scaleX: src.scaleX * 0.96, scaleY: src.scaleY * 0.96 }] } },
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 500, easing: 'ease-out', enabled: true, payload: { fromOpacity: 0, toOpacity: clamp01(src.opacity) } },
-      );
-    }
-    if (template === 'moveFadeIn') {
-      created.push(
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'move', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-out', enabled: true, payload: { fromX: src.x - 120, fromY: src.y, toX: src.x, toY: src.y } },
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-out', enabled: true, payload: { fromOpacity: 0, toOpacity: clamp01(src.opacity) } },
-      );
-    }
-    // ── 生物学场景模板 ──
-    if (template === 'fadeOut') {
-      created.push({ id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-in', enabled: true, payload: { fromOpacity: clamp01(src.opacity), toOpacity: 0 } });
-    }
-    if (template === 'crossMembrane') {
-      // 分子穿越膜结构：水平方向短弧穿越（控制点向上拱起）
-      created.push({ id: crypto.randomUUID(), objectId: selectedObject.id, type: 'moveAlongPath', startTimeMs: currentTimeMs, durationMs: 1200, easing: 'ease-in-out', enabled: true, payload: { fromX: src.x - 80, fromY: src.y, control1X: src.x - 27, control1Y: src.y - 40, control2X: src.x + 27, control2Y: src.y - 40, toX: src.x + 80, toY: src.y } });
-    }
-    if (template === 'endocytosis') {
-      // 胞吞入胞：物质从细胞外弧形进入细胞内（大弧 + 淡入）
-      created.push(
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'moveAlongPath', startTimeMs: currentTimeMs, durationMs: 1500, easing: 'ease-in-out', enabled: true, payload: { fromX: src.x, fromY: src.y - 120, control1X: src.x + 87, control1Y: src.y, control2X: src.x + 87, control2Y: src.y + 67, toX: src.x, toY: src.y + 80 } },
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 400, easing: 'ease-out', enabled: true, payload: { fromOpacity: 0, toOpacity: clamp01(src.opacity) } },
-      );
-    }
-    if (template === 'moveFadeOut') {
-      // 移动消失：向右平移同时淡出
-      created.push(
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'move', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-in', enabled: true, payload: { fromX: src.x, fromY: src.y, toX: src.x + 150, toY: src.y } },
-        { id: crypto.randomUUID(), objectId: selectedObject.id, type: 'fade', startTimeMs: currentTimeMs, durationMs: 800, easing: 'ease-in', enabled: true, payload: { fromOpacity: clamp01(src.opacity), toOpacity: 0 } },
-      );
-    }
+    const created = buildPresetClips({
+      template,
+      src,
+      objectId: selectedObject.id,
+      startTimeMs: currentTimeMs,
+      createId: () => crypto.randomUUID(),
+    });
     if (created.length === 0) return;
     // 全部 clip 一并夹到段范围内 + 设置 segmentId
     const adjusted = created.map((c) => {
