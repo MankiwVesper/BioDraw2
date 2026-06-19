@@ -2,7 +2,18 @@ import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState }
 import { createPortal } from 'react-dom';
 import { useEditorStore } from '../../state/editorStore';
 import { buildAnimatedPreviewObjects } from '../../animation/engine';
-import { clamp01, parseCubicBezier } from '../../animation/easing';
+import {
+  clamp01,
+  clampBezierY,
+  parseEasingControlPoints,
+  formatBezierValue,
+  buildBezierEasingValue,
+  getEasingPreviewPath,
+  getBezierSvgYBounds,
+  evalBezierPoint,
+  findCurveT,
+  CURVE_VB,
+} from '../../animation/easing';
 import { buildClip, buildPresetClips } from '../../animation/clipFactory';
 import { cloneDeep } from '../../utils/clone';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
@@ -17,15 +28,14 @@ const clampPositive = (value: number, fallback: number) => {
   return Math.max(1, value);
 };
 
-const clampBezierY = (value: number) => Math.max(-2, Math.min(2, value));
 const SNAP_DISTANCE_PX = 8;
 const CONFLICT_DOMAIN_ORDER = ['position', 'opacity', 'scale', 'rotation', 'state'];
 
 const EASING_PRESET_OPTIONS = [
-  { value: 'linear', label: '线性', points: [0, 0, 1, 1] as const },
-  { value: 'ease-in', label: '缓入', points: [0.42, 0, 1, 1] as const },
-  { value: 'ease-out', label: '缓出', points: [0, 0, 0.58, 1] as const },
-  { value: 'ease-in-out', label: '缓入缓出', points: [0.42, 0, 0.58, 1] as const },
+  { value: 'linear', label: '线性' },
+  { value: 'ease-in', label: '缓入' },
+  { value: 'ease-out', label: '缓出' },
+  { value: 'ease-in-out', label: '缓入缓出' },
 ] as const;
 type EasingPresetValue = (typeof EASING_PRESET_OPTIONS)[number]['value'];
 
@@ -74,55 +84,9 @@ const BATCH_STATE_OPTS: Array<{ value: '' | 'enabled' | 'disabled'; label: strin
 
 // ── 纯函数工具 ───────────────────────────────────────────────
 
-const findPresetByValue = (value: string) =>
-  EASING_PRESET_OPTIONS.find((item) => item.value === value);
-
-const parseEasingControlPoints = (easing?: AnimationClip['easing']) => {
-  const raw = easing || 'linear';
-  const preset = findPresetByValue(raw);
-  if (preset) return { points: [...preset.points] as [number, number, number, number] };
-  const bezier = parseCubicBezier(raw);
-  if (bezier) {
-    return { points: [bezier.x1, bezier.y1, bezier.x2, bezier.y2] as [number, number, number, number] };
-  }
-  return { points: [0, 0, 1, 1] as [number, number, number, number] };
-};
-
-const formatBezierValue = (value: number) => {
-  const rounded = Math.round(value * 1000) / 1000;
-  return Number(rounded.toFixed(3));
-};
-
-const buildBezierEasingValue = (x1: number, y1: number, x2: number, y2: number) =>
-  `cubic-bezier(${formatBezierValue(x1)},${formatBezierValue(y1)},${formatBezierValue(x2)},${formatBezierValue(y2)})` as AnimationClip['easing'];
-
 type BezierControlIndex = 0 | 1 | 2 | 3;
 type LabelTimeField = 'start' | 'end';
 type ClipTimeField = 'startTimeMs' | 'endTimeMs' | 'durationMs';
-
-const getEasingPreviewPath = (x1: number, y1: number, x2: number, y2: number) => {
-  const w = 88, h = 52, sx = 4, sy = h - 4, ex = w - 4, ey = 4;
-  const c1x = sx + (ex - sx) * x1, c1y = sy - (sy - ey) * y1;
-  const c2x = sx + (ex - sx) * x2, c2y = sy - (sy - ey) * y2;
-  return `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${ex} ${ey}`;
-};
-
-const CURVE_VB = { sx: 4, sy: 48, ex: 84, ey: 4, w: 80, h: 44 } as const;
-
-function getBezierSvgYBounds(ey1: number, ey2: number) {
-  const { sy, ey, h } = CURVE_VB;
-  const c1y = sy - h * ey1;
-  const c2y = sy - h * ey2;
-  let minY = Math.min(sy, ey), maxY = Math.max(sy, ey);
-  for (let i = 1; i <= 200; i++) {
-    const t = i / 200;
-    const mt = 1 - t;
-    const y = mt*mt*mt*sy + 3*mt*mt*t*c1y + 3*mt*t*t*c2y + t*t*t*ey;
-    if (y < minY) minY = y;
-    if (y > maxY) maxY = y;
-  }
-  return { minY, maxY };
-}
 
 function clientToSvgPoint(e: MouseEvent, svg: SVGSVGElement) {
   const ctm = svg.getScreenCTM();
@@ -130,28 +94,6 @@ function clientToSvgPoint(e: MouseEvent, svg: SVGSVGElement) {
   const pt = svg.createSVGPoint();
   pt.x = e.clientX; pt.y = e.clientY;
   return pt.matrixTransform(ctm.inverse());
-}
-
-function evalBezierPoint(t: number, ex1: number, ey1: number, ex2: number, ey2: number) {
-  const { sx, sy, ex, ey, w, h } = CURVE_VB;
-  const c1x = sx + w * ex1, c1y = sy - h * ey1;
-  const c2x = sx + w * ex2, c2y = sy - h * ey2;
-  const mt = 1 - t;
-  return {
-    x: mt*mt*mt*sx + 3*mt*mt*t*c1x + 3*mt*t*t*c2x + t*t*t*ex,
-    y: mt*mt*mt*sy + 3*mt*mt*t*c1y + 3*mt*t*t*c2y + t*t*t*ey,
-  };
-}
-
-function findCurveT(mx: number, my: number, ex1: number, ey1: number, ex2: number, ey2: number) {
-  let best = 0.5, bestD = Infinity;
-  for (let i = 1; i < 100; i++) {
-    const t = i / 100;
-    const p = evalBezierPoint(t, ex1, ey1, ex2, ey2);
-    const d = (p.x - mx) ** 2 + (p.y - my) ** 2;
-    if (d < bestD) { best = t; bestD = d; }
-  }
-  return best;
 }
 
 interface EasingCurveProps {
