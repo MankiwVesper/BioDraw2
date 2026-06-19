@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **New to this project?** Read `ARCHITECTURE.md` (repo root) first — a dense, code-free brief that builds the full mental model (what the app is, layered architecture, data model, key invariants, critical flows) so you don't have to read the whole codebase. This file (CLAUDE.md) covers working conventions; `ARCHITECTURE.md` covers how the system is built.
+
 ## Repository Layout
 
 The actual application source lives in the `biodraw/` subdirectory. All development work happens there; this root directory is the git workspace. Key root-level items:
@@ -71,7 +73,7 @@ render             (src/render — bridges domain↔Konva; depends on both domai
 
 **`src/render/objects/SceneObjectRenderer.tsx`** — The only component that maps `SceneObject` types to Konva nodes.
 
-**`src/infrastructure/documentSerializer.ts`** — Save/load `.biodraw` files (JSON), localStorage autosave. File format version is `FILE_VERSION = 1`.
+**`src/infrastructure/documentSerializer.ts`** — Save/load `.biodraw` files (JSON) using the flat `DocumentSnapshot` shape. File format version is `FILE_VERSION = 1`. (The `biodraw_autosave` localStorage key is dead code — only cleared, never written; real autosave is `useCloudSave` + Supabase, debounced.)
 
 **Pure logic location** — There is no `src/domain/` directory; framework-free logic lives in `src/animation/` (`engine.ts` evaluates animations, `easing.ts` parses/solves easing) and `src/utils/` (`clone.ts`). Default `AnimationClip` instances are currently created by `createClip` inside `src/features/timeline-panel/TimelinePanel.tsx` — a known layering smell (clip construction lives in the UI), not yet extracted to a pure factory.
 
