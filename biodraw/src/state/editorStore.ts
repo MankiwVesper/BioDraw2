@@ -1078,8 +1078,9 @@ export const useEditorStore = create<EditorState>()(
     removeAnimationClips: (ids) =>
       set((state) => {
         if (ids.length === 0) return;
-        pushHistory(state);
         const idSet = new Set(ids);
+        if (!state.animations.some((a) => idSet.has(a.id))) return;
+        pushHistory(state);
         for (const id of ids) {
           const clip = state.animations.find((a) => a.id === id);
           if (clip) {

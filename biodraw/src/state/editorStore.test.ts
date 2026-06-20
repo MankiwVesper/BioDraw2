@@ -145,6 +145,21 @@ describe('animationIds 反规范化索引同步', () => {
     expect(get().past).toHaveLength(0);
     expect(get().hasUnsavedChanges).toBe(false);
   });
+
+  it('removeAnimationClips 传入全不存在的 ids 是 no-op（不留历史、不标脏）', () => {
+    setObjects(makeObj('A'));
+    get().removeAnimationClips(['nope1', 'nope2']);
+    expect(get().past).toHaveLength(0);
+    expect(get().hasUnsavedChanges).toBe(false);
+  });
+
+  it('removeAnimationClips 部分存在时仍删除存在的、忽略不存在的', () => {
+    setObjects(makeObj('A'));
+    get().addAnimationClip(makeClip('c1', 'A'));
+    get().removeAnimationClips(['c1', 'nope']);
+    expect(get().animations).toHaveLength(0);
+    expect(get().objects[0].animationIds).not.toContain('c1');
+  });
 });
 
 describe('新对象与锁定保护', () => {
