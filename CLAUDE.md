@@ -22,9 +22,10 @@ npm.cmd run build    # tsc -b && vite build
 npm.cmd run lint     # ESLint
 npm.cmd run check    # lint + build (run before every commit)
 npm.cmd run preview  # Serve production build locally
+npm.cmd run test     # Vitest — unit tests for the pure-logic layer
 ```
 
-No test framework is configured. `npm.cmd run check` is the pre-commit gate.
+Pre-commit gate: `npm.cmd run check` (lint + build). For changes to the pure-logic layer (`src/animation/*`, `src/utils/*`, serializer), also run `npm.cmd run test`. Vitest is configured (node env, `vitest.config.ts`) and covers `engine` / `easing` / `clipFactory` / `conflictDomain` / `documentSerializer` / `clone`; tests are colocated as `*.test.ts` and excluded from the production build. React/Konva components are not unit-tested (browser-regression territory).
 
 If PowerShell execution policy blocks `npm`, use `npm.cmd` explicitly.
 

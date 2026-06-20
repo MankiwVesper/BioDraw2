@@ -12,11 +12,12 @@
 
 **用户主流程**：素材(Materials) → 画布(Canvas) → 动画(Animation) → 预览(Preview) → 导出(Export)。
 
-**技术栈**：React + TypeScript + Vite；Konva/react-konva 画布渲染；Zustand + Immer 状态；Supabase 账号与项目云存储；WebCodecs 视频编码。无测试框架。
+**技术栈**：React + TypeScript + Vite；Konva/react-konva 画布渲染；Zustand + Immer 状态；Supabase 账号与项目云存储；WebCodecs 视频编码。**Vitest** 单测（仅覆盖纯逻辑层，见 §12）。
 
 **仓库布局**：应用源码在 `biodraw/` 子目录，所有 `npm` 命令在那里跑（用 `npm.cmd`）。仓库根目录是工作区（放 CLAUDE.md/AGENTS.md 等）。
 
-**常用命令**（在 `biodraw/` 下）：`npm.cmd run dev`（HMR 开发服 http://localhost:5173/）、`npm.cmd run check`（lint+build，**提交前必跑的门**）、`npm.cmd run build`、`npm.cmd run preview`。
+**常用命令**（在 `biodraw/` 下）：`npm.cmd run dev`（HMR 开发服 http://localhost:5173/）、`npm.cmd run check`（lint+build，**提交前必跑的门**）、`npm.cmd run test`（Vitest 纯逻辑单测）、`npm.cmd run build`、`npm.cmd run preview`。
+> npm 遇用户目录权限问题时，把缓存固定到项目目录：`$env:npm_config_cache='D:\Project\BioDraw2\.codex\npm-cache'`（见 AGENTS.md）。
 
 ---
 
@@ -144,3 +145,13 @@ pages / features          UI 组件（页面、五大面板）
 - **Konva 不止 render 用**：CanvasPanel/useVideoExport 也直接操作（见 §2 例外）。
 - **Phase 4 几何未抽出**：`SceneObjectRenderer` 里的箭头/曲线/标签几何数学仍在组件内（A1 计划判定高风险、本轮未做）。
 - **CLAUDE.md 个别描述偏理想化/偏旧**（如上述 localStorage、Konva 措辞）；冲突时以本文件与源码为准。
+
+---
+
+## 12. 测试（Vitest，纯逻辑层）
+
+- 运行：`npm.cmd run test`（`vitest run`，node 环境，配置在 `vitest.config.ts`）；`npm.cmd run test:watch` 监听模式。
+- 测试文件 `*.test.ts` 与源码同目录，**已排除出生产构建**（`tsconfig.app.json` 的 `exclude`），不影响 `npm run check`。
+- **覆盖范围（只测纯逻辑，不碰 React/Konva/DOM）**：`animation/engine`（求值、出现窗口、缓动、**stateChange 全局时间序回归**）、`animation/easing`、`animation/clipFactory`、`animation/conflictDomain`、`infrastructure/documentSerializer`（序列化往返/校验，用 `FileReader` shim 绕过 node 无该 API）、`utils/clone`。
+- **未覆盖**：组件、store 不变量（group/图层/undo）、画布/导出——属浏览器回归范畴，后续可单独建 store 单测与 Playwright 骨架。
+- 这批测试反向锁住了第二大轮修复的多个行为（B5 状态序、A2 缓动、序列化往返等），改坏即红。
