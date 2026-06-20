@@ -112,11 +112,27 @@ describe('buildAnimatedPreviewObjects — 其它位置插值与缓动', () => {
     expect(buildAnimatedPreviewObjects([obj], anims, 1500)[0].x).toBeCloseTo(100);
   });
 
-  it('ease-in 缓动影响插值（中点 = 0.25 而非 0.5）', () => {
+  const moveWith = (easing: AnimationClip['easing']): AnimationClip[] => [
+    { id: 'm', objectId: 'o1', type: 'move', startTimeMs: 0, durationMs: 1000, easing, payload: { fromX: 0, fromY: 0, toX: 100, toY: 0 } },
+  ];
+
+  it.each([
+    ['ease-in', 'cubic-bezier(0.42,0,1,1)'],
+    ['ease-out', 'cubic-bezier(0,0,0.58,1)'],
+    ['ease-in-out', 'cubic-bezier(0.42,0,0.58,1)'],
+  ] as const)('命名预设 %s 求值 = 其 cubic-bezier %s（与曲线编辑器一致）', (named, bezier) => {
     const obj = makeObj();
-    const anims: AnimationClip[] = [
-      { id: 'm', objectId: 'o1', type: 'move', startTimeMs: 0, durationMs: 1000, easing: 'ease-in', payload: { fromX: 0, fromY: 0, toX: 100, toY: 0 } },
-    ];
-    expect(buildAnimatedPreviewObjects([obj], anims, 500)[0].x).toBeCloseTo(25);
+    for (const t of [250, 500, 750]) {
+      const a = buildAnimatedPreviewObjects([obj], moveWith(named), t)[0].x;
+      const b = buildAnimatedPreviewObjects([obj], moveWith(bezier), t)[0].x;
+      expect(a).toBeCloseTo(b);
+    }
+  });
+
+  it('ease-in 慢起步：中点位移低于线性的 50', () => {
+    const obj = makeObj();
+    const x = buildAnimatedPreviewObjects([obj], moveWith('ease-in'), 500)[0].x;
+    expect(x).toBeGreaterThan(0);
+    expect(x).toBeLessThan(50);
   });
 });

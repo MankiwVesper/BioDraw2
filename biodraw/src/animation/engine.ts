@@ -1,5 +1,5 @@
 import type { AnimationClip, EasingType, SceneObject, StateChangeClip } from '../types';
-import { clamp01, parseCubicBezier } from './easing';
+import { clamp01, parseEasingControlPoints } from './easing';
 
 const cubicBezierAt = (t: number, p1: number, p2: number) => {
   const oneMinusT = 1 - t;
@@ -31,21 +31,12 @@ const resolveCubicBezier = (p0: number, c1: number, c2: number, p1: number, t: n
 
 const applyEasing = (t: number, easing: EasingType = 'linear') => {
   const x = clamp01(t);
-  const cubicBezier = parseCubicBezier(easing);
-  if (cubicBezier) {
-    return solveCubicBezierY(x, cubicBezier.x1, cubicBezier.y1, cubicBezier.x2, cubicBezier.y2);
-  }
-  switch (easing) {
-    case 'ease-in':
-      return x * x;
-    case 'ease-out':
-      return 1 - (1 - x) * (1 - x);
-    case 'ease-in-out':
-      return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
-    case 'linear':
-    default:
-      return x;
-  }
+  if (easing === 'linear') return x;
+  // 命名预设（ease-in/out/in-out）与自定义 cubic-bezier 统一走时间轴曲线编辑器
+  // 同一套控制点解析（parseEasingControlPoints）+ 贝塞尔求解，保证"所见即所播"；
+  // 无法识别的 easing 串会回退为线性 [0,0,1,1]。
+  const [x1, y1, x2, y2] = parseEasingControlPoints(easing).points;
+  return solveCubicBezierY(x, x1, y1, x2, y2);
 };
 
 const lerp = (from: number, to: number, t: number) => from + (to - from) * t;
