@@ -138,6 +138,13 @@ describe('animationIds 反规范化索引同步', () => {
     expect(get().objects).toHaveLength(0);
     expect(get().animations).toHaveLength(0);
   });
+
+  it('removeAnimationClip 删除不存在的 clip 是 no-op（不留历史、不标脏）', () => {
+    setObjects(makeObj('A'));
+    get().removeAnimationClip('nope');
+    expect(get().past).toHaveLength(0);
+    expect(get().hasUnsavedChanges).toBe(false);
+  });
 });
 
 describe('新对象与锁定保护', () => {

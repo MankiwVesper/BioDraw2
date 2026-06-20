@@ -1065,13 +1065,12 @@ export const useEditorStore = create<EditorState>()(
 
     removeAnimationClip: (id) =>
       set((state) => {
-        pushHistory(state);
         const clip = state.animations.find((a) => a.id === id);
-        if (clip) {
-          const obj = state.objects.find((o) => o.id === clip.objectId);
-          if (obj) {
-            obj.animationIds = (obj.animationIds || []).filter((cid) => cid !== id);
-          }
+        if (!clip) return;
+        pushHistory(state);
+        const obj = state.objects.find((o) => o.id === clip.objectId);
+        if (obj) {
+          obj.animationIds = (obj.animationIds || []).filter((cid) => cid !== id);
         }
         state.animations = state.animations.filter((a) => a.id !== id);
       }),
