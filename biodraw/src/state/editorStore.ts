@@ -1792,6 +1792,6 @@ export const useEditorStore = create<EditorState>()(
   })),
 );
 
-if (import.meta.env.DEV) {
+if (import.meta.env.DEV && typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).__store = useEditorStore;
 }
