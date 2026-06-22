@@ -17,6 +17,7 @@ import {
 import { buildClip, buildPresetClips } from '../../animation/clipFactory';
 import { getConflictDomain, sortConflictDomains, CONFLICT_DOMAIN_ORDER } from '../../animation/conflictDomain';
 import { cloneDeep } from '../../utils/clone';
+import { createId } from '../../utils/id';
 import { useNumberInputWheelEdit } from '../../hooks/useNumberInputWheelEdit';
 import type { AnimationClip, AppearSegment, SceneObject, StateChangeClip } from '../../types';
 import { KeyframeEditor } from './KeyframeEditor';
@@ -710,7 +711,7 @@ export function TimelinePanel() {
       (s) => s.id !== '__virtual__' && Math.max(s.startMs, startMs) < Math.min(s.endMs, endMs),
     );
     if (overlap) return;
-    const id = crypto.randomUUID();
+    const id = createId();
     ensurePausedForEdit();
     addAppearSegment(selectedObject.id, { id, startMs, endMs });
     setSelectedSegmentIds([id]);
@@ -1241,7 +1242,7 @@ export function TimelinePanel() {
       objectId: selectedObject.id,
       segmentId: seg.id,
       timing,
-      createId: () => crypto.randomUUID(),
+      createId,
       stateKeys: Object.keys(selectedObject.stateVariants || {}),
     });
     addAnimationClip(clip);
@@ -1262,7 +1263,7 @@ export function TimelinePanel() {
       src,
       objectId: selectedObject.id,
       startTimeMs: currentTimeMs,
-      createId: () => crypto.randomUUID(),
+      createId,
     });
     if (created.length === 0) return;
     // 全部 clip 一并夹到段范围内 + 设置 segmentId
@@ -1278,7 +1279,7 @@ export function TimelinePanel() {
   const duplicateClip = (clip: AnimationClip) => {
     ensurePausedForEdit();
     const dup = cloneDeep(clip);
-    dup.id = crypto.randomUUID();
+    dup.id = createId();
     dup.startTimeMs = clip.startTimeMs + clip.durationMs;
     // 复制需仍归属同一段，并把时间夹到段范围内
     const seg = effectiveSegments.find((s) => s.id === clip.segmentId);

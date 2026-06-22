@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useEditorStore } from '../state/editorStore';
 import { downloadDocument } from '../infrastructure/documentSerializer';
 import { cloneDeep } from '../utils/clone';
+import { createId } from '../utils/id';
 import type { SceneObject } from '../types';
 
 // 模块级剪贴板，跨渲染保持（支持多选）
@@ -135,17 +136,17 @@ export function useEditorKeyboard() {
           const cloned = cloneDeep(src);
           let newGroupId: string | undefined;
           if (src.groupId) {
-            if (!groupIdMap.has(src.groupId)) groupIdMap.set(src.groupId, crypto.randomUUID());
+            if (!groupIdMap.has(src.groupId)) groupIdMap.set(src.groupId, createId());
             newGroupId = groupIdMap.get(src.groupId);
           }
           return {
             ...cloned,
-            id: crypto.randomUUID(),
+            id: createId(),
             x: src.x + 20,
             y: src.y + 20,
             animationIds: [],
             groupId: newGroupId,
-            appearSegments: cloned.appearSegments?.map((seg) => ({ ...seg, id: crypto.randomUUID() })),
+            appearSegments: cloned.appearSegments?.map((seg) => ({ ...seg, id: createId() })),
           } satisfies SceneObject;
         });
         addSceneObjects(pasted);

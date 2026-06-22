@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { AnimationClip, AppearSegment, SceneObject } from '../types';
 import { cloneDeep } from '../utils/clone';
+import { createId } from '../utils/id';
 import { getConflictDomain } from '../animation/conflictDomain';
 
 const MAX_HISTORY = 50;
@@ -286,7 +287,7 @@ const getObjectSegment = (obj: SceneObject, segmentId: string, fallbackEndMs: nu
 const ensureSegments = (obj: SceneObject, fallbackEndMs: number) => {
   if (obj.appearSegments) return obj.appearSegments;
   obj.appearSegments = [{
-    id: crypto.randomUUID(),
+    id: createId(),
     startMs: obj.appearStartMs ?? 0,
     endMs: obj.appearEndMs ?? fallbackEndMs,
   }];
@@ -315,7 +316,7 @@ const resolveTargetSegmentForApply = (
   if (hasPartialOverlap) return { segment: null, skipped: true };
 
   const nextSegment = {
-    id: crypto.randomUUID(),
+    id: createId(),
     startMs: sourceSegment.startMs,
     endMs: sourceSegment.endMs,
   };
@@ -407,7 +408,7 @@ const buildAppliedClip = (
       const base = cloneDeep(clip);
       return {
         ...base,
-        id: crypto.randomUUID(),
+        id: createId(),
         objectId: targetObj.id,
         segmentId: targetSegmentId,
         payload: {
@@ -424,7 +425,7 @@ const buildAppliedClip = (
       const base = cloneDeep(clip);
       return {
         ...base,
-        id: crypto.randomUUID(),
+        id: createId(),
         objectId: targetObj.id,
         segmentId: targetSegmentId,
         payload: {
@@ -442,7 +443,7 @@ const buildAppliedClip = (
       const base = cloneDeep(clip);
       return {
         ...base,
-        id: crypto.randomUUID(),
+        id: createId(),
         objectId: targetObj.id,
         segmentId: targetSegmentId,
         payload: {
@@ -462,7 +463,7 @@ const buildAppliedClip = (
       const base = cloneDeep(clip);
       return {
         ...base,
-        id: crypto.randomUUID(),
+        id: createId(),
         objectId: targetObj.id,
         segmentId: targetSegmentId,
         payload: {
@@ -476,7 +477,7 @@ const buildAppliedClip = (
       const base = cloneDeep(clip);
       return {
         ...base,
-        id: crypto.randomUUID(),
+        id: createId(),
         objectId: targetObj.id,
         segmentId: targetSegmentId,
         payload: {
@@ -493,7 +494,7 @@ const buildAppliedClip = (
       const base = cloneDeep(clip);
       return {
         ...base,
-        id: crypto.randomUUID(),
+        id: createId(),
         objectId: targetObj.id,
         segmentId: targetSegmentId,
         payload: {
@@ -507,7 +508,7 @@ const buildAppliedClip = (
     default:
       return {
         ...cloneDeep(clip),
-        id: crypto.randomUUID(),
+        id: createId(),
         objectId: targetObj.id,
         segmentId: targetSegmentId,
       };
@@ -574,7 +575,7 @@ export const useEditorStore = create<EditorState>()(
         const next: SceneObject = { ...obj };
         if (!next.appearSegments || next.appearSegments.length === 0) {
           next.appearSegments = [{
-            id: crypto.randomUUID(),
+            id: createId(),
             startMs: 0,
             endMs: state.globalDurationMs,
           }];
@@ -592,7 +593,7 @@ export const useEditorStore = create<EditorState>()(
           const next: SceneObject = { ...obj };
           if (!next.appearSegments || next.appearSegments.length === 0) {
             next.appearSegments = [{
-              id: crypto.randomUUID(),
+              id: createId(),
               startMs: 0,
               endMs: state.globalDurationMs,
             }];
@@ -963,7 +964,7 @@ export const useEditorStore = create<EditorState>()(
         }
         if (maxMemberIdx === -1) return;
         pushHistory(state);
-        const groupId = crypto.randomUUID();
+        const groupId = createId();
         // 被选中成员原本所属的旧组（组合后用于清理被拆散的孤儿组）
         const affectedOldGroupIds = new Set(
           state.objects
@@ -1120,7 +1121,7 @@ export const useEditorStore = create<EditorState>()(
           for (const clip of sourceClips) {
             const newClip: AnimationClip = {
               ...cloneDeep(clip),
-              id: crypto.randomUUID(),
+              id: createId(),
               objectId: targetId,
               // 不沿用源对象的 segmentId（目标对象的段集合不同）；若需要落入段内由调用方后续 clamp。
               segmentId: undefined,
@@ -1603,7 +1604,7 @@ export const useEditorStore = create<EditorState>()(
         pushHistory(state);
         const newObj: SceneObject = {
           ...cloneDeep(src),
-          id: crypto.randomUUID(),
+          id: createId(),
           x: src.x + 20,
           y: src.y + 20,
           animationIds: [],
@@ -1611,7 +1612,7 @@ export const useEditorStore = create<EditorState>()(
           // 段集合需要重新分配 id（避免与源对象段 id 冲突，便于后续归属判断）
           appearSegments: (src.appearSegments ?? []).map((s) => ({
             ...s,
-            id: crypto.randomUUID(),
+            id: createId(),
           })),
         };
         state.objects.push(newObj);
@@ -1631,19 +1632,19 @@ export const useEditorStore = create<EditorState>()(
         for (const src of srcs) {
           let newGroupId: string | undefined;
           if (src.groupId) {
-            if (!groupIdMap.has(src.groupId)) groupIdMap.set(src.groupId, crypto.randomUUID());
+            if (!groupIdMap.has(src.groupId)) groupIdMap.set(src.groupId, createId());
             newGroupId = groupIdMap.get(src.groupId);
           }
           const newObj: SceneObject = {
             ...cloneDeep(src),
-            id: crypto.randomUUID(),
+            id: createId(),
             x: src.x + 20,
             y: src.y + 20,
             animationIds: [],
             groupId: newGroupId,
             appearSegments: (src.appearSegments ?? []).map((s) => ({
               ...s,
-              id: crypto.randomUUID(),
+              id: createId(),
             })),
           };
           state.objects.push(newObj);
@@ -1746,7 +1747,7 @@ export const useEditorStore = create<EditorState>()(
         if (obj.appearSegments && obj.appearSegments.length > 0) return;
         // 兼容旧数据：根据 appearStartMs/appearEndMs 落地为单段；都缺省时用 [0, fallback]
         obj.appearSegments = [{
-          id: crypto.randomUUID(),
+          id: createId(),
           startMs: obj.appearStartMs ?? 0,
           endMs: obj.appearEndMs ?? fallbackEndMs,
         }];

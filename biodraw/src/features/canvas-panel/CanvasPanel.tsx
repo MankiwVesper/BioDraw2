@@ -13,6 +13,7 @@ import './CanvasPanel.css';
 import { useVideoExport } from './useVideoExport';
 import { thumbnailCapture } from '../../infrastructure/thumbnailCapture';
 import { buildZipBlob } from '../../infrastructure/zipExport';
+import { createId } from '../../utils/id';
 
 type SnapLine = { axis: 'x' | 'y'; value: number; source: 'canvas' | 'object' };
 
@@ -662,7 +663,7 @@ export function CanvasPanel() {
       const y = (rawY - stagePos.y) / stageScale;
 
       const newObj: SceneObject = {
-        id: crypto.randomUUID(),
+        id: createId(),
         type: data.type || 'material',
         name: makeUniqueName(data.name, objects.map((o) => o.name), ''),
         materialId: data.materialId,
