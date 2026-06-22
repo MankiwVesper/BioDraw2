@@ -1,0 +1,125 @@
+/* ============================================================
+   BioDraw v2 视觉刷新 · token 层(方向 A「精炼中性」)
+   ------------------------------------------------------------
+   仅在 <html data-ui="v2"> 下生效;默认态(无该属性)完全不受影响。
+   选择器用 :root[data-ui="v2"](特异性 0,2,0)以覆盖 index.css 的 :root。
+   设计依据:biodraw/.agents/ui-redesign/v2-visual-refresh-design.md
+   ============================================================ */
+
+:root[data-ui="v2"] {
+  /* ── Tier 1 · Palette(原始值,组件不直接用)──────────── */
+  /* 中性冷灰阶 */
+  --gray-0: #ffffff;
+  --gray-50: #f8fafc;
+  --gray-100: #f3f4f6;
+  --gray-150: #eceef1;
+  --gray-200: #e3e6ea;
+  --gray-300: #d7dbe0;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #344054;
+  --gray-800: #1f2430;
+  --gray-900: #0f172a;
+
+  /* 蓝(主色)*/
+  --blue-50: #eff6ff;
+  --blue-100: #dbeafe;
+  --blue-500: #3b82f6;
+  --blue-600: #2563eb;
+  --blue-700: #1d4ed8;
+
+  /* 语义原色 */
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --amber-500: #f59e0b;
+  --amber-600: #d97706;
+  --red-50: #fef2f2;
+  --red-100: #fee2e2;
+  --red-200: #fca5a5;
+  --red-500: #ef4444;
+  --red-600: #b91c1c;
+  --red-700: #be123c;
+  --bio-500: #10b981;
+  --bio-600: #059669;
+
+  /* 8 类型色(固化现有值,不变 hue)*/
+  --type-move: #3b82f6;
+  --type-polylineMove: #6366f1;
+  --type-moveAlongPath: #06b6d4;
+  --type-fade: #8b5cf6;
+  --type-scale: #10b981;
+  --type-rotate: #f59e0b;
+  --type-shake: #ef4444;
+  --type-stateChange: #8b5cf6;
+
+  /* ── Tier 2 · Semantic(组件只用这层)─────────────────── */
+  --bg-app: var(--gray-100);
+  --bg-panel: var(--gray-0);
+  --bg-subtle: var(--gray-50);
+
+  --fg-default: var(--gray-800);
+  --fg-muted: var(--gray-500);
+  --fg-subtle: var(--gray-400);
+
+  --border-default: var(--gray-200);
+  --border-strong: var(--gray-300);
+
+  --primary: var(--blue-500);
+  --primary-strong: var(--blue-600);
+  --primary-fg: #ffffff;
+  --primary-tint-weak: rgba(59, 130, 246, 0.05);
+  --primary-tint: rgba(59, 130, 246, 0.08);
+  --primary-tint-strong: rgba(59, 130, 246, 0.14);
+  --focus-ring: 0 0 0 2px rgba(59, 130, 246, 0.20);
+
+  --success: var(--green-500);
+  --success-strong: var(--green-600);
+  --warning: var(--amber-500);
+  --warning-strong: var(--amber-600);
+  --danger: var(--red-500);
+  --danger-strong: var(--red-600);
+  --danger-bg: var(--red-50);
+  --danger-bg-strong: var(--red-100);
+  --danger-border: var(--red-200);
+
+  --seg-window-bg: rgba(34, 197, 94, 0.22);
+  --seg-window-border: var(--green-500);
+
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 14px rgba(15, 23, 42, 0.10);
+  --shadow-lg: 0 6px 20px rgba(15, 23, 42, 0.12);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-pill: 999px;
+
+  --fs-xs: 11px;
+  --fs-sm: 12px;
+  --fs-base: 13px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+
+  --font-sans: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+
+  --dur-fast: 0.12s;
+  --dur-base: 0.2s;
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── 旧变量重映射(使已用 var() 的样式自动翻新)──────── */
+  --bg-color: var(--bg-app);
+  --panel-bg: var(--bg-panel);
+  --border-color: var(--border-default);
+  --text-main: var(--fg-default);
+  --text-muted: var(--fg-muted);
+  --primary-color: var(--primary);
+  --primary-hover: var(--primary-strong);
+  --radius: var(--radius-md);
+}
+
+/* body 字体只在 v2 下切到 Inter;默认态仍走 index.css 的系统栈 */
+:root[data-ui="v2"] body {
+  font-family: var(--font-sans);
+}
