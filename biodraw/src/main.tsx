@@ -6,9 +6,9 @@ import './index.css'
 import './styles/theme-v2.css'
 import App from './App.tsx'
 
-// v2 视觉刷新开关:?ui=v2 时给 <html> 挂 data-ui="v2",令 token 层接管;
-// 不命中则不设属性,默认 UI 完全不受影响。
-if (new URLSearchParams(window.location.search).get('ui') === 'v2') {
+// v2 视觉刷新现为默认主题:给 <html> 挂 data-ui="v2" 令 token 层接管。
+// 逃生开关:?ui=legacy 时不挂属性,回退到旧 UI(走 var 回退值)。
+if (new URLSearchParams(window.location.search).get('ui') !== 'legacy') {
   document.documentElement.dataset.ui = 'v2'
 }
 
