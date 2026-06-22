@@ -2568,7 +2568,7 @@ export function TimelinePanel() {
                       position: 'absolute', top: '100%', left: 0, right: 'calc(-100% - 4px)', zIndex: 200,
                       background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                       borderRadius: 6, padding: '6px 8px',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                      boxShadow: 'var(--shadow-md, 0 4px 16px rgba(0,0,0,0.25))', marginTop: 4,
                       display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2608,7 +2608,7 @@ export function TimelinePanel() {
                         />
                       </div>
                       {addSegmentInputError && (
-                        <div style={{ fontSize: 11, color: '#ef4444' }}>{addSegmentInputError}</div>
+                        <div style={{ fontSize: 11, color: 'var(--danger, #ef4444)' }}>{addSegmentInputError}</div>
                       )}
                       <button
                         disabled={!!addSegmentInputError}
@@ -2639,7 +2639,7 @@ export function TimelinePanel() {
                       position: 'absolute', top: '100%', right: 0, zIndex: 200,
                       background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                       borderRadius: 6, padding: 10,
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                      boxShadow: 'var(--shadow-md, 0 4px 16px rgba(0,0,0,0.25))', marginTop: 4,
                       whiteSpace: 'nowrap',
                     }}>
                       <div style={{ fontSize: 12, color: 'var(--text-main)', marginBottom: 8 }}>
@@ -2659,7 +2659,7 @@ export function TimelinePanel() {
                         <button
                           className="tl-btn tl-btn-sm"
                           onClick={submitDeleteSegments}
-                          style={{ flex: 1, background: '#ef4444', color: '#fff', border: 'none' }}
+                          style={{ flex: 1, background: 'var(--danger, #ef4444)', color: '#fff', border: 'none' }}
                         >
                           删除
                         </button>
@@ -2862,7 +2862,7 @@ export function TimelinePanel() {
                     position: 'absolute', top: '100%', right: 0, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: 8, width: 156,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                    boxShadow: 'var(--shadow-md, 0 4px 16px rgba(0,0,0,0.25))', marginTop: 4,
                     display: 'flex', flexDirection: 'column', gap: 4, boxSizing: 'border-box',
                   }}>
                     <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
@@ -2903,7 +2903,7 @@ export function TimelinePanel() {
                       }}
                       style={{
                         width: '100%', height: 26,
-                        background: batchDeleteSelectedIds.length === 0 ? 'var(--bg-color)' : '#ef4444',
+                        background: batchDeleteSelectedIds.length === 0 ? 'var(--bg-color)' : 'var(--danger, #ef4444)',
                         color: batchDeleteSelectedIds.length === 0 ? 'var(--text-muted)' : '#fff',
                         border: batchDeleteSelectedIds.length === 0 ? '1px solid var(--border-color)' : 'none',
                         borderRadius: 5, cursor: batchDeleteSelectedIds.length === 0 ? 'not-allowed' : 'pointer',
@@ -2935,7 +2935,7 @@ export function TimelinePanel() {
                     position: 'absolute', top: '100%', right: 0, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: 8, width: 240, height: 160,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                    boxShadow: 'var(--shadow-md, 0 4px 16px rgba(0,0,0,0.25))', marginTop: 4,
                     display: 'flex', flexDirection: 'row', boxSizing: 'border-box',
                   }}>
 
@@ -3090,7 +3090,7 @@ export function TimelinePanel() {
                     position: 'absolute', top: '100%', right: 0, width: 452, zIndex: 200,
                     background: 'var(--panel-bg)', border: '1px solid var(--border-color)',
                     borderRadius: 6, padding: '8px',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.25)', marginTop: 4,
+                    boxShadow: 'var(--shadow-md, 0 4px 16px rgba(0,0,0,0.25))', marginTop: 4,
                     height: 188, display: 'flex', flexDirection: 'column', overflow: 'hidden',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6, flexShrink: 0 }}>
@@ -3153,10 +3153,10 @@ export function TimelinePanel() {
                         const canApply = preview?.canApply ?? false;
                         const isChecked = copyTargetIds.includes(o.id);
                         const badgeColor = preview?.status === 'conflict' || preview?.status === 'animation-conflict' || preview?.status === 'locked'
-                          ? '#ef4444'
+                          ? 'var(--danger, #ef4444)'
                           : preview?.status === 'create'
-                            ? '#2563eb'
-                            : '#16a34a';
+                            ? 'var(--primary-strong, #2563eb)'
+                            : 'var(--success-strong, #16a34a)';
                         return (
                           <label
                             key={o.id}
@@ -3669,7 +3669,7 @@ export function TimelinePanel() {
                               <div style={{ position: 'relative' }}>
                                 <label className="tl-detail-label">时长(ms)<input className="tl-input-sm tl-input-nospin" type="number" inputMode="numeric" min={1000} max={99999} step={1} value={clipTimeDrafts[clip.id]?.durationMs ?? String(effDuration)} onChange={(e) => updateClipTimeDraft(clip, 'durationMs', e.target.value)} onBlur={() => commitClipTimeDraft(clip, 'durationMs')} onKeyDown={(e) => handleClipTimeKeyDown(clip.id, 'durationMs', e)} onFocus={(e) => e.target.select()} /></label>
                                 {clipDurationWarnId === clip.id && (
-                                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, fontSize: 11, color: '#ef4444', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10 }}>
+                                  <div style={{ position: 'absolute', top: 'calc(100% + 8px)', left: 0, fontSize: 11, color: 'var(--danger, #ef4444)', whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10 }}>
                                     片段时长不能小于 1000ms
                                   </div>
                                 )}

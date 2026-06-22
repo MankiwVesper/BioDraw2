@@ -332,7 +332,7 @@
   border-radius: 6px;
   padding: 5px 8px;
   min-width: 80px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.22));
   pointer-events: auto;
 }
 
@@ -731,7 +731,7 @@
 .tl-btn.is-active {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.06));
 }
 
 .tl-btn-sm {
@@ -743,9 +743,9 @@
 /* ── 冲突按钮 ──────────────────────────────────────── */
 .tl-conflict-btn {
   height: 28px;
-  border: 1px solid #fca5a5;
-  background: #fff1f2;
-  color: #b91c1c;
+  border: 1px solid var(--danger-border, #fca5a5);
+  background: var(--danger-bg, #fff1f2);
+  color: var(--danger-strong, #b91c1c);
   border-radius: 6px;
   padding: 0 8px;
   cursor: pointer;
@@ -754,7 +754,7 @@
 }
 
 .tl-conflict-btn:hover {
-  border-color: #ef4444;
+  border-color: var(--danger, #ef4444);
 }
 
 /* ── 添加动画下拉 ───────────────────────────────────── */
@@ -789,7 +789,7 @@
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(15, 23, 42, 0.12));
   z-index: 100;
   padding: 8px;
   display: flex;
@@ -857,11 +857,11 @@
 
 .tl-add-menu-item:hover {
   border-color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.04);
+  background: var(--primary-tint-weak, rgba(59, 130, 246, 0.04));
 }
 
 .tl-add-menu-template {
-  background: rgba(59, 130, 246, 0.04);
+  background: var(--primary-tint-weak, rgba(59, 130, 246, 0.04));
   border-style: dashed;
 }
 
@@ -907,7 +907,7 @@
 .tl-apply-btn {
   height: 22px;
   border: 1px solid var(--primary-color);
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.08));
   color: var(--primary-color);
   border-radius: 6px;
   padding: 0 10px;
@@ -918,7 +918,7 @@
 }
 
 .tl-apply-btn:hover {
-  background: rgba(59, 130, 246, 0.15);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.15));
 }
 
 /* ── 批量面板 - 片段列表 ────────────────────────────── */
@@ -958,11 +958,11 @@
 }
 
 .tl-batch-clip-item:hover {
-  background: rgba(59, 130, 246, 0.04);
+  background: var(--primary-tint-weak, rgba(59, 130, 246, 0.04));
 }
 
 .tl-batch-clip-item.is-selected {
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.08));
 }
 
 /* ── 批量面板 - 自定义下拉 ──────────────────────────── */
@@ -1003,7 +1003,7 @@
   border: 1px solid var(--border-color);
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.2));
 }
 
 .tl-batch-option {
@@ -1015,12 +1015,12 @@
 }
 
 .tl-batch-option:hover {
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.08));
 }
 
 .tl-batch-option.is-active {
   color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.06));
 }
 
 /* ── 片段列表 ──────────────────────────────────────── */
@@ -1062,12 +1062,12 @@
 }
 
 .tl-clip.is-conflict {
-  border-color: #fca5a5;
+  border-color: var(--danger-border, #fca5a5);
 }
 
 .tl-clip.is-batch-selected {
   border-color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.02);
+  background: var(--primary-tint-weak, rgba(59, 130, 246, 0.02));
 }
 
 .tl-clip.is-disabled {
@@ -1148,8 +1148,8 @@
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--danger-bg-strong, #fee2e2);
+  color: var(--danger-strong, #b91c1c);
   font-size: 9px;
   font-weight: 700;
   flex-shrink: 0;
@@ -1345,7 +1345,7 @@
 }
 
 .tl-seg-time-input:focus {
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.08));
 }
 
 .tl-seg-time-sep {
@@ -1425,8 +1425,8 @@
 }
 
 .tl-clip-del:hover {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--danger-bg-strong, #fee2e2);
+  color: var(--danger-strong, #b91c1c);
 }
 
 /* 展开箭头 */
@@ -1532,7 +1532,7 @@
 .tl-segment-time-warn {
   font-size: 10px;
   line-height: 1.3;
-  color: #ef4444;
+  color: var(--danger, #ef4444);
   text-align: center;
   padding: 4px 6px;
   background: rgba(239, 68, 68, 0.08);
@@ -1867,7 +1867,7 @@
 .tl-easing-btn.is-active {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.06));
   font-weight: 600;
 }
 
@@ -2075,7 +2075,7 @@
 .tl-kf-preset-btn {
   height: 22px;
   border: 1px solid var(--border-color);
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.06));
   color: var(--primary-color);
   border-radius: 6px;
   padding: 0 6px;
@@ -2086,12 +2086,12 @@
 }
 
 .tl-kf-preset-btn:hover {
-  background: rgba(59, 130, 246, 0.14);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.14));
   border-color: var(--primary-color);
 }
 
 .tl-kf-preset-btn.is-active {
-  background: rgba(59, 130, 246, 0.18);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.18));
   border-color: var(--primary-color);
   font-weight: 600;
 }
@@ -2099,9 +2099,9 @@
 .tl-kf-del {
   width: 22px;
   height: 22px;
-  border: 1px solid #fca5a5;
-  background: #fff1f2;
-  color: #be123c;
+  border: 1px solid var(--danger-border, #fca5a5);
+  background: var(--danger-bg, #fff1f2);
+  color: var(--danger-strong, #be123c);
   border-radius: 6px;
   cursor: pointer;
   font-size: 10px;
@@ -2113,7 +2113,7 @@
 }
 
 .tl-kf-del:hover {
-  background: #fee2e2;
+  background: var(--danger-bg-strong, #fee2e2);
 }
 
 /* ── 关键帧编辑器（KeyframeEditor 组件） ──────────────── */
@@ -2220,7 +2220,7 @@
 }
 
 .kf-grid-input.is-selected {
-  background: rgba(59, 130, 246, 0.12);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.12));
   border-color: var(--primary-color);
 }
 
@@ -2266,7 +2266,7 @@
 }
 
 .kf-preset-btn.is-active {
-  background: rgba(59, 130, 246, 0.06);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.06));
   border-color: var(--primary-color);
   color: var(--primary-color);
   font-weight: 600;
@@ -2280,8 +2280,8 @@
 /* 清空按钮（与添加按钮同形态，hover 用红色提示破坏性操作） */
 .kf-clear-btn:hover:not(:disabled) {
   background: rgba(248, 113, 113, 0.10);
-  border-color: #fca5a5;
-  color: #be123c;
+  border-color: var(--danger-border, #fca5a5);
+  color: var(--danger-strong, #be123c);
 }
 
 .kf-clear-btn:disabled {
@@ -2348,7 +2348,7 @@
 }
 
 .kf-track-dot:hover {
-  background: rgba(59, 130, 246, 0.18);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.18));
   transform: translate(-50%, -50%) scale(1.15);
 }
 
@@ -2356,7 +2356,7 @@
   background: var(--primary-color, #3b82f6);
   border-color: var(--primary-color, #3b82f6);
   transform: translate(-50%, -50%) scale(1.2);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+  box-shadow: 0 0 0 3px var(--primary-tint-strong, rgba(59, 130, 246, 0.18));
 }
 
 .kf-track-dot.is-dragging {
@@ -2423,11 +2423,11 @@
 }
 
 .kf-table-row:hover {
-  background: rgba(59, 130, 246, 0.04);
+  background: var(--primary-tint-weak, rgba(59, 130, 246, 0.04));
 }
 
 .kf-table-row.is-selected {
-  background: rgba(59, 130, 246, 0.12);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.12));
 }
 
 .kf-table-row input {
@@ -2451,9 +2451,9 @@
 .kf-row-del {
   width: 22px;
   height: 22px;
-  border: 1px solid #fca5a5;
-  background: #fff1f2;
-  color: #be123c;
+  border: 1px solid var(--danger-border, #fca5a5);
+  background: var(--danger-bg, #fff1f2);
+  color: var(--danger-strong, #be123c);
   border-radius: 6px;
   cursor: pointer;
   font-size: 10px;
@@ -2465,7 +2465,7 @@
 }
 
 .kf-row-del:hover {
-  background: #fee2e2;
+  background: var(--danger-bg-strong, #fee2e2);
 }
 
 /* 添加按钮（垂直布局下宽度撑满左子列） */
