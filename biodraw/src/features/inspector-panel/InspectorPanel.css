@@ -162,12 +162,12 @@ input[type="color"]::-moz-color-swatch {
 
 .ip-custom-select-trigger:hover {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  box-shadow: var(--focus-ring, 0 0 0 2px rgba(59, 130, 246, 0.1));
 }
 
 .ip-custom-select-trigger.ip-is-open {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+  box-shadow: var(--focus-ring, 0 0 0 2px rgba(59, 130, 246, 0.1));
 }
 
 .ip-trigger-main {
@@ -212,7 +212,7 @@ input[type="color"]::-moz-color-swatch {
   backdrop-filter: blur(8px);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05));
   z-index: 100;
   overflow: hidden;
   animation: ip-dropdownFadeIn 0.2s ease-out;
@@ -235,11 +235,11 @@ input[type="color"]::-moz-color-swatch {
 }
 
 .ip-custom-select-item:hover {
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.08));
 }
 
 .ip-custom-select-item.ip-is-selected {
-  background: rgba(59, 130, 246, 0.05);
+  background: var(--primary-tint-weak, rgba(59, 130, 246, 0.05));
 }
 
 .ip-item-preview {

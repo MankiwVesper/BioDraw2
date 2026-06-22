@@ -267,7 +267,7 @@ export function InspectorPanel() {
       };
       const abHoverOn = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.style.borderColor = "var(--primary-color)";
-        e.currentTarget.style.background = "rgba(59,130,246,0.05)";
+        e.currentTarget.style.background = "var(--primary-tint-weak, rgba(59,130,246,0.05))";
       };
       const abHoverOff = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.currentTarget.style.borderColor = "var(--border-color)";
@@ -466,7 +466,7 @@ export function InspectorPanel() {
                       style={{
                         flex: 1, height: 24, borderRadius: 6, cursor: allSameGroup ? "pointer" : "not-allowed", fontSize: 13,
                         border: allSameGroup ? "1px solid var(--primary-color)" : "1px solid var(--border-color)",
-                        background: allSameGroup ? "rgba(59,130,246,0.08)" : "transparent",
+                        background: allSameGroup ? "var(--primary-tint, rgba(59,130,246,0.08))" : "transparent",
                         color: allSameGroup ? "var(--primary-color)" : "var(--text-main)",
                         opacity: allSameGroup ? 1 : 0.4,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
@@ -487,7 +487,7 @@ export function InspectorPanel() {
                       onClick={() => removeSceneObjects(selectedIds)}
                       style={{
                         flex: 1, height: 24, borderRadius: 6, cursor: "pointer", fontSize: 13,
-                        border: "1px solid rgba(239,68,68,0.4)", background: "transparent", color: "#ef4444",
+                        border: "1px solid rgba(239,68,68,0.4)", background: "transparent", color: "var(--danger, #ef4444)",
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                       }}
                     >
@@ -1733,7 +1733,7 @@ export function InspectorPanel() {
                     flex: 1,
                     height: 24,
                     border: `1px solid ${selectedObj.locked ? "var(--primary-color)" : "var(--border-color)"}`,
-                    background: selectedObj.locked ? "rgba(59,130,246,0.08)" : "transparent",
+                    background: selectedObj.locked ? "var(--primary-tint, rgba(59,130,246,0.08))" : "transparent",
                     color: selectedObj.locked ? "var(--primary-color)" : "var(--text-main)",
                     borderRadius: 6,
                     cursor: "pointer",
@@ -1774,7 +1774,7 @@ export function InspectorPanel() {
                     height: 24,
                     border: "1px solid rgba(239,68,68,0.4)",
                     background: "transparent",
-                    color: "#ef4444",
+                    color: "var(--danger, #ef4444)",
                     borderRadius: 6,
                     cursor: selectedObj.locked ? "not-allowed" : "pointer",
                     fontSize: 13,
@@ -1956,7 +1956,7 @@ export function InspectorPanel() {
                       e.currentTarget.style.borderColor =
                         "var(--primary-color)";
                       e.currentTarget.style.background =
-                        "rgba(59,130,246,0.05)";
+                        "var(--primary-tint-weak, rgba(59,130,246,0.05))";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = "var(--border-color)";
@@ -2046,7 +2046,7 @@ export function InspectorPanel() {
                       e.currentTarget.style.borderColor =
                         "var(--primary-color)";
                       e.currentTarget.style.background =
-                        "rgba(59,130,246,0.05)";
+                        "var(--primary-tint-weak, rgba(59,130,246,0.05))";
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = "var(--border-color)";
