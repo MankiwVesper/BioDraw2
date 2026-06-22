@@ -44,7 +44,7 @@
 }
 
 .export-status-text.is-error {
-  color: var(--error-color, #ef4444);
+  color: var(--danger, #ef4444);
 }
 
 .export-progress-track {
@@ -71,7 +71,7 @@
   border-radius: 4px;
   border: 1px solid var(--border-color);
   background: transparent;
-  color: var(--error-color, #ef4444);
+  color: var(--danger, #ef4444);
   cursor: pointer;
 }
 
@@ -110,7 +110,7 @@
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 4px 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-md, 0 2px 8px rgba(0, 0, 0, 0.2));
   user-select: none;
   z-index: 100;
 }
@@ -132,7 +132,7 @@
 }
 
 .pv-btn:hover {
-  background: rgba(59, 130, 246, 0.07);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.07));
   color: var(--primary-color);
 }
 
@@ -149,12 +149,12 @@
 }
 
 .pv-playing {
-  background: #f59e0b;
+  background: var(--warning, #f59e0b);
   box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
 }
 
 .pv-playing:hover {
-  background: #d97706;
+  background: var(--warning-strong, #d97706);
   color: #fff;
 }
 
