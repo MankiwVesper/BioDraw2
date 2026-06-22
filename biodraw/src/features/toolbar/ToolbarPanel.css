@@ -7,7 +7,7 @@
   align-items: center;
   padding: 0 12px;
   gap: 0;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.06));
   z-index: 20;
   position: relative;
   flex-shrink: 0;
@@ -79,7 +79,7 @@
   font-family: inherit;
   color: var(--text-main);
   /* 编辑态：去掉下划线，改用蓝背景体现 */
-  background: rgba(59, 130, 246, 0.18);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.18));
   border: none;
   border-radius: 6px;
   outline: none;
@@ -96,9 +96,9 @@
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #ef4444;
+  background: var(--danger-bg, #fef2f2);
+  border: 1px solid var(--danger-border, #fecaca);
+  color: var(--danger, #ef4444);
   font-size: 11px;
   padding: 3px 8px;
   border-radius: var(--radius);
@@ -133,7 +133,7 @@
   margin-right: 2px;
 }
 
-.tb-save-status.is-error { color: #ef4444; }
+.tb-save-status.is-error { color: var(--danger, #ef4444); }
 
 /* ── 分隔线 ─────────────────────────────────────────── */
 .tb-divider {
@@ -162,7 +162,7 @@
 
 .tb-btn:hover:not(:disabled) {
   border-color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.04);
+  background: var(--primary-tint-weak, rgba(59, 130, 246, 0.04));
 }
 
 .tb-btn:disabled {
@@ -173,7 +173,7 @@
 .tb-btn.is-active {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.08);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.08));
 }
 
 .tb-btn-sm {
@@ -214,7 +214,7 @@
 }
 
 .tb-pb-btn:hover {
-  background: rgba(59, 130, 246, 0.07);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.07));
   color: var(--primary-color);
 }
 
@@ -239,13 +239,13 @@
 }
 
 .tb-pb-playing {
-  background: #f59e0b;
+  background: var(--warning, #f59e0b);
   color: #fff;
   box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
 }
 
 .tb-pb-playing:hover {
-  background: #d97706;
+  background: var(--warning-strong, #d97706);
   color: #fff;
 }
 
@@ -309,7 +309,7 @@
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1));
   z-index: 200;
   overflow: hidden;
 }
@@ -339,7 +339,7 @@
 
 .tb-user-dropdown-logout:hover {
   background: var(--bg-color);
-  color: #ef4444;
+  color: var(--danger, #ef4444);
 }
 
 /* ── 面板收起/展开切换按钮组（固定在工具栏最右侧） ── */
@@ -421,7 +421,7 @@
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.10);
+  box-shadow: var(--shadow-md, 0 4px 14px rgba(15, 23, 42, 0.10));
   padding: 3px;
   display: flex;
   flex-direction: column;
@@ -445,12 +445,12 @@
 }
 
 .tb-rate-option:hover {
-  background: rgba(59, 130, 246, 0.07);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.07));
   color: var(--primary-color);
 }
 
 .tb-rate-option.is-active {
-  background: rgba(59, 130, 246, 0.10);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.10));
   color: var(--primary-color);
   font-weight: 500;
 }
@@ -466,7 +466,7 @@
 }
 
 .tb-status.is-error {
-  color: #b91c1c;
+  color: var(--danger-strong, #b91c1c);
 }
 
 /* ── 导出下拉 ───────────────────────────────────────── */
@@ -481,7 +481,7 @@
 .tb-export-btn.is-open {
   border-color: var(--primary-color);
   color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.05);
+  background: var(--primary-tint-weak, rgba(59, 130, 246, 0.05));
 }
 
 .tb-export-btn:disabled {
@@ -497,7 +497,7 @@
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--shadow-lg, 0 6px 20px rgba(15, 23, 42, 0.12));
   z-index: 200;
   padding: 14px;
   display: flex;
@@ -650,7 +650,7 @@
   background: var(--panel-bg);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.12));
   z-index: 100;
   padding: 3px;
   max-height: 180px;
@@ -674,12 +674,12 @@
 }
 
 .tb-dropdown-option:hover {
-  background: rgba(59, 130, 246, 0.07);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.07));
   color: var(--primary-color);
 }
 
 .tb-dropdown-option.is-active {
-  background: rgba(59, 130, 246, 0.10);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.10));
   color: var(--primary-color);
   font-weight: 500;
 }
@@ -713,7 +713,7 @@
 }
 
 .tb-canvas-lock-btn:hover {
-  background: rgba(59, 130, 246, 0.07);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.07));
   color: var(--primary-color);
   border-color: var(--primary-color);
 }
@@ -721,7 +721,7 @@
 .tb-canvas-lock-btn.is-locked {
   color: var(--primary-color);
   border-color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.07);
+  background: var(--primary-tint, rgba(59, 130, 246, 0.07));
 }
 
 .tb-export-range-sep {
@@ -731,7 +731,7 @@
 }
 
 .tb-export-range-badge {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--primary-tint-strong, rgba(59, 130, 246, 0.1));
   color: var(--primary-color);
   border-radius: 999px;
   padding: 1px 6px;
