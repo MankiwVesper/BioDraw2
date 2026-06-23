@@ -1,0 +1,18 @@
+# Local agent/runtime artifacts
+.codex/
+.playwright-cli/
+.playwright-mcp/
+.superpowers/
+
+# Local Claude/Codex settings (settings.json is shared/committed)
+.claude/settings.local.json
+
+# Logs and temporary files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Accidental empty marker files from local tools
+关联记忆*
+状态*
