@@ -376,6 +376,7 @@ export function CanvasPanel() {
 
   const isAnyExportRunning = isExportingFrame;
   const interactionLocked = playbackStatus === 'playing' || isAnyExportRunning;
+  const selectedObj = objects.find(o => selectedIds[0] === o.id) ?? null;
   const renderedGhostObjects = isAnyExportRunning ? [] : ghostObjects;
   const renderedPreviewObjects = isAnyExportRunning
     ? previewObjects.filter((obj) => obj.visible)
@@ -1483,6 +1484,23 @@ export function CanvasPanel() {
           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-main)', fontSize: isPreviewMode ? '20px' : '16px', lineHeight: 1, padding: '0 2px' }}
         >+</button>
       </div>
+
+      {/* 坐标状态栏 */}
+      {selectedObj && !isAnyExportRunning && (
+        <div style={{
+          position: 'absolute', bottom: 8, left: 8, zIndex: 10,
+          background: 'rgba(0,0,0,0.55)', color: '#fff',
+          borderRadius: 5, padding: '3px 8px', fontSize: 11,
+          fontFamily: 'monospace', pointerEvents: 'none',
+          display: 'flex', gap: 10, userSelect: 'none',
+        }}>
+          <span>X {Math.round(selectedObj.x)}</span>
+          <span>Y {Math.round(selectedObj.y)}</span>
+          <span>W {Math.round(selectedObj.width * (selectedObj.scaleX ?? 1))}</span>
+          <span>H {Math.round(selectedObj.height * (selectedObj.scaleY ?? 1))}</span>
+          {selectedObj.rotation ? <span>R {Math.round(selectedObj.rotation)}°</span> : null}
+        </div>
+      )}
     </main>
   );
 }
