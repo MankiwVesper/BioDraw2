@@ -3,7 +3,7 @@
    ------------------------------------------------------------
    仅在 <html data-ui="v2"> 下生效;默认态(无该属性)完全不受影响。
    选择器用 :root[data-ui="v2"](特异性 0,2,0)以覆盖 index.css 的 :root。
-   设计依据:biodraw/.agents/ui-redesign/v2-visual-refresh-design.md
+   设计依据:app/.agents/ui-redesign/v2-visual-refresh-design.md
    ============================================================ */
 
 :root[data-ui="v2"] {

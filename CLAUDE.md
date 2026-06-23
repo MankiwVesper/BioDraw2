@@ -6,15 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Layout
 
-The actual application source lives in the `biodraw/` subdirectory. All development work happens there; this root directory is the git workspace. Key root-level items:
+The actual application source lives in the `app/` subdirectory. All development work happens there; this root directory is the git workspace. Key root-level items:
 
-- `biodraw/` — React/TypeScript/Vite application (all `npm` commands run here)
+- `app/` — React/TypeScript/Vite application (all `npm` commands run here)
 - `AGENTS.md` — authoritative Windows/PowerShell, Chinese encoding, Git, and browser verification constraints — read before doing anything
 - `.codex/` — Playwright verification scripts, Chrome profiles, npm cache; not committed
 
 ## Commands
 
-Run from `D:\Project\BioDraw2\biodraw\`:
+Run from `D:\Project\BioDraw2\app\`:
 
 ```powershell
 npm.cmd run dev      # Vite dev server with HMR → http://localhost:5173/
@@ -112,7 +112,7 @@ Changes to these require browser regression testing (see `AGENTS.md` for Playwri
 - Do not embed pathData algorithms or animation math directly in React components
 - Variable names reflect domain meaning: `selectedObjectIds`, `currentTimeMs`, `materialCatalog` — not generic names like `data`, `item`, `temp`
 - Commit messages in Chinese
-- Design documents in `biodraw/.agents/skills/` — consult for major feature work
+- Design documents in `app/.agents/skills/` — consult for major feature work
 
 ---
 

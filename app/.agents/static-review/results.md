@@ -32,7 +32,7 @@
 ### Findings
 
 #### [HIGH] 自动保存竞争条件导致云端数据静默丢失
-**文件**：`biodraw/src/hooks/useCloudSave.ts:24-40`
+**文件**：`app/src/hooks/useCloudSave.ts:24-40`
 **置信度**：高
 
 `performSave` 捕获快照后 `await updateProjectData`，完成后无条件调用 `markSaved()`。若该请求飞行期间用户继续编辑，较早请求的完成会清除更新改动的 dirty 标志；若并发保存同时飞行，较慢的旧请求还可能以过期数据覆盖较新的快照。
@@ -44,7 +44,7 @@
 ---
 
 #### [HIGH] 画布设置游离于 undo 历史与 dirty 追踪之外
-**文件**：`biodraw/src/state/editorStore.ts:1491-1500`
+**文件**：`app/src/state/editorStore.ts:1491-1500`
 **置信度**：高
 
 `EditorSnapshot` 只存储 objects、animations 和 duration，而 `setCanvasSize`、`setCanvasBgColor` 在不调用 `pushHistory` 的情况下修改画布状态。画布尺寸/背景色的编辑无法被撤销/重做，也不会通过历史路径设置 `hasUnsavedChanges`。
@@ -56,7 +56,7 @@
 ---
 
 #### [MEDIUM] 云端加载的旧版快照可能继承上一个项目的画布
-**文件**：`biodraw/src/state/editorStore.ts:1502-1510`
+**文件**：`app/src/state/editorStore.ts:1502-1510`
 **置信度**：中
 
 `loadSnapshot` 仅在字段存在时才赋值画布字段。由于云端加载直接将数据库 JSON 强转为 `DocumentSnapshot`，缺少 `canvasWidth`、`canvasHeight`、`canvasBgColor` 的旧版/格式异常项目会保留 store 中已有的画布值（即上一个编辑项目的画布）。下一次自动保存会把这些错误值持久化到被加载的项目中。
@@ -66,7 +66,7 @@
 ---
 
 #### [MEDIUM] 复制项目在缩略图更新失败时留下数据库孤儿记录
-**文件**：`biodraw/src/pages/projects/ProjectsPage.tsx:807-819`
+**文件**：`app/src/pages/projects/ProjectsPage.tsx:807-819`
 **置信度**：中
 
 `handleCopyProject` 先创建新项目，再发起第二个 `updateProjectData` 调用来复制缩略图。若第二次 Supabase 调用失败，catch 报告"复制失败"且不将行添加到本地状态，但新项目已存在于数据库中。重试会创建重复项目，刷新后出现。
@@ -101,7 +101,7 @@
 ### Findings
 
 #### [HIGH] Segment 时间编辑绕过 undo 和 dirty 追踪
-**文件**：`biodraw/src/state/editorStore.ts:1183-1204`
+**文件**：`app/src/state/editorStore.ts:1183-1204`
 **置信度**：高
 
 `updateAppearSegmentSilent` 在没有调用 `pushHistory` 或直接 dirty 标记的情况下，修改 `obj.appearSegments` 并重写 `state.animations` 中的匹配 clip。这不只是瞬态状态：timeline 标签编辑器在输入预览阶段调用 silent updater，最终提交时可能看到已变更的 segment 并跳过正常的 `updateAppearSegment` 路径。结果：教师修改 segment/clip 时序后，没有 undo 条目，也没有未保存提示，快速导航或关闭前保存是数据丢失路径。
@@ -111,7 +111,7 @@
 ---
 
 #### [HIGH] 锁定对象可通过批量删除被删除
-**文件**：`biodraw/src/state/editorStore.ts:617-633`
+**文件**：`app/src/state/editorStore.ts:617-633`
 **置信度**：高
 
 `removeSceneObjects` 删除传入的所有 id 并移除其 clips，但从不过滤 `locked` 对象。UI 已存在 selectedIds 包含锁定对象的路径，且多选删除按钮直接传入 `selectedIds`，store 层未执行锁定不变量。锁定对象及其动画可被不可逆删除（除 undo 外），破坏了"防止意外删除"的锁定保护声明。
@@ -121,7 +121,7 @@
 ---
 
 #### [MEDIUM] 批量图层步进操作在混合边界选中时错误地不执行
-**文件**：`biodraw/src/state/editorStore.ts:845-880`
+**文件**：`app/src/state/editorStore.ts:845-880`
 **置信度**：中
 
 `moveMultipleObjectsForward` 在最高选中对象已位于顶层时立即返回；`moveMultipleObjectsBackward` 在最低选中对象已位于底层时立即返回。对于包含边界对象和其他可移动对象的非连续多选，可移动对象永远不会与相邻未选中对象交换。用户可见的"上移一层/下移一层"批量层操作可能在有效交换存在时静默地什么都不做。
@@ -155,7 +155,7 @@
 ### Findings
 
 #### [HIGH] 删除所有出现段后对象会被引擎重新显示
-**文件**：`biodraw/src/animation/engine.ts:250-258`
+**文件**：`app/src/animation/engine.ts:250-258`
 **置信度**：高
 
 `obj.appearSegments && obj.appearSegments.length > 0` 才启用多段语义，空数组会落入 legacy `appearStartMs/appearEndMs` 分支。用户主动删完所有出现窗口后，预览和导出仍可能按旧字段显示该对象。应只在 `appearSegments === undefined` 时回退 legacy；字段存在时空数组应直接跳过（不可见）。
@@ -163,7 +163,7 @@
 ---
 
 #### [HIGH] 动画 clip 未按所属出现段隔离，跨段状态串扰
-**文件**：`biodraw/src/animation/engine.ts:261-275`
+**文件**：`app/src/animation/engine.ts:261-275`
 **置信度**：高
 
 引擎只过滤 `stateChange`，其余 clip 按绝对时间全量应用，完全忽略 `clip.segmentId`。有多个出现段时，第一段的已结束 clip（`isClipEndedAt` 为真）会被套用到对象后续出现段，将前段的末态（位置/透明度/缩放）污染后段。例如对象第一段有移动 clip，第二段重新出现时会继续显示移动结束位置，而非原始位置。
@@ -171,7 +171,7 @@
 ---
 
 #### [MEDIUM] cubic-bezier easing 在 t=0/t=1 不精确返回端点
-**文件**：`biodraw/src/animation/engine.ts:22-36`
+**文件**：`app/src/animation/engine.ts:22-36`
 **置信度**：中
 
 `solveCubicBezierY` 直接进入二分求解，未对 `x=0` / `x=1` 做提前返回。20 次迭代后 t≈1e-6，`cubicBezierAt(t, y1, y2)` 约为 `3e-6 * y1` 而非精确 0；`x=1` 同理。clip 开始/结束帧的属性值会有微小漂移（sub-pixel 量级）。
@@ -201,22 +201,22 @@
 ### Findings
 
 #### [CRITICAL→HIGH] 并发保存可用旧请求覆盖新手动保存
-**文件**：`biodraw/src/hooks/useCloudSave.ts:27-45`
+**文件**：`app/src/hooks/useCloudSave.ts:27-45`
 
 `revision` 守卫只保护 `markSaved()`，`updateProjectData` 在守卫之前无条件执行。慢自动保存在快手动保存之后完成时，旧快照覆盖云端，UI 仍显示"已保存"。实际为 HIGH。
 
 #### [HIGH] 切换项目时会把上一项目快照排队保存到新 projectId
-**文件**：`biodraw/src/hooks/useCloudSave.ts:52-59`
+**文件**：`app/src/hooks/useCloudSave.ts:52-59`
 
 `performSave` 引用变化（因 `projectId` 变化）触发 useEffect，给新 `projectId` 排 5 秒定时器，但 store 仍是旧项目数据。
 
 #### [HIGH→LOW] FILE_VERSION 只写不读，反序列化没有版本迁移边界
-**文件**：`biodraw/src/infrastructure/documentSerializer.ts:57-70`
+**文件**：`app/src/infrastructure/documentSerializer.ts:57-70`
 
 `parseDocumentFile` 不检查 `version`，`canvasBgColor` 未做类型校验。当前只有版本 1，实际影响为零。
 
 #### [MEDIUM→删除] useAutoSave 死代码
-**文件**：`biodraw/src/hooks/useAutoSave.ts`
+**文件**：`app/src/hooks/useAutoSave.ts`
 
 无任何调用方，描述的运行时风险不存在，直接删除。
 
@@ -248,7 +248,7 @@
 ### Findings
 
 #### [HIGH] VideoFrame 缺少 duration，MP4 输出损坏
-**文件**：`biodraw/src/infrastructure/video-encoder/VideoExportEncoder.ts:110-128`
+**文件**：`app/src/infrastructure/video-encoder/VideoExportEncoder.ts:110-128`
 **置信度**：高
 
 `encodeFrame` 只传 `timestamp` 给 `VideoFrame`，未传 `duration`；mp4-muxer 要求每个 sample 有明确时长，否则 flush/mux 失败或输出不可 seek 的 MP4。
@@ -256,7 +256,7 @@
 ---
 
 #### [HIGH] cancel 无法中断 finalize()（跳过，低优先级）
-**文件**：`biodraw/src/features/canvas-panel/useVideoExport.ts:161-165`
+**文件**：`app/src/features/canvas-panel/useVideoExport.ts:161-165`
 **置信度**：低（对 BioDraw 短动画场景影响可忽略）
 
 finalize 完成后立即检查 cancel，对 <240 帧的典型导出耗时极短。引入 AbortController 竞争复杂度不对等，暂不修。
@@ -264,7 +264,7 @@ finalize 完成后立即检查 cancel，对 <240 帧的典型导出耗时极短�
 ---
 
 #### [MEDIUM] unmount 后异步任务继续执行，操作 stale stage ref
-**文件**：`biodraw/src/features/canvas-panel/useVideoExport.ts:198-199`
+**文件**：`app/src/features/canvas-panel/useVideoExport.ts:198-199`
 **置信度**：高
 
 cleanup 只处理 `encoder` 已构建的情况；encoder 构建前有 3 个 await（waitForNextPaint、waitForMaterialImages、resolveSupported），组件卸载时 cleanup 是 no-op，异步任务继续修改 store 状态。
@@ -272,7 +272,7 @@ cleanup 只处理 `encoder` 已构建的情况；encoder 构建前有 3 个 awai
 ---
 
 #### [MEDIUM] 构造函数不验证 fps/尺寸边界值
-**文件**：`biodraw/src/infrastructure/video-encoder/VideoExportEncoder.ts:64-87`
+**文件**：`app/src/infrastructure/video-encoder/VideoExportEncoder.ts:64-87`
 **置信度**：中
 
 `this.fps = opts.fps` 无校验；fps=0 时 timestamp 计算除以 0。虽然唯一调用方已做 clamp，基础设施层自身无防线。

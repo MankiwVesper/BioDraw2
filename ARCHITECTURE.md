@@ -1,7 +1,7 @@
 # BioDraw 架构与设计速览（AI 接手指南）
 
 > 目的：让新接手的 AI 读完这一份就建立完整心智模型，无需通读代码。
-> 配套：`CLAUDE.md`（工作约束/规范，会被自动加载）、`AGENTS.md`（Windows/PowerShell/编码/浏览器验证硬约束）、`biodraw/.agents/skills/`（早期中文设计文档）、`biodraw/.agents/static-review/`（两轮静态审查的计划与 A1 重构记录）。
+> 配套：`CLAUDE.md`（工作约束/规范，会被自动加载）、`AGENTS.md`（Windows/PowerShell/编码/浏览器验证硬约束）、`app/.agents/skills/`（早期中文设计文档）、`app/.agents/static-review/`（两轮静态审查的计划与 A1 重构记录）。
 > 本文为概览，**具体不变量以代码为准**；引用到的文件/函数名如与现状不符，以代码为准并请更新本文。
 
 ---
@@ -14,9 +14,9 @@
 
 **技术栈**：React + TypeScript + Vite；Konva/react-konva 画布渲染；Zustand + Immer 状态；Supabase 账号与项目云存储；WebCodecs 视频编码。**Vitest** 单测（仅覆盖纯逻辑层，见 §12）。
 
-**仓库布局**：应用源码在 `biodraw/` 子目录，所有 `npm` 命令在那里跑（用 `npm.cmd`）。仓库根目录是工作区（放 CLAUDE.md/AGENTS.md 等）。
+**仓库布局**：应用源码在 `app/` 子目录，所有 `npm` 命令在那里跑（用 `npm.cmd`）。仓库根目录是工作区（放 CLAUDE.md/AGENTS.md 等）。
 
-**常用命令**（在 `biodraw/` 下）：`npm.cmd run dev`（HMR 开发服 http://localhost:5173/）、`npm.cmd run check`（lint+build，**提交前必跑的门**）、`npm.cmd run test`（Vitest 纯逻辑单测）、`npm.cmd run build`、`npm.cmd run preview`。
+**常用命令**（在 `app/` 下）：`npm.cmd run dev`（HMR 开发服 http://localhost:5173/）、`npm.cmd run check`（lint+build，**提交前必跑的门**）、`npm.cmd run test`（Vitest 纯逻辑单测）、`npm.cmd run build`、`npm.cmd run preview`。
 > npm 遇用户目录权限问题时，把缓存固定到项目目录：`$env:npm_config_cache='D:\Project\BioDraw2\.codex\npm-cache'`（见 AGENTS.md）。
 
 ---
@@ -40,7 +40,7 @@ pages / features          UI 组件（页面、五大面板）
 
 > 历史注意：曾有 `src/domain/` 目录，但其唯一文件 `clipFactory.ts` 成了死代码被删、目录已移除。现纯逻辑统一落在 `src/animation/`、`src/types/`、`src/utils/`。CLAUDE.md 里"domain"是**概念层名**，不是真实目录。
 
-### 目录速查（`biodraw/src/`）
+### 目录速查（`app/src/`）
 
 | 层 | 路径 | 内容 |
 |---|---|---|

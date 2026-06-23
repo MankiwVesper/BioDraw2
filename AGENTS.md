@@ -6,7 +6,7 @@
 
 - BioDraw2 是面向高中生物老师的浏览器示意图/动画编辑器。
 - 目标是帮助老师绘制高中生物课程中的动态过程，方便学生理解抽象知识。
-- 当前主体应用位于 `biodraw` 子目录。
+- 当前主体应用位于 `app` 子目录。
 - 技术栈：React、TypeScript、Vite、Konva/react-konva、Zustand、Immer。
 
 ## 开发环境
@@ -29,7 +29,7 @@
 
 ## 常用命令
 
-在 `D:\Project\BioDraw2\biodraw` 下执行：
+在 `D:\Project\BioDraw2\app` 下执行：
 
 ```powershell
 npm.cmd run dev
@@ -105,7 +105,7 @@ npm.cmd run check
 
 ### 固定 Playwright/CDP 验证方式
 
-- `biodraw` 项目安装 `playwright` 开发依赖，用于连接真实 Chrome 做本地验证。
+- `app` 项目安装 `playwright` 开发依赖，用于连接真实 Chrome 做本地验证。
 - 后续不要再使用 `npx --package @playwright/cli` 作为默认验证入口，避免 npm/npx 反复访问不可写的用户缓存目录。
 - 运行 npm 命令时，如遇用户目录权限问题，应把缓存和 prefix 固定到项目 `.codex` 目录，例如：
 
@@ -128,7 +128,7 @@ Start-Process -FilePath "C:\Program Files (x86)\Google\Chrome\Application\chrome
 
 ```js
 const { createRequire } = require('module');
-const requireFromApp = createRequire('D:/Project/BioDraw2/biodraw/package.json');
+const requireFromApp = createRequire('D:/Project/BioDraw2/app/package.json');
 const { chromium } = requireFromApp('playwright');
 
 const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');

@@ -57,12 +57,12 @@
 按项目既有 5 层约定（app / state / domain / infrastructure / render）：
 
 ```
-biodraw/src/infrastructure/video-encoder/   ← 新增（纯 TS、无 React/Konva）
+app/src/infrastructure/video-encoder/   ← 新增（纯 TS、无 React/Konva）
 ├── VideoExportEncoder.ts
 ├── encoderConfig.ts
 └── index.ts
 
-biodraw/src/features/canvas-panel/
+app/src/features/canvas-panel/
 ├── useVideoExport.ts                       ← 新增（React/Konva 桥）
 └── CanvasPanel.tsx                         ← 改（删旧 useEffect，调 hook）
 ```
@@ -264,20 +264,20 @@ async encodeFrame(source, frameIndex) {
 ### 6.1 新增文件
 
 ```
-biodraw/src/infrastructure/video-encoder/VideoExportEncoder.ts   ≈ 150 行
-biodraw/src/infrastructure/video-encoder/encoderConfig.ts        ≈  50 行
-biodraw/src/infrastructure/video-encoder/index.ts                ≈   5 行
-biodraw/src/features/canvas-panel/useVideoExport.ts              ≈ 130 行
+app/src/infrastructure/video-encoder/VideoExportEncoder.ts   ≈ 150 行
+app/src/infrastructure/video-encoder/encoderConfig.ts        ≈  50 行
+app/src/infrastructure/video-encoder/index.ts                ≈   5 行
+app/src/features/canvas-panel/useVideoExport.ts              ≈ 130 行
 ```
 
 ### 6.2 修改文件
 
-- `biodraw/src/features/canvas-panel/CanvasPanel.tsx`
+- `app/src/features/canvas-panel/CanvasPanel.tsx`
   - 删除：以 `if (videoExportRequestId <= 0) return;` 开头的整段视频导出 useEffect（约 190 行）
   - 删除该 useEffect 中读取且仅它使用的 store hook（如 `videoExportRequestId`、`videoExportOptions`、`setVideoExportStatus` 等若 hook 内自取则同时删除）
   - 新增约 10 行：`useVideoExport(...)` 调用
   - 净变化：≈ -180 行
-- `biodraw/package.json`
+- `app/package.json`
   - 新增依赖 `mp4-muxer` ^5、`webm-muxer` ^5
 
 ### 6.3 不动文件

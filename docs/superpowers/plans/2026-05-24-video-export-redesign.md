@@ -9,7 +9,7 @@
 **Tech Stack:** TypeScript 5.9, React 19, react-konva 19, Konva 10, Zustand+Immer, WebCodecs API, mp4-muxer ^5, webm-muxer ^5
 
 **Project Conventions:**
-- 工作目录: `D:\Project\BioDraw2`，前端子项目: `D:\Project\BioDraw2\biodraw`
+- 工作目录: `D:\Project\BioDraw2`，前端子项目: `D:\Project\BioDraw2\app`
 - 无测试运行器（CLAUDE.md 明确）。本计划以 `npx tsc -b --noEmit` + `npm run lint` + 手动验证矩阵代替 TDD
 - Windows / PowerShell 环境；Bash 仅用于 `git` 等命令（路径分隔符无冲突）
 - 每个 Task 结束 → 一个新 commit
@@ -23,22 +23,22 @@
 ## Task 1：安装依赖
 
 **Files:**
-- Modify: `D:\Project\BioDraw2\biodraw\package.json`
-- Modify: `D:\Project\BioDraw2\biodraw\package-lock.json`
+- Modify: `D:\Project\BioDraw2\app\package.json`
+- Modify: `D:\Project\BioDraw2\app\package-lock.json`
 
 - [ ] **Step 1.1：确认当前依赖状态**
 
 Run (PowerShell):
 ```powershell
-Get-Content D:\Project\BioDraw2\biodraw\package.json | Select-String "mp4-muxer|webm-muxer"
+Get-Content D:\Project\BioDraw2\app\package.json | Select-String "mp4-muxer|webm-muxer"
 ```
 Expected: 无输出（两个包都未安装）
 
 - [ ] **Step 1.2：安装两个 muxer**
 
-Run (PowerShell，必须在 `D:\Project\BioDraw2\biodraw` 目录下执行):
+Run (PowerShell，必须在 `D:\Project\BioDraw2\app` 目录下执行):
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npm install mp4-muxer webm-muxer
 ```
 Expected: 退出码 0，`package.json` 的 dependencies 多出两条 `mp4-muxer` 与 `webm-muxer`，`package-lock.json` 也相应更新。
@@ -47,7 +47,7 @@ Expected: 退出码 0，`package.json` 的 dependencies 多出两条 `mp4-muxer`
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npm run build
 ```
 Expected: 退出码 0（说明 tsc + vite build 都过）
@@ -56,7 +56,7 @@ Expected: 退出码 0（说明 tsc + vite build 都过）
 
 Run (Bash):
 ```bash
-git -C D:/Project/BioDraw2 add biodraw/package.json biodraw/package-lock.json
+git -C D:/Project/BioDraw2 add app/package.json app/package-lock.json
 git -C D:/Project/BioDraw2 commit -m "$(cat <<'EOF'
 新增依赖 mp4-muxer / webm-muxer
 
@@ -72,11 +72,11 @@ EOF
 ## Task 2：编码配置模块 `encoderConfig.ts`
 
 **Files:**
-- Create: `D:\Project\BioDraw2\biodraw\src\infrastructure\video-encoder\encoderConfig.ts`
+- Create: `D:\Project\BioDraw2\app\src\infrastructure\video-encoder\encoderConfig.ts`
 
 - [ ] **Step 2.1：创建目录并写入完整文件**
 
-Write to `D:\Project\BioDraw2\biodraw\src\infrastructure\video-encoder\encoderConfig.ts`:
+Write to `D:\Project\BioDraw2\app\src\infrastructure\video-encoder\encoderConfig.ts`:
 
 ```ts
 // 视频编码参数决策模块：bitrate 估算 + codec 候选优先级。
@@ -127,7 +127,7 @@ export const getCodecCandidates = (preferred: VideoFormat): CodecCandidate[] => 
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npx tsc -b --noEmit
 ```
 Expected: 退出码 0，无错误输出。
@@ -135,7 +135,7 @@ Expected: 退出码 0，无错误输出。
 - [ ] **Step 2.3：commit**
 
 ```bash
-git -C D:/Project/BioDraw2 add biodraw/src/infrastructure/video-encoder/encoderConfig.ts
+git -C D:/Project/BioDraw2 add app/src/infrastructure/video-encoder/encoderConfig.ts
 git -C D:/Project/BioDraw2 commit -m "$(cat <<'EOF'
 新增视频编码配置模块
 
@@ -151,11 +151,11 @@ EOF
 ## Task 3：核心编码器 `VideoExportEncoder.ts`
 
 **Files:**
-- Create: `D:\Project\BioDraw2\biodraw\src\infrastructure\video-encoder\VideoExportEncoder.ts`
+- Create: `D:\Project\BioDraw2\app\src\infrastructure\video-encoder\VideoExportEncoder.ts`
 
 - [ ] **Step 3.1：写入完整文件**
 
-Write to `D:\Project\BioDraw2\biodraw\src\infrastructure\video-encoder\VideoExportEncoder.ts`:
+Write to `D:\Project\BioDraw2\app\src\infrastructure\video-encoder\VideoExportEncoder.ts`:
 
 ```ts
 import { Muxer as Mp4Muxer, ArrayBufferTarget as Mp4Target } from 'mp4-muxer';
@@ -328,16 +328,16 @@ export class VideoExportEncoder {
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npx tsc -b --noEmit
 ```
 Expected: 退出码 0。
-**若报错**：常见原因是 mp4-muxer/webm-muxer 实际导出名与上述 import 略有差异（例如 v5 改成默认导出）。修复指引：打开 `biodraw\node_modules\mp4-muxer\README.md`，照其示例调整 import 与构造参数；webm-muxer 同理。其余代码逻辑保持。
+**若报错**：常见原因是 mp4-muxer/webm-muxer 实际导出名与上述 import 略有差异（例如 v5 改成默认导出）。修复指引：打开 `app\node_modules\mp4-muxer\README.md`，照其示例调整 import 与构造参数；webm-muxer 同理。其余代码逻辑保持。
 
 - [ ] **Step 3.3：commit**
 
 ```bash
-git -C D:/Project/BioDraw2 add biodraw/src/infrastructure/video-encoder/VideoExportEncoder.ts
+git -C D:/Project/BioDraw2 add app/src/infrastructure/video-encoder/VideoExportEncoder.ts
 git -C D:/Project/BioDraw2 commit -m "$(cat <<'EOF'
 新增 VideoExportEncoder（WebCodecs + Muxer 离线编码）
 
@@ -354,11 +354,11 @@ EOF
 ## Task 4：infrastructure barrel `index.ts`
 
 **Files:**
-- Create: `D:\Project\BioDraw2\biodraw\src\infrastructure\video-encoder\index.ts`
+- Create: `D:\Project\BioDraw2\app\src\infrastructure\video-encoder\index.ts`
 
 - [ ] **Step 4.1：写入文件**
 
-Write to `D:\Project\BioDraw2\biodraw\src\infrastructure\video-encoder\index.ts`:
+Write to `D:\Project\BioDraw2\app\src\infrastructure\video-encoder\index.ts`:
 
 ```ts
 export { VideoExportEncoder } from './VideoExportEncoder';
@@ -370,7 +370,7 @@ export type { VideoFormat } from './encoderConfig';
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npx tsc -b --noEmit
 ```
 Expected: 退出码 0。
@@ -378,7 +378,7 @@ Expected: 退出码 0。
 - [ ] **Step 4.3：commit**
 
 ```bash
-git -C D:/Project/BioDraw2 add biodraw/src/infrastructure/video-encoder/index.ts
+git -C D:/Project/BioDraw2 add app/src/infrastructure/video-encoder/index.ts
 git -C D:/Project/BioDraw2 commit -m "$(cat <<'EOF'
 导出 video-encoder 模块的对外 API
 
@@ -392,11 +392,11 @@ EOF
 ## Task 5：React 桥层 `useVideoExport.ts`
 
 **Files:**
-- Create: `D:\Project\BioDraw2\biodraw\src\features\canvas-panel\useVideoExport.ts`
+- Create: `D:\Project\BioDraw2\app\src\features\canvas-panel\useVideoExport.ts`
 
 - [ ] **Step 5.1：写入完整文件**
 
-Write to `D:\Project\BioDraw2\biodraw\src\features\canvas-panel\useVideoExport.ts`:
+Write to `D:\Project\BioDraw2\app\src\features\canvas-panel\useVideoExport.ts`:
 
 ```ts
 import { useEffect, useRef } from 'react';
@@ -635,7 +635,7 @@ export const useVideoExport = ({
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npx tsc -b --noEmit
 ```
 Expected: 退出码 0。
@@ -643,7 +643,7 @@ Expected: 退出码 0。
 - [ ] **Step 5.4：commit**
 
 ```bash
-git -C D:/Project/BioDraw2 add biodraw/src/features/canvas-panel/useVideoExport.ts
+git -C D:/Project/BioDraw2 add app/src/features/canvas-panel/useVideoExport.ts
 git -C D:/Project/BioDraw2 commit -m "$(cat <<'EOF'
 新增 useVideoExport hook
 
@@ -661,13 +661,13 @@ EOF
 ## Task 6：替换 `CanvasPanel.tsx` 中的视频导出代码
 
 **Files:**
-- Modify: `D:\Project\BioDraw2\biodraw\src\features\canvas-panel\CanvasPanel.tsx`
+- Modify: `D:\Project\BioDraw2\app\src\features\canvas-panel\CanvasPanel.tsx`
 
 - [ ] **Step 6.1：先重读当前文件中的视频导出 useEffect 与依赖区，记录起止行号**
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 Select-String -Path src\features\canvas-panel\CanvasPanel.tsx -Pattern "if \(videoExportRequestId <= 0\) return|runVideoExport\(\);" | Format-Table LineNumber, Line -AutoSize
 ```
 Expected: 看到两行：第一行是 useEffect 起点（约 line 629），第二行是 `runVideoExport();` 调用（约 line 818）。useEffect 的结束花括号紧随依赖数组，可手动定位。
@@ -676,7 +676,7 @@ Expected: 看到两行：第一行是 useEffect 起点（约 line 629），第�
 
 - [ ] **Step 6.2：删除整段视频导出 useEffect**
 
-打开 `D:\Project\BioDraw2\biodraw\src\features\canvas-panel\CanvasPanel.tsx`，删除从 Step 6.1 找到的"起始行（包含 `useEffect(() => {` 这一行）"到"结束行（包含依赖数组的 `]);`）"之间所有内容。
+打开 `D:\Project\BioDraw2\app\src\features\canvas-panel\CanvasPanel.tsx`，删除从 Step 6.1 找到的"起始行（包含 `useEffect(() => {` 这一行）"到"结束行（包含依赖数组的 `]);`）"之间所有内容。
 
 参考标识：
 ```ts
@@ -704,7 +704,7 @@ Expected: 看到两行：第一行是 useEffect 起点（约 line 629），第�
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 Select-String -Path src\features\canvas-panel\CanvasPanel.tsx -Pattern "lastHandledVideoExportRequestRef" -AllMatches | Format-Table LineNumber, Line -AutoSize
 ```
 Expected: 应当只剩一处声明（已删除使用方），把这条声明也一并删除。
@@ -712,7 +712,7 @@ Expected: 应当只剩一处声明（已删除使用方），把这条声明也�
 类似地排查 `videoExportRequestId` / `videoExportOptions` / `setVideoExportStatus` —— 但**这些不要删**，下一步 `useVideoExport(...)` 内部不通过 props 重复读，是直接从 store 取。所以 CanvasPanel 的这些读取 hook 若**当前没有其它地方使用**也可以删；用 Select-String 验证：
 
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 Select-String -Path src\features\canvas-panel\CanvasPanel.tsx -Pattern "videoExportRequestId|videoExportOptions" -AllMatches | Format-Table LineNumber, Line -AutoSize
 ```
 若每个名字只剩 1 处声明（如 `const videoExportRequestId = useEditorStore(...)`），则把那行删除。`setVideoExportStatus` 同理。
@@ -752,7 +752,7 @@ import { useVideoExport } from './useVideoExport';
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npx tsc -b --noEmit
 ```
 Expected: 退出码 0。
@@ -761,7 +761,7 @@ Expected: 退出码 0。
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npm run lint
 ```
 Expected: 退出码 0。常见可能告警：`@typescript-eslint/no-unused-vars` 对刚才漏删的 ref/import → 补删。
@@ -769,7 +769,7 @@ Expected: 退出码 0。常见可能告警：`@typescript-eslint/no-unused-vars`
 - [ ] **Step 6.7：commit**
 
 ```bash
-git -C D:/Project/BioDraw2 add biodraw/src/features/canvas-panel/CanvasPanel.tsx
+git -C D:/Project/BioDraw2 add app/src/features/canvas-panel/CanvasPanel.tsx
 git -C D:/Project/BioDraw2 commit -m "$(cat <<'EOF'
 CanvasPanel 切换到 useVideoExport hook
 
@@ -791,7 +791,7 @@ EOF
 
 Run:
 ```powershell
-Set-Location D:\Project\BioDraw2\biodraw
+Set-Location D:\Project\BioDraw2\app
 npm run dev
 ```
 Expected: Vite 启动，console 输出 `Local: http://localhost:5173/`（端口以实际为准）。
